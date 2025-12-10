@@ -47,7 +47,7 @@ export default function NuevaRetencionPage() {
         // BUT retentions require valid provider.
         // We will try to find client/provider by ID using existing search
         try {
-            const res = await apiClient.getProveedores(identificacion);
+            const res = await apiClient.getProveedores({ search: identificacion });
             if (res.results && res.results.length > 0) {
                 setProveedor(res.results[0]);
             } else {
