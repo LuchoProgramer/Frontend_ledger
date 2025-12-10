@@ -1,0 +1,86 @@
+/**
+ * Utilidades para manejo de multi-tenant (Client-side)
+ * Para Server Components, usar utils/tenant-server.ts
+ */
+
+/**
+ * Detecta el tenant actual basado en el subdominio de la URL (CLIENT-SIDE)
+ * 
+ * Ejemplos:
+ * - yanett.localhost:3000 -> "yanett"
+ * - empresa2.localhost:3000 -> "empresa2"
+ * - localhost:3000 -> "public"
+ * - yanett.midominio.com -> "yanett"
+ */
+export function getTenant(): string {
+  // Solo funciona en el cliente
+  if (typeof window === 'undefined') return 'public';
+  
+  const hostname = window.location.hostname;
+  const parts = hostname.split('.');
+  
+  // localhost sin subdominio -> tenant público
+  if (parts.length === 1 || hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'public';
+  }
+  
+  // Si el primer segmento es 'www', tratarlo como público
+  if (parts[0] === 'www') {
+    return 'public';
+  }
+  
+  // Retornar el subdominio
+  return parts[0];
+}
+
+/**
+ * Verifica si el tenant actual es el público (sin subdominio)
+ */
+export function isPublicTenant(): boolean {
+  return getTenant() === 'public';
+}
+
+/**
+ * @deprecated Usar getTenant() en su lugar
+ */
+export function getTenantFromHostname(hostname?: string): string {
+  if (hostname) {
+    const parts = hostname.split('.');
+    if (parts.length === 1 || hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'public';
+    }
+    return parts[0];
+  }
+  return getTenant();
+}
+
+/**
+ * Obtiene la URL base del API según el tenant
+ * 
+ * En desarrollo usa rutas relativas para aprovechar el proxy de Next.js
+ * y compartir cookies entre frontend y backend
+ */
+export function getApiUrl(hostname?: string): string {
+  // En desarrollo, usamos rutas relativas para que el proxy de Next.js funcione
+  // Esto permite que las cookies se compartan correctamente
+  if (process.env.NODE_ENV === 'development') {
+    return ''; // Ruta relativa, Next.js rewrites hará proxy a localhost:8000
+  }
+  
+  // En producción, usar la URL completa del API
+  const apiUrlTemplate = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const currentTenant = getTenantFromHostname(hostname);
+  
+  // Reemplazar {tenant} con el tenant actual
+  return apiUrlTemplate.replace('{tenant}', currentTenant);
+}
+
+/**
+ * Hook para obtener el tenant actual en componentes React
+ */
+export function useTenant(): string {
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_DEFAULT_TENANT || 'public';
+  }
+  return getTenantFromHostname();
+}
