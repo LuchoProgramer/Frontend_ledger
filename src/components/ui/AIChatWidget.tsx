@@ -60,8 +60,8 @@ export default function AIChatWidget() {
         setIsLoading(true);
 
         try {
-            // Production URL (Cloud Run)
-            const API_URL = 'https://messages-uq7ypdzlda-uc.a.run.app/';
+            // Use the local proxy to avoid CORS issues on tenant subdomains
+            const API_URL = '/api/chat/';
 
             const sessionId = localStorage.getItem('chat_session_id') || 'default-session';
 
