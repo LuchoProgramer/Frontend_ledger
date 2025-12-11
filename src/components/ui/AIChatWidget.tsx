@@ -60,8 +60,8 @@ export default function AIChatWidget() {
         setIsLoading(true);
 
         try {
-            // Use the local proxy to avoid CORS issues on tenant subdomains
-            const API_URL = '/api/chat/';
+            // Use absolute URL to Django Backend Proxy
+            const API_URL = 'https://api.ledgerxpertz.com/api/chat/';
 
             const sessionId = localStorage.getItem('chat_session_id') || 'default-session';
 
