@@ -31,6 +31,12 @@ export default function LandingPage() {
         console.log('[LandingPage] Obteniendo estadísticas públicas...');
         const data = await api.getEstadisticasPublicas();
         console.log('[LandingPage] Estadísticas recibidas:', data);
+
+        if (!data || !data.features || !Array.isArray(data.features)) {
+          console.warn('[LandingPage] Datos inválidos recibidos:', data);
+          throw new Error('Datos inválidos recibidos del API');
+        }
+
         setStats(data);
       } catch (error: any) {
         console.error('[LandingPage] Error al cargar estadísticas:', {
@@ -73,15 +79,15 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Hero Section */}
-      <header className="container mx-auto px-4 py-16">
-        <nav className="flex justify-between items-center mb-16">
+      <header className="container mx-auto px-4 py-12 md:py-16">
+        <nav className="flex flex-col md:flex-row justify-between items-center mb-12 md:mb-16 gap-4 md:gap-0">
           <div className="flex items-center space-x-2">
             <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xl">LX</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-800">LedgerXpertz</h1>
           </div>
-          <div className="space-x-4">
+          <div className="flex space-x-4 w-full md:w-auto justify-center md:justify-end">
             <button
               onClick={() => setModalBuscarAbierto(true)}
               className="text-gray-700 hover:text-indigo-600 font-medium transition"
@@ -98,24 +104,24 @@ export default function LandingPage() {
         </nav>
 
         <div className="text-center max-w-4xl mx-auto">
-          <h2 className="text-5xl font-extrabold text-gray-900 mb-6">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
             Sistema de Gestión Empresarial
-            <span className="text-indigo-600"> Multi-Tenant</span>
+            <span className="text-indigo-600 block md:inline"> Multi-Tenant</span>
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
             Gestiona tu negocio de forma profesional con facturación electrónica SRI,
             control de inventario, punto de venta y más.
           </p>
-          <div className="flex justify-center gap-4">
+          <div className="flex flex-col md:flex-row justify-center gap-4 px-4 md:px-0">
             <Link
               href="/registro"
-              className="bg-indigo-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition shadow-lg"
+              className="w-full md:w-auto bg-indigo-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition shadow-lg text-center"
             >
               Registrar mi Empresa
             </Link>
             <button
               onClick={() => setModalBuscarAbierto(true)}
-              className="bg-white text-indigo-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition shadow-lg border-2 border-indigo-600"
+              className="w-full md:w-auto bg-white text-indigo-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-50 transition shadow-lg border-2 border-indigo-600"
             >
               Buscar mi Empresa
             </button>
@@ -134,17 +140,17 @@ export default function LandingPage() {
         <section className="bg-white py-12">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-              <div>
+              <div className="p-4">
                 <div className="text-4xl font-bold text-indigo-600 mb-2">
                   {stats.total_empresas}+
                 </div>
                 <div className="text-gray-600">Empresas Registradas</div>
               </div>
-              <div>
+              <div className="p-4">
                 <div className="text-4xl font-bold text-indigo-600 mb-2">100%</div>
                 <div className="text-gray-600">Cumplimiento SRI</div>
               </div>
-              <div>
+              <div className="p-4">
                 <div className="text-4xl font-bold text-indigo-600 mb-2">24/7</div>
                 <div className="text-gray-600">Disponibilidad</div>
               </div>
@@ -165,7 +171,7 @@ export default function LandingPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {stats?.features.map((feature, index) => (
+            {stats?.features?.map((feature, index) => (
               <div
                 key={index}
                 className="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition"
@@ -194,7 +200,7 @@ export default function LandingPage() {
           </p>
           <Link
             href="/registro"
-            className="bg-white text-indigo-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition inline-block shadow-lg"
+            className="w-full md:w-auto bg-white text-indigo-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition inline-block shadow-lg text-center"
           >
             Crear Cuenta Gratis
           </Link>
@@ -214,7 +220,7 @@ export default function LandingPage() {
 // Componente simple para iconos (puedes reemplazarlo con una librería de iconos)
 function FeatureIcon({ name }: { name: string }) {
   const iconClass = 'w-6 h-6 text-indigo-600';
-  
+
   // Iconos SVG básicos
   switch (name) {
     case 'shopping-cart':

@@ -26,7 +26,7 @@ export default function BuscarEmpresaModal({ isOpen, onClose }: BuscarEmpresaMod
 
   const handleBuscar = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (termino.trim().length < 3) {
       setError('Debe ingresar al menos 3 caracteres')
       return
@@ -39,7 +39,7 @@ export default function BuscarEmpresaModal({ isOpen, onClose }: BuscarEmpresaMod
 
     try {
       const response = await buscarEmpresas(termino.trim())
-      
+
       if (response.success) {
         setEmpresas(response.data.empresas)
         if (response.data.empresas.length === 0) {
@@ -61,7 +61,7 @@ export default function BuscarEmpresaModal({ isOpen, onClose }: BuscarEmpresaMod
     // PostgreSQL permite guiones bajos, pero los subdominios HTTP no
     // yanett_pruebas → yanett-pruebas
     const subdomain = empresa.schema_name.replace(/_/g, '-')
-    
+
     // Redirigir al tenant seleccionado
     window.location.href = `http://${subdomain}.localhost:3000/login`
   }
@@ -92,7 +92,7 @@ export default function BuscarEmpresaModal({ isOpen, onClose }: BuscarEmpresaMod
         <div className="p-6">
           {/* Formulario de búsqueda */}
           <form onSubmit={handleBuscar} className="mb-6">
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
                 value={termino}
@@ -104,7 +104,7 @@ export default function BuscarEmpresaModal({ isOpen, onClose }: BuscarEmpresaMod
               <button
                 type="submit"
                 disabled={loading || termino.trim().length < 3}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
+                className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
               >
                 {loading ? 'Buscando...' : 'Buscar'}
               </button>
