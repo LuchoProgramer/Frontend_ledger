@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getApiClient } from '@/lib/api';
 import Link from 'next/link';
+import Image from 'next/image';
 import BuscarEmpresaModal from './BuscarEmpresaModal';
 
 interface Feature {
@@ -208,9 +209,37 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-8">
+      <footer className="bg-gray-900 text-white py-12">
         <div className="container mx-auto px-4 text-center">
-          <p>&copy; 2025 LedgerXpertz. Todos los derechos reservados.</p>
+          <p className="text-lg mb-4">&copy; 2025 LedgerXpertz. Todos los derechos reservados.</p>
+          <div className="flex flex-col items-center justify-center space-y-3">
+            <p className="text-gray-500 text-xs uppercase tracking-widest font-medium">Una innovación de</p>
+            <a
+              href="https://pukadigital.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 hover:opacity-90 transition-opacity group"
+            >
+              <div className="transition-transform group-hover:scale-110 duration-300">
+                <Image
+                  src="/puka-mascot.png"
+                  alt="PukaDigital Mascot"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
+              </div>
+              <div>
+                <Image
+                  src="/puka-text.png"
+                  alt="PukaDigital Logo"
+                  width={90}
+                  height={35}
+                  className="object-contain"
+                />
+              </div>
+            </a>
+          </div>
         </div>
       </footer>
     </div>
