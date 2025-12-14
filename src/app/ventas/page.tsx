@@ -216,6 +216,24 @@ export default function SalesHistoryPage() {
                                                 >
                                                     <span>📄</span> PDF
                                                 </button>
+                                                {fact.estado_sri !== 'AUT' && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!confirm('¿Enviar factura al SRI?')) return;
+                                                            try {
+                                                                await apiClient.enviarSRI(fact.id);
+                                                                alert('Enviado. El estado se actualizará en breve.');
+                                                                loadFacturas();
+                                                            } catch (e: any) {
+                                                                alert('Error enviando al SRI: ' + (e.message || e.toString()));
+                                                            }
+                                                        }}
+                                                        className="px-3 py-1.5 text-xs font-medium text-green-600 hover:text-green-900 hover:bg-green-50 rounded-lg transition-colors flex items-center gap-1"
+                                                        title="Enviar al SRI"
+                                                    >
+                                                        <span>📤</span> SRI
+                                                    </button>
+                                                )}
                                                 <button
                                                     className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
                                                     title="Descargar XML"
@@ -284,6 +302,23 @@ export default function SalesHistoryPage() {
                                 >
                                     <span>📄</span> PDF
                                 </button>
+                                {fact.estado_sri !== 'AUT' && (
+                                    <button
+                                        onClick={async () => {
+                                            if (!confirm('¿Enviar factura al SRI?')) return;
+                                            try {
+                                                await apiClient.enviarSRI(fact.id);
+                                                alert('Enviado. El estado se actualizará en breve.');
+                                                loadFacturas();
+                                            } catch (e: any) {
+                                                alert('Error enviando al SRI: ' + (e.message || e.toString()));
+                                            }
+                                        }}
+                                        className="flex-1 px-3 py-2 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <span>📤</span> SRI
+                                    </button>
+                                )}
                                 <button className="flex-1 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
                                     📋 XML
                                 </button>
