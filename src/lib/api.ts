@@ -209,9 +209,17 @@ export class ApiClient {
   }
 
   async enviarSRI(id: number) {
-    return this.request<any>(`/api/facturas/${id}/enviar_sri/`, {
-      method: 'POST',
-    });
+    console.log('[enviarSRI] INICIO - ID:', id);
+    try {
+      const result = await this.request<any>(`/api/facturas/${id}/enviar_sri/`, {
+        method: 'POST',
+      });
+      console.log('[enviarSRI] EXITO - Resultado:', result);
+      return result;
+    } catch (error) {
+      console.error('[enviarSRI] ERROR:', error);
+      throw error;
+    }
   }
 
   async consultarSRI(id: number) {
