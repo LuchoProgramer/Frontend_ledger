@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getApiClient } from '@/lib/api';
 import type { Categoria, Impuesto, ProductoFormData, Producto } from '@/lib/types/productos';
+import CategoryModal from './CategoryModal';
 
 interface ProductFormProps {
     initialData?: Producto;
@@ -15,6 +16,9 @@ interface ProductFormProps {
 export default function ProductForm({ initialData, onSuccess }: ProductFormProps) {
     const router = useRouter();
     const isEditing = !!initialData;
+
+    // Modal state
+    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
     // Estados de catálogos
     const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -187,8 +191,27 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
                             <option key={c.id} value={c.id}>{c.nombre}</option>
                         ))}
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">¿No encuentras la categoría? <Link href="/productos/categorias" className="text-blue-600 hover:underline">Crear nueva</Link></p>
+
+                    <p className="text-xs text-gray-500 mt-1">
+                        ¿No encuentras la categoría?{' '}
+                        <button
+                            type="button"
+                            className="text-blue-600 hover:underline hover:text-blue-800 transition-colors"
+                            onClick={() => setIsCategoryModalOpen(true)}
+                        >
+                            Crear nueva
+                        </button>
+                    </p>
                 </div>
+
+                <CategoryModal
+                    isOpen={isCategoryModalOpen}
+                    onClose={() => setIsCategoryModalOpen(false)}
+                    onSuccess={(nuevaCategoria) => {
+                        setCategorias(prev => [...prev, nuevaCategoria]);
+                        setFormData(prev => ({ ...prev, categoria_id: nuevaCategoria.id }));
+                    }}
+                />
 
                 {/* Impuesto */}
                 <div>
@@ -302,6 +325,6 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
                     )}
                 </button>
             </div>
-        </form>
+        </form >
     );
 }
