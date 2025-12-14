@@ -219,12 +219,16 @@ export default function SalesHistoryPage() {
                                                 {fact.estado_sri !== 'AUT' && (
                                                     <button
                                                         onClick={async () => {
+                                                            console.log('Botón SRI presionado para ID:', fact.id);
                                                             if (!confirm('¿Enviar factura al SRI?')) return;
                                                             try {
+                                                                console.log('Llamando a apiClient.enviarSRI...');
                                                                 await apiClient.enviarSRI(fact.id);
+                                                                console.log('Respuesta recibida de enviarSRI');
                                                                 alert('Enviado. El estado se actualizará en breve.');
                                                                 loadFacturas();
                                                             } catch (e: any) {
+                                                                console.error('Error enviando SRI:', e);
                                                                 alert('Error enviando al SRI: ' + (e.message || e.toString()));
                                                             }
                                                         }}
@@ -305,12 +309,15 @@ export default function SalesHistoryPage() {
                                 {fact.estado_sri !== 'AUT' && (
                                     <button
                                         onClick={async () => {
+                                            console.log('Botón SRI Móvil presionado para ID:', fact.id);
                                             if (!confirm('¿Enviar factura al SRI?')) return;
                                             try {
+                                                console.log('Llamando a apiClient.enviarSRI...');
                                                 await apiClient.enviarSRI(fact.id);
                                                 alert('Enviado. El estado se actualizará en breve.');
                                                 loadFacturas();
                                             } catch (e: any) {
+                                                console.error('Error enviando SRI:', e);
                                                 alert('Error enviando al SRI: ' + (e.message || e.toString()));
                                             }
                                         }}
