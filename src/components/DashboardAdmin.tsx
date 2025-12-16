@@ -4,6 +4,31 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { getApiClient } from '@/lib/api'
+import {
+  Package,
+  TrendingUp,
+  Users,
+  Store,
+  DollarSign,
+  ArrowUpRight,
+  ArrowDownRight,
+  Box,
+  CreditCard,
+  FileText,
+  Settings,
+  ShoppingCart,
+  Truck,
+  Activity
+} from 'lucide-react'
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts'
 
 interface DashboardAdminProps {
   tenant: string
@@ -15,110 +40,181 @@ export default function DashboardAdmin({ tenant }: DashboardAdminProps) {
   const [verificandoSucursales, setVerificandoSucursales] = useState(true)
   const [branchCount, setBranchCount] = useState<string>('-')
 
-  // Verificar si hay sucursales al cargar
-  useEffect(() => {
-    // No verificar sucursales si aún se está cargando la autenticación
-    if (authLoading) {
-      return
-    }
+  const [salesData, setSalesData] = useState<any[]>([])
+  const [kpiData, setKpiData] = useState({
+    total_ventas: 0,
+    transacciones: 0,
+    ticket_promedio: 0
+  })
 
-    // Si no hay usuario autenticado, no intentar verificar sucursales
+  // Cargar datos reales
+  useEffect(() => {
+    if (authLoading) return
     if (!user) {
       setVerificandoSucursales(false)
       return
     }
 
-    const verificarSucursales = async () => {
+    const cargarDatos = async () => {
       try {
         const api = getApiClient()
-        const response = await api.getSucursalesList({ page_size: 1 })
 
-        const isSuccess = response.success || (response.results && Array.isArray(response.results))
+        // 1. Verificar Sucursales
+        const sucursalRes = await api.getSucursalesList({ page_size: 1 })
+        const isSuccess = sucursalRes.success || (sucursalRes.results && Array.isArray(sucursalRes.results))
 
-        // Si no hay sucursales, redirigir a onboarding
-        if (isSuccess && (response.count ?? 0) === 0) {
+        if (isSuccess && (sucursalRes.count ?? 0) === 0) {
           router.push('/onboarding')
-        } else {
-          if (isSuccess && response.count !== undefined) {
-            setBranchCount(response.count.toString())
-          }
-          setVerificandoSucursales(false)
+          return
         }
+
+        if (isSuccess && sucursalRes.count !== undefined) {
+          setBranchCount(sucursalRes.count.toString())
+        }
+
+        // 2. Cargar Gráfica de Ventas (Diario)
+        // Nota: Asegurarse de que el backend soporte 'diario'
+        try {
+          const chartRes = await api.getVentasChart({ periodo: 'diario' })
+          if (Array.isArray(chartRes)) {
+            // Mapear respuesta del backend al formato de Recharts
+            // Backend retorna: { name: 'DD/MM', venta: 123.45 }
+            setSalesData(chartRes.map(item => ({
+              name: item.name,
+              ventas: item.venta
+            })))
+          }
+        } catch (e) {
+          console.error('Error cargando grafica ventas', e)
+        }
+
+        // 3. Cargar KPIs Generales
+        try {
+          const kpiRes = await api.getResumenGeneral()
+          if (kpiRes) {
+            setKpiData({
+              total_ventas: kpiRes.total_ventas || 0,
+              transacciones: kpiRes.transacciones || 0,
+              ticket_promedio: kpiRes.ticket_promedio || 0
+            })
+          }
+        } catch (e) {
+          console.error('Error cargando KPIs', e)
+        }
+
+        setVerificandoSucursales(false)
+
       } catch (error: any) {
-        console.error('Error verificando sucursales:', error?.message || 'Error desconocido')
-        // Continuar mostrando el dashboard aunque falle la verificación
+        console.error('Error general cargando dashboard:', error?.message || 'Error desconocido')
         setVerificandoSucursales(false)
       }
     }
 
-    verificarSucursales()
+    cargarDatos()
   }, [router, authLoading, user])
 
   const menuItems = [
     {
       title: 'Productos',
-      icon: '📦',
+      icon: <Box className="w-5 h-5" />,
+      description: 'Gestión de catálogo',
+      href: '/productos',
+      color: 'bg-blue-50 text-blue-600',
       items: [
-        { name: 'Listar Productos', href: '/productos', icon: '📋' },
-        { name: 'Agregar Producto', href: '/productos/nuevo', icon: '➕' },
-        { name: 'Categorías', href: '/categorias', icon: '🏷️' },
+        { name: 'Nuevo Producto', href: '/productos/nuevo' },
+        { name: 'Categorías', href: '/categorias' },
       ]
     },
     {
       title: 'Ventas',
-      icon: '💰',
+      icon: <TrendingUp className="w-5 h-5" />,
+      description: 'POS y Reportes',
+      href: '/ventas',
+      color: 'bg-green-50 text-green-600',
       items: [
-        { name: 'Punto de Venta (POS)', href: '/pos', icon: '🛒' },
-        { name: 'Historial de Ventas', href: '/ventas', icon: '📊' },
-        { name: 'Reportes de Ventas', href: '/reportes/ventas', icon: '📈' },
+        { name: 'Ir al POS', href: '/pos' },
+        { name: 'Historial', href: '/ventas' },
       ]
     },
     {
       title: 'Compras',
-      icon: '🚚',
+      icon: <Truck className="w-5 h-5" />,
+      description: 'Proveedores y Stock',
+      href: '/compras',
+      color: 'bg-orange-50 text-orange-600',
       items: [
-        { name: 'Registrar Compra', href: '/compras/nueva', icon: '➕' },
-        { name: 'Historial de Compras', href: '/compras', icon: '📋' },
-        { name: 'Proveedores', href: '/proveedores', icon: '👥' },
+        { name: 'Nueva Compra', href: '/compras/nueva' },
+        { name: 'Proveedores', href: '/proveedores' },
+      ]
+    },
+    {
+      title: 'Facturación SRI',
+      icon: <FileText className="w-5 h-5" />,
+      description: 'Emisión y Control',
+      href: '/facturacion',
+      color: 'bg-indigo-50 text-indigo-600',
+      items: [
+        { name: 'Dashboard SRI', href: '/facturacion' },
+        { name: 'Retenciones', href: '/facturacion/retenciones' },
       ]
     },
     {
       title: 'Inventario',
-      icon: '📊',
+      icon: <Package className="w-5 h-5" />,
+      description: 'Ajustes y Kárdex',
+      href: '/inventario',
+      color: 'bg-purple-50 text-purple-600',
       items: [
-        { name: 'Estado de Inventario', href: '/inventario', icon: '📦' },
-        { name: 'Ajustes de Inventario', href: '/inventario/ajustes', icon: '⚙️' },
-        { name: 'Transferencias', href: '/inventario/transferencias', icon: '🔄' },
-      ]
-    },
-    {
-      title: 'Facturación Electrónica SRI',
-      icon: '📄',
-      items: [
-        { name: 'Dashboard Facturas', href: '/facturacion', icon: '🧾' },
-        { name: 'Notas de Crédito', href: '/facturacion/notas-credito', icon: '📝' },
-        { name: 'Notas de Débito', href: '/facturacion/notas-debito', icon: '📝' },
-        { name: 'Retenciones', href: '/facturacion/retenciones', icon: '💵' },
-        { name: 'Gestionar Impuestos', href: '/impuestos', icon: '📊' },
+        { name: 'Ver Stock', href: '/inventario' },
+        { name: 'Auditoría', href: '/inventario/auditoria' },
       ]
     },
     {
       title: 'Configuración',
-      icon: '⚙️',
+      icon: <Settings className="w-5 h-5" />,
+      description: 'Sistema y Usuarios',
+      href: '/configuracion',
+      color: 'bg-slate-50 text-slate-600',
       items: [
-        { name: 'Usuarios', href: '/usuarios', icon: '👤' },
-        { name: 'Sucursales', href: '/sucursales', icon: '🏢' },
-        { name: 'Certificados Digitales', href: '/certificados', icon: '🔐' },
-        { name: 'Configuración General', href: '/configuracion', icon: '⚙️' },
+        { name: 'Usuarios', href: '/usuarios' },
+        { name: 'Sucursales', href: '/sucursales' },
       ]
-    },
+    }
   ]
 
   const estadisticas = [
-    { label: 'Usuarios', value: '-', icon: '👥', color: 'bg-blue-500' },
-    { label: 'Productos', value: '-', icon: '📦', color: 'bg-green-500' },
-    { label: 'Ventas Hoy', value: '-', icon: '💰', color: 'bg-yellow-500' },
-    { label: 'Sucursales', value: branchCount, icon: '🏢', color: 'bg-purple-500' },
+    {
+      label: 'Ventas Totales',
+      value: kpiData.total_ventas ? `$${kpiData.total_ventas.toFixed(2)}` : '$0.00',
+      change: '', // TODO: Calcular % cambio vs mes anterior
+      trend: 'up',
+      icon: <DollarSign className="w-6 h-6 text-emerald-600" />,
+      bg: 'bg-emerald-100'
+    },
+    {
+      label: 'Transacciones',
+      value: kpiData.transacciones.toString(),
+      change: '',
+      trend: 'up',
+      icon: <ShoppingCart className="w-6 h-6 text-blue-600" />,
+      bg: 'bg-blue-100'
+    },
+    {
+      label: 'Ticket Promedio',
+      value: kpiData.ticket_promedio ? `$${kpiData.ticket_promedio.toFixed(2)}` : '$0.00',
+      change: '',
+      trend: 'neutral',
+      icon: <CreditCard className="w-6 h-6 text-amber-600" />,
+      bg: 'bg-amber-100'
+    },
+    {
+      label: 'Sucursales',
+      value: branchCount,
+      change: '',
+      trend: 'neutral',
+      icon: <Store className="w-6 h-6 text-purple-600" />,
+      bg: 'bg-purple-100'
+    },
   ]
 
   if (verificandoSucursales) {
@@ -133,81 +229,101 @@ export default function DashboardAdmin({ tenant }: DashboardAdminProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">LX</span>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Dashboard Administrador</h1>
-                <p className="text-sm text-gray-500">{tenant}</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{user?.first_name || user?.username}</p>
-                <p className="text-xs text-gray-500">Administrador</p>
-              </div>
-              <button
-                onClick={logout}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-              >
-                Cerrar Sesión
-              </button>
-            </div>
+    <div className="min-h-screen bg-gray-50/50 pb-12">
+      {/* Header Simplificado */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <h1 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-indigo-600" />
+            Dashboard General
+          </h1>
+          <div className="text-sm text-gray-500">
+            {tenant}
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {estadisticas.map((stat) => (
-            <div key={stat.label} className="bg-white rounded-lg shadow-sm p-6 border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                </div>
-                <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center text-2xl`}>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {estadisticas.map((stat, index) => (
+            <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-lg ${stat.bg}`}>
                   {stat.icon}
                 </div>
+                {stat.trend === 'up' && <span className="flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full"><ArrowUpRight className="w-3 h-3 mr-1" />{stat.change}</span>}
+                {stat.trend === 'down' && <span className="flex items-center text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-1 rounded-full"><ArrowDownRight className="w-3 h-3 mr-1" />{stat.change}</span>}
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
+                <h3 className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</h3>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Menú de opciones */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {menuItems.map((section) => (
-            <div key={section.title} className="bg-white rounded-lg shadow-sm border overflow-hidden">
-              <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 px-4 py-3">
-                <h2 className="text-lg font-semibold text-white flex items-center">
-                  <span className="mr-2">{section.icon}</span>
-                  {section.title}
-                </h2>
+        {/* Sección Principal con Gráfica y Accesos */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+          {/* Columna Izquierda: Gráfica de Ventas */}
+          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Resumen de Ventas</h2>
+                <p className="text-sm text-gray-500">Comportamiento de los últimos 7 días</p>
               </div>
-              <div className="p-4">
-                <ul className="space-y-2">
-                  {section.items.map((item) => (
-                    <li key={item.name}>
-                      <button
-                        onClick={() => router.push(item.href)}
-                        className="w-full text-left px-4 py-3 rounded-lg hover:bg-indigo-50 transition-colors flex items-center space-x-3 text-gray-700 hover:text-indigo-600"
-                      >
-                        <span className="text-xl">{item.icon}</span>
-                        <span className="font-medium">{item.name}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+              <button className="text-sm text-indigo-600 font-medium hover:text-indigo-700">Ver reporte completo</button>
+            </div>
+
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={salesData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    cursor={{ stroke: '#6366f1', strokeWidth: 2 }}
+                  />
+                  <Area type="monotone" dataKey="ventas" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorVentas)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Columna Derecha: Accesos Rápidos Verticales */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Accesos Directos</h2>
+              <div className="grid grid-cols-1 gap-3">
+                {menuItems.map((item, idx) => (
+                  <div key={idx} className="group relative bg-white border border-gray-100 rounded-lg p-3 hover:border-indigo-100 hover:shadow-md transition-all cursor-pointer" onClick={() => router.push(item.href)}>
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-lg ${item.color}`}>
+                        {item.icon}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">{item.title}</h3>
+                        <p className="text-xs text-gray-500">{item.description}</p>
+                      </div>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ArrowUpRight className="w-4 h-4 text-gray-400" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+          </div>
+
         </div>
       </main>
     </div>

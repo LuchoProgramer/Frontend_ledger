@@ -6,6 +6,28 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getApiClient } from '@/lib/api';
 import AIChatWidget from './ui/AIChatWidget';
 import OnboardingTour from './OnboardingTour';
+import {
+    Package,
+    ShoppingCart,
+    Truck,
+    BarChart3,
+    FileText,
+    Settings,
+    Users,
+    Store,
+    Lock,
+    ClipboardList,
+    Plus,
+    Tag,
+    History,
+    TrendingUp,
+    Briefcase,
+    ShieldCheck,
+    CreditCard,
+    Receipt,
+    Calculator,
+    LayoutDashboard
+} from 'lucide-react';
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -47,67 +69,78 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         return roles.some(role => user.groups?.includes(role));
     };
 
-    const menuItems = [
+    interface MenuItem {
+        title: string;
+        icon: React.ReactNode;
+        allowedRoles?: string[];
+        items: {
+            name: string;
+            href: string;
+            icon: React.ReactNode;
+        }[];
+    }
+
+    const menuItems: MenuItem[] = [
         {
             title: 'Productos',
-            icon: '📦',
+            icon: <Package className="w-5 h-5" />,
             allowedRoles: ['Administrador', 'Bodeguero'],
             items: [
-                { name: 'Listar Productos', href: '/productos', icon: '📋' },
-                { name: 'Agregar Producto', href: '/productos/nuevo', icon: '➕' },
-                { name: 'Categorías', href: '/categorias', icon: '🏷️' },
+                { name: 'Listar Productos', href: '/productos', icon: <ClipboardList className="w-4 h-4" /> },
+                { name: 'Agregar Producto', href: '/productos/nuevo', icon: <Plus className="w-4 h-4" /> },
+                { name: 'Categorías', href: '/categorias', icon: <Tag className="w-4 h-4" /> },
             ]
         },
         {
             title: 'Ventas',
-            icon: '💰',
+            icon: <ShoppingCart className="w-5 h-5" />,
             allowedRoles: ['Administrador', 'Vendedor'],
             items: [
-                { name: 'Punto de Venta (POS)', href: '/pos', icon: '🛒' },
-                { name: 'Historial de Ventas', href: '/ventas', icon: '📊' },
-                { name: 'Historial de Cajas', href: '/turnos', icon: '🏪' },
-                { name: 'Reportes de Ventas', href: '/reportes', icon: '📈' },
+                { name: 'Punto de Venta (POS)', href: '/pos', icon: <Store className="w-4 h-4" /> },
+                { name: 'Historial de Ventas', href: '/ventas', icon: <History className="w-4 h-4" /> },
+                { name: 'Historial de Cajas', href: '/turnos', icon: <Briefcase className="w-4 h-4" /> },
+                { name: 'Reportes de Ventas', href: '/reportes', icon: <TrendingUp className="w-4 h-4" /> },
             ]
         },
         {
             title: 'Compras',
-            icon: '🚚',
+            icon: <Truck className="w-5 h-5" />,
             allowedRoles: ['Administrador', 'Bodeguero'],
             items: [
-                { name: 'Registrar Compra', href: '/compras/nueva', icon: '➕' },
-                { name: 'Historial de Compras', href: '/compras', icon: '📋' },
-                { name: 'Proveedores', href: '/proveedores', icon: '👥' },
+                { name: 'Registrar Compra', href: '/compras/nueva', icon: <Plus className="w-4 h-4" /> },
+                { name: 'Historial de Compras', href: '/compras', icon: <ClipboardList className="w-4 h-4" /> },
+                { name: 'Proveedores', href: '/proveedores', icon: <Users className="w-4 h-4" /> },
             ]
         },
         {
             title: 'Inventario',
-            icon: '📊',
+            icon: <BarChart3 className="w-5 h-5" />,
             allowedRoles: ['Administrador', 'Bodeguero', 'Vendedor'],
             items: [
-                { name: 'Gestión de Stock', href: '/inventario', icon: '📦' },
-                { name: 'Auditoría', href: '/inventario/auditoria', icon: '🛡️' },
+                { name: 'Gestión de Stock', href: '/inventario', icon: <Package className="w-4 h-4" /> },
+                { name: 'Auditoría', href: '/inventario/auditoria', icon: <ShieldCheck className="w-4 h-4" /> },
             ]
         },
         {
-            title: 'Facturación Electrónica SRI',
-            icon: '📄',
+            title: 'Facturación SRI',
+            icon: <FileText className="w-5 h-5" />,
             allowedRoles: ['Administrador'],
             items: [
-                { name: 'Dashboard SRI', href: '/facturacion', icon: '📊' }, // Updated
-                { name: 'Notas de Crédito', href: '/facturacion/notas-credito', icon: '📝' },
-                { name: 'Retenciones', href: '/facturacion/retenciones', icon: '💵' },
-                { name: 'Gestionar Impuestos', href: '/impuestos', icon: '⚙️' },
+                { name: 'Dashboard SRI', href: '/facturacion', icon: <LayoutDashboard className="w-4 h-4" /> },
+                { name: 'Notas de Crédito', href: '/facturacion/notas-credito', icon: <Receipt className="w-4 h-4" /> },
+                { name: 'Retenciones', href: '/facturacion/retenciones', icon: <CreditCard className="w-4 h-4" /> },
+                { name: 'Gestionar Impuestos', href: '/impuestos', icon: <Calculator className="w-4 h-4" /> },
             ]
         },
         {
             title: 'Configuración',
-            icon: '⚙️',
+            icon: <Settings className="w-5 h-5" />,
             allowedRoles: ['Administrador'],
             items: [
-                { name: 'Usuarios', href: '/usuarios', icon: '👤' },
-                { name: 'Sucursales', href: '/sucursales', icon: '🏢' },
-                { name: 'Certificados Digitales', href: '/certificados', icon: '🔐' },
-                { name: 'Configuración General', href: '/configuracion', icon: '⚙️' },
+                { name: 'Usuarios', href: '/usuarios', icon: <Users className="w-4 h-4" /> },
+                { name: 'Sucursales', href: '/sucursales', icon: <Store className="w-4 h-4" /> },
+                { name: 'Certificados Digitales', href: '/certificados', icon: <Lock className="w-4 h-4" /> },
+                { name: 'Configuración General', href: '/configuracion', icon: <Settings className="w-4 h-4" /> },
             ]
         },
     ];
