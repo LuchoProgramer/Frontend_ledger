@@ -289,20 +289,26 @@ export default function DashboardAdmin({ tenant }: DashboardAdminProps) {
         <div className="space-y-6">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">Accesos Directos</h2>
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-4">
               {menuItems.map((item, idx) => (
-                <div key={idx} className="group relative bg-white border border-gray-100 rounded-lg p-3 hover:border-indigo-100 hover:shadow-md transition-all cursor-pointer" onClick={() => router.push(item.href)}>
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-lg ${item.color}`}>
+                <div key={idx} className="border-b border-gray-50 last:border-0 pb-3 last:pb-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`p-1.5 rounded-md ${item.color} bg-opacity-20`}>
                       {item.icon}
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">{item.title}</h3>
-                      <p className="text-xs text-gray-500">{item.description}</p>
-                    </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ArrowUpRight className="w-4 h-4 text-gray-400" />
-                    </div>
+                    <h3 className="font-semibold text-gray-700 text-sm">{item.title}</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pl-2">
+                    {item.items.map((subItem, subIdx) => (
+                      <button
+                        key={subIdx}
+                        onClick={() => router.push(subItem.href)}
+                        className="text-left text-xs text-gray-500 hover:text-indigo-600 hover:bg-gray-50 px-2 py-1 rounded transition-colors flex items-center gap-1 group"
+                      >
+                        <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px]">▶</span>
+                        {subItem.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -314,3 +320,4 @@ export default function DashboardAdmin({ tenant }: DashboardAdminProps) {
     </div>
   )
 }
+```
