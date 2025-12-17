@@ -320,4 +320,4 @@ export default function DashboardAdmin({ tenant }: DashboardAdminProps) {
     </div>
   )
 }
-}
+
