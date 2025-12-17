@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import DashboardAdmin from '@/components/DashboardAdmin'
 import DashboardVendedor from '@/components/DashboardVendedor'
+import DashboardLayout from '@/components/DashboardLayout'
 import { getTenant } from '@/lib/tenant'
 
 /**
@@ -49,11 +50,19 @@ export default function AppShell() {
 
   // Renderizar dashboard según rol
   if (isAdmin) {
-    return <DashboardAdmin tenant={tenant} />
+    return (
+      <DashboardLayout>
+        <DashboardAdmin tenant={tenant} />
+      </DashboardLayout>
+    )
   }
 
   if (isVendedor) {
-    return <DashboardVendedor tenant={tenant} />
+    return (
+      <DashboardLayout>
+        <DashboardVendedor tenant={tenant} />
+      </DashboardLayout>
+    )
   }
 
   // Fallback: usuario sin rol específico

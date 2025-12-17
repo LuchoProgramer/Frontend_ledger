@@ -229,103 +229,88 @@ export default function DashboardAdmin({ tenant }: DashboardAdminProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-12">
-      {/* Header Simplificado */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-indigo-600" />
-            LedgerXpertz
-          </h1>
-          <div className="text-sm text-gray-500">
-            {tenant}
-          </div>
-        </div>
-      </header>
+    <div className="space-y-8">
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {estadisticas.map((stat, index) => (
-            <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-lg ${stat.bg}`}>
-                  {stat.icon}
-                </div>
-                {stat.trend === 'up' && <span className="flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full"><ArrowUpRight className="w-3 h-3 mr-1" />{stat.change}</span>}
-                {stat.trend === 'down' && <span className="flex items-center text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-1 rounded-full"><ArrowDownRight className="w-3 h-3 mr-1" />{stat.change}</span>}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {estadisticas.map((stat, index) => (
+          <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`p-3 rounded-lg ${stat.bg}`}>
+                {stat.icon}
               </div>
-              <div>
-                <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
-                <h3 className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</h3>
-              </div>
+              {stat.trend === 'up' && <span className="flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full"><ArrowUpRight className="w-3 h-3 mr-1" />{stat.change}</span>}
+              {stat.trend === 'down' && <span className="flex items-center text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-1 rounded-full"><ArrowDownRight className="w-3 h-3 mr-1" />{stat.change}</span>}
             </div>
-          ))}
-        </div>
-
-        {/* Sección Principal con Gráfica y Accesos */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* Columna Izquierda: Gráfica de Ventas */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">Resumen de Ventas</h2>
-                <p className="text-sm text-gray-500">Comportamiento de los últimos 7 días</p>
-              </div>
-              <button className="text-sm text-indigo-600 font-medium hover:text-indigo-700">Ver reporte completo</button>
-            </div>
-
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={salesData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    cursor={{ stroke: '#6366f1', strokeWidth: 2 }}
-                  />
-                  <Area type="monotone" dataKey="ventas" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorVentas)" />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div>
+              <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
+              <h3 className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</h3>
             </div>
           </div>
+        ))}
+      </div>
 
-          {/* Columna Derecha: Accesos Rápidos Verticales */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Accesos Directos</h2>
-              <div className="grid grid-cols-1 gap-3">
-                {menuItems.map((item, idx) => (
-                  <div key={idx} className="group relative bg-white border border-gray-100 rounded-lg p-3 hover:border-indigo-100 hover:shadow-md transition-all cursor-pointer" onClick={() => router.push(item.href)}>
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-lg ${item.color}`}>
-                        {item.icon}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">{item.title}</h3>
-                        <p className="text-xs text-gray-500">{item.description}</p>
-                      </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <ArrowUpRight className="w-4 h-4 text-gray-400" />
-                      </div>
+      {/* Sección Principal con Gráfica y Accesos */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        {/* Columna Izquierda: Gráfica de Ventas */}
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Resumen de Ventas</h2>
+              <p className="text-sm text-gray-500">Comportamiento de los últimos 7 días</p>
+            </div>
+            <button className="text-sm text-indigo-600 font-medium hover:text-indigo-700">Ver reporte completo</button>
+          </div>
+
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={salesData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorVentas" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 12 }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  cursor={{ stroke: '#6366f1', strokeWidth: 2 }}
+                />
+                <Area type="monotone" dataKey="ventas" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorVentas)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Columna Derecha: Accesos Rápidos Verticales */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Accesos Directos</h2>
+            <div className="grid grid-cols-1 gap-3">
+              {menuItems.map((item, idx) => (
+                <div key={idx} className="group relative bg-white border border-gray-100 rounded-lg p-3 hover:border-indigo-100 hover:shadow-md transition-all cursor-pointer" onClick={() => router.push(item.href)}>
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2 rounded-lg ${item.color}`}>
+                      {item.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">{item.title}</h3>
+                      <p className="text-xs text-gray-500">{item.description}</p>
+                    </div>
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ArrowUpRight className="w-4 h-4 text-gray-400" />
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
-
         </div>
-      </main>
+
+      </div>
     </div>
   )
 }

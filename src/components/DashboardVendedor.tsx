@@ -172,213 +172,181 @@ export default function DashboardVendedor({ tenant }: DashboardVendedorProps) {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">LX</span>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Dashboard Vendedor</h1>
-                <p className="text-sm text-gray-500">{tenant}</p>
-              </div>
+    <div className="space-y-8">
+
+      {/* Modal Iniciar Turno */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Apertura de Caja</h3>
+            <p className="text-gray-600 mb-6">Seleccione la sucursal donde iniciará su turno de trabajo.</p>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sucursal</label>
+              <select
+                className="w-full border rounded-lg p-3 text-gray-700 focus:ring-2 focus:ring-green-500 outline-none"
+                value={selectedSucursal}
+                onChange={(e) => setSelectedSucursal(e.target.value)}
+              >
+                {sucursales.map(s => (
+                  <option key={s.id} value={s.id}>{s.nombre}</option>
+                ))}
+              </select>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{user?.first_name || user?.username}</p>
-                <p className="text-xs text-gray-500">Vendedor</p>
-              </div>
+
+            <div className="flex justify-end gap-3">
               <button
-                onClick={logout}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
                 disabled={processing}
               >
-                Cerrar Sesión
+                Cancelar
               </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        {/* Modal Iniciar Turno */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Apertura de Caja</h3>
-              <p className="text-gray-600 mb-6">Seleccione la sucursal donde iniciará su turno de trabajo.</p>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sucursal</label>
-                <select
-                  className="w-full border rounded-lg p-3 text-gray-700 focus:ring-2 focus:ring-green-500 outline-none"
-                  value={selectedSucursal}
-                  onChange={(e) => setSelectedSucursal(e.target.value)}
-                >
-                  {sucursales.map(s => (
-                    <option key={s.id} value={s.id}>{s.nombre}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
-                  disabled={processing}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmarInicioTurno}
-                  disabled={processing || !selectedSucursal}
-                  className={`px-6 py-2 bg-green-600 text-white font-bold rounded-lg ${processing ? 'opacity-70' : 'hover:bg-green-700'}`}
-                >
-                  {processing ? 'Abriendo...' : 'Abrir Caja'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Estado del turno */}
-        <div className="mb-8">
-          {loadingTurno ? (
-            <div className="bg-white rounded-lg shadow-sm p-6 border animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-              <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-            </div>
-          ) : turnoActivo ? (
-            <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg shadow-sm p-6 border border-green-200">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-bold text-green-900 mb-2 flex items-center gap-2">
-                    <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
-                    Turno Activo
-                  </h2>
-                  <div className="space-y-1">
-                    <p className="text-sm text-green-700">
-                      <span className="font-semibold">Hora de inicio:</span> {formatearHora(turnoActivo.hora_inicio)}
-                    </p>
-                    {turnoActivo.sucursal && (
-                      <p className="text-sm text-green-700">
-                        <span className="font-semibold">Sucursal:</span> {turnoActivo.sucursal}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={handleFinalizarTurno}
-                  disabled={processing}
-                  className="px-6 py-3 bg-white border border-red-200 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-colors shadow-sm"
-                >
-                  {processing ? 'Cerrando...' : 'Finalizar Turno'}
-                </button>
-              </div>
-              {/* Estadísticas del turno */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-green-200/60">
-                <div className="text-center p-3 bg-white/50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-900">0</p>
-                  <p className="text-xs font-medium uppercase text-green-700 tracking-wider">Ventas</p>
-                </div>
-                <div className="text-center p-3 bg-white/50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-900">$0.00</p>
-                  <p className="text-xs font-medium uppercase text-green-700 tracking-wider">Total</p>
-                </div>
-                <div className="text-center p-3 bg-white/50 rounded-lg hidden md:block">
-                  <p className="text-2xl font-bold text-green-900">En curso</p>
-                  <p className="text-xs font-medium uppercase text-green-700 tracking-wider">Estado</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
-                <span className="text-3xl">👋</span>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Hola, {user?.first_name}!</h2>
-              <p className="text-gray-500 max-w-md mx-auto mb-8">
-                Para comenzar a procesar ventas necesitas abrir tu caja. Selecciona tu sucursal y comienza tu jornada.
-              </p>
               <button
-                onClick={handleIniciarTurno}
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1"
+                onClick={confirmarInicioTurno}
+                disabled={processing || !selectedSucursal}
+                className={`px-6 py-2 bg-green-600 text-white font-bold rounded-lg ${processing ? 'opacity-70' : 'hover:bg-green-700'}`}
               >
-                Abrir Caja e Iniciar Turno
+                {processing ? 'Abriendo...' : 'Abrir Caja'}
               </button>
             </div>
-          )}
+          </div>
         </div>
+      )}
 
-        {/* Menú de opciones */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {menuItems.map((section) => (
-            <div key={section.title} className="bg-white rounded-lg shadow-sm border overflow-hidden">
-              <div className="bg-gray-50 px-4 py-3 border-b">
-                <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                  <span className="mr-2">{section.icon}</span>
-                  {section.title}
+      {/* Estado del turno */}
+      <div className="mb-8">
+        {loadingTurno ? (
+          <div className="bg-white rounded-lg shadow-sm p-6 border animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        ) : turnoActivo ? (
+          <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg shadow-sm p-6 border border-green-200">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-green-900 mb-2 flex items-center gap-2">
+                  <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                  Turno Activo
                 </h2>
+                <div className="space-y-1">
+                  <p className="text-sm text-green-700">
+                    <span className="font-semibold">Hora de inicio:</span> {formatearHora(turnoActivo.hora_inicio)}
+                  </p>
+                  {turnoActivo.sucursal && (
+                    <p className="text-sm text-green-700">
+                      <span className="font-semibold">Sucursal:</span> {turnoActivo.sucursal}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="p-2">
-                <ul className="space-y-1">
-                  {section.items.map((item) => (
-                    <li key={item.name}>
-                      <button
-                        onClick={() => handleItemClick(item)}
-                        disabled={item.requiresTurno && !turnoActivo}
-                        className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center justify-between group ${item.requiresTurno && !turnoActivo
-                          ? 'opacity-50 cursor-not-allowed'
-                          : 'hover:bg-blue-50 cursor-pointer'
-                          }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <span className={`text-xl p-2 rounded-lg ${item.requiresTurno && !turnoActivo ? 'bg-gray-100' : 'bg-white shadow-sm group-hover:bg-blue-100 text-blue-600'}`}>
-                            {item.icon}
-                          </span>
-                          <span className={`${item.requiresTurno && !turnoActivo ? 'text-gray-400' : 'text-gray-700 font-medium group-hover:text-blue-700'}`}>
-                            {item.name}
-                          </span>
-                        </div>
-                        {item.requiresTurno && !turnoActivo && (
-                          <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded border">
-                            Cerrado
-                          </span>
-                        )}
-                        {(!item.requiresTurno || turnoActivo) && (
-                          <span className="text-gray-300 group-hover:text-blue-400">→</span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+              <button
+                onClick={handleFinalizarTurno}
+                disabled={processing}
+                className="px-6 py-3 bg-white border border-red-200 text-red-600 hover:bg-red-50 font-semibold rounded-lg transition-colors shadow-sm"
+              >
+                {processing ? 'Cerrando...' : 'Finalizar Turno'}
+              </button>
+            </div>
+            {/* Estadísticas del turno */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-green-200/60">
+              <div className="text-center p-3 bg-white/50 rounded-lg">
+                <p className="text-2xl font-bold text-green-900">0</p>
+                <p className="text-xs font-medium uppercase text-green-700 tracking-wider">Ventas</p>
+              </div>
+              <div className="text-center p-3 bg-white/50 rounded-lg">
+                <p className="text-2xl font-bold text-green-900">$0.00</p>
+                <p className="text-xs font-medium uppercase text-green-700 tracking-wider">Total</p>
+              </div>
+              <div className="text-center p-3 bg-white/50 rounded-lg hidden md:block">
+                <p className="text-2xl font-bold text-green-900">En curso</p>
+                <p className="text-xs font-medium uppercase text-green-700 tracking-wider">Estado</p>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Acceso rápido al POS */}
-        {turnoActivo && (
-          <div className="mt-8">
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
+              <span className="text-3xl">👋</span>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Hola, {user?.first_name}!</h2>
+            <p className="text-gray-500 max-w-md mx-auto mb-8">
+              Para comenzar a procesar ventas necesitas abrir tu caja. Selecciona tu sucursal y comienza tu jornada.
+            </p>
             <button
-              onClick={() => router.push('/pos')}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-6 rounded-xl shadow-lg transition-all transform hover:scale-[1.01] flex items-center justify-center gap-4 group"
+              onClick={handleIniciarTurno}
+              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1"
             >
-              <div className="bg-white/20 p-2 rounded-lg group-hover:scale-110 transition-transform">
-                <span className="text-3xl">💰</span>
-              </div>
-              <div className="text-left">
-                <span className="block text-sm opacity-90 uppercase tracking-wider font-semibold">Acceso Directo</span>
-                <span className="text-2xl font-bold">Ir al Punto de Venta</span>
-              </div>
+              Abrir Caja e Iniciar Turno
             </button>
           </div>
         )}
-      </main>
+      </div>
+
+      {/* Menú de opciones */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {menuItems.map((section) => (
+          <div key={section.title} className="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div className="bg-gray-50 px-4 py-3 border-b">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center">
+                <span className="mr-2">{section.icon}</span>
+                {section.title}
+              </h2>
+            </div>
+            <div className="p-2">
+              <ul className="space-y-1">
+                {section.items.map((item) => (
+                  <li key={item.name}>
+                    <button
+                      onClick={() => handleItemClick(item)}
+                      disabled={item.requiresTurno && !turnoActivo}
+                      className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center justify-between group ${item.requiresTurno && !turnoActivo
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'hover:bg-blue-50 cursor-pointer'
+                        }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className={`text-xl p-2 rounded-lg ${item.requiresTurno && !turnoActivo ? 'bg-gray-100' : 'bg-white shadow-sm group-hover:bg-blue-100 text-blue-600'}`}>
+                          {item.icon}
+                        </span>
+                        <span className={`${item.requiresTurno && !turnoActivo ? 'text-gray-400' : 'text-gray-700 font-medium group-hover:text-blue-700'}`}>
+                          {item.name}
+                        </span>
+                      </div>
+                      {item.requiresTurno && !turnoActivo && (
+                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded border">
+                          Cerrado
+                        </span>
+                      )}
+                      {(!item.requiresTurno || turnoActivo) && (
+                        <span className="text-gray-300 group-hover:text-blue-400">→</span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Acceso rápido al POS */}
+      {turnoActivo && (
+        <div className="mt-8">
+          <button
+            onClick={() => router.push('/pos')}
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-6 rounded-xl shadow-lg transition-all transform hover:scale-[1.01] flex items-center justify-center gap-4 group"
+          >
+            <div className="bg-white/20 p-2 rounded-lg group-hover:scale-110 transition-transform">
+              <span className="text-3xl">💰</span>
+            </div>
+            <div className="text-left">
+              <span className="block text-sm opacity-90 uppercase tracking-wider font-semibold">Acceso Directo</span>
+              <span className="text-2xl font-bold">Ir al Punto de Venta</span>
+            </div>
+          </button>
+        </div>
+      )}
     </div>
   )
 }
