@@ -107,7 +107,7 @@ export default function LandingPage() {
         <div className="text-center max-w-4xl mx-auto">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
             Sistema de Gestión Empresarial
-            <span className="text-indigo-600 block md:inline"> Multi-Tenant</span>
+            <span className="text-indigo-600 block md:inline"> 100% en la Nube</span>
           </h2>
           <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
             Gestiona tu negocio de forma profesional con facturación electrónica SRI,
