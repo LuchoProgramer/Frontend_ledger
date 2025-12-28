@@ -25,6 +25,10 @@ export interface Producto {
     stock_minimo: number;
     activo: boolean;
     created_at: string;
+    slug?: string;
+    mostrar_en_web?: boolean;
+    es_premium?: boolean;
+    meta_descripcion?: string;
     // Detalle
     presentaciones?: Presentacion[];
     sucursales_ids?: number[];
@@ -87,6 +91,9 @@ export interface ProductoFormData {
     stock_minimo: number;
     activo: boolean;
     precio_base?: string; // Para creación inicial
+    mostrar_en_web?: boolean;
+    es_premium?: boolean;
+    meta_descripcion?: string;
 }
 
 export interface CategoriasResponse {

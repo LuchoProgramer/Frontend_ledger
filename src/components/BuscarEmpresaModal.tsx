@@ -57,13 +57,30 @@ export default function BuscarEmpresaModal({ isOpen, onClose }: BuscarEmpresaMod
   }
 
   const handleSeleccionarEmpresa = (empresa: Empresa) => {
-    // Convertir schema_name a formato de subdominio válido
-    // PostgreSQL permite guiones bajos, pero los subdominios HTTP no
-    // yanett_pruebas → yanett-pruebas
-    const subdomain = empresa.schema_name.replace(/_/g, '-')
+    // Si el API ya nos devolvió la URL completa (lo cual corregimos en el backend), la usamos directamente
+    if (empresa.url_tenant) {
+      // Nos aseguramos que tenga el protocolo y termine en /login
+      let targetUrl = empresa.url_tenant;
+      if (!targetUrl.startsWith('http')) {
+        targetUrl = `https://${targetUrl}`;
+      }
 
-    // Redirigir al tenant seleccionado
-    window.location.href = `http://${subdomain}.localhost:3000/login`
+      // Si la URL no termina en /login, se lo añadimos
+      if (!targetUrl.endsWith('/login')) {
+        targetUrl = targetUrl.endsWith('/') ? `${targetUrl}login` : `${targetUrl}/login`;
+      }
+
+      window.location.href = targetUrl;
+      return;
+    }
+
+    // Fallback por si acaso (aunque el API debería traerlo bien ahora)
+    const subdomain = empresa.schema_name.replace(/_/g, '-')
+    const isProd = window.location.hostname !== 'localhost'
+    const domain = isProd ? 'ledgerxpertz.com' : 'localhost:3000'
+    const protocol = isProd ? 'https' : 'http'
+
+    window.location.href = `${protocol}://${subdomain}.${domain}/login`
   }
 
   if (!isOpen) return null

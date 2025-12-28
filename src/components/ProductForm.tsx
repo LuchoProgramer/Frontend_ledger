@@ -40,6 +40,9 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
         stock_minimo: initialData?.stock_minimo || 5,
         activo: initialData?.activo ?? true,
         precio_base: initialData?.presentaciones?.find(p => p.nombre_presentacion === 'Unidad')?.precio || '',
+        mostrar_en_web: initialData?.mostrar_en_web ?? false,
+        es_premium: initialData?.es_premium ?? false,
+        meta_descripcion: initialData?.meta_descripcion || '',
     });
 
     // Cargar catálogos
@@ -288,7 +291,58 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
                     </label>
                 </div>
 
-                {/* Descripción */}
+                {/* E-commerce Section Header */}
+                <div className="md:col-span-2 border-t border-gray-100 pt-6 mt-2">
+                    <h3 className="text-sm font-bold text-blue-800 uppercase tracking-wider flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                        Configuración Tienda Online
+                    </h3>
+                </div>
+
+                {/* Mostrar en Web */}
+                <div className="flex items-center">
+                    <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            name="mostrar_en_web"
+                            checked={formData.mostrar_en_web}
+                            onChange={e => setFormData({ ...formData, mostrar_en_web: e.target.checked })}
+                            className="h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                        />
+                        <span className="text-gray-700 font-medium">Mostrar en Catálogo Web</span>
+                    </label>
+                </div>
+
+                {/* Es Premium */}
+                <div className="flex items-center">
+                    <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            name="es_premium"
+                            checked={formData.es_premium}
+                            onChange={e => setFormData({ ...formData, es_premium: e.target.checked })}
+                            className="h-5 w-5 text-yellow-600 rounded border-gray-300 focus:ring-yellow-500"
+                        />
+                        <span className="text-gray-700 font-medium">Producto Premium (Destacado)</span>
+                    </label>
+                </div>
+
+                {/* Meta Descripción SEO */}
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Descripción SEO (Google)</label>
+                    <textarea
+                        name="meta_descripcion"
+                        rows={2}
+                        value={formData.meta_descripcion}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        placeholder="Breve descripción que aparecerá en los resultados de búsqueda de Google..."
+                    />
+                </div>
+
+                {/* Descripción General */}
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
                     <textarea
