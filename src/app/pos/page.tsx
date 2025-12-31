@@ -331,8 +331,17 @@ export default function POSPage() {
     }
   };
 
+
+
   const handleSelectClient = (c: ClientData) => {
-    setClient(c);
+    // Robustez: Asegurar que c sea el objeto de datos, no un wrapper
+    const clienteReal = (c as any).data || (c as any).results || c;
+
+    if (!clienteReal.identificacion && !clienteReal.razon_social) {
+      console.warn('Posible objeto cliente inválido recibido:', c);
+    }
+
+    setClient(clienteReal);
     setShowClientModal(false);
     setClientSearchTerm('');
     setClientSearchResults([]);
@@ -348,8 +357,11 @@ export default function POSPage() {
     try {
       const res = await apiClient.crearCliente(newClientData);
 
-      handleSelectClient(res);
-      alert("Cliente creado exitosamente");
+      // Determinar si la respuesta viene envuelta
+      const clienteCreado = res.data || res;
+
+      handleSelectClient(clienteCreado);
+      alert(`Cliente creado y seleccionado: ${clienteCreado.razon_social}`);
     } catch (e: any) {
       console.error('Error creating client:', e);
       const errorDetail = e.data ? JSON.stringify(e.data, null, 2) : e.message;
