@@ -351,7 +351,9 @@ export default function POSPage() {
       handleSelectClient(res);
       alert("Cliente creado exitosamente");
     } catch (e: any) {
-      alert(e.message || "Error al crear cliente");
+      console.error('Error creating client:', e);
+      const errorDetail = e.data ? JSON.stringify(e.data, null, 2) : e.message;
+      alert(`Error al crear cliente (${e.status || 'N/A'}):\n${errorDetail}`);
     }
   };
 
