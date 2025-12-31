@@ -201,11 +201,11 @@ export class ApiClient {
     if (params?.search) queryParams.append('search', params.search);
 
     const query = queryParams.toString();
-    return this.request<FacturasResponse>(`/ api / facturas / ${query ? `?${query}` : ''} `);
+    return this.request<FacturasResponse>(`/api/facturas/${query ? `?${query}` : ''}`);
   }
 
   async getFactura(id: number) {
-    return this.request<Factura>(`/ api / facturas / ${id}/`);
+    return this.request<Factura>(`/api/facturas/${id}/`);
   }
 
   async enviarSRI(id: number) {
