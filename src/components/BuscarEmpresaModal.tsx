@@ -74,11 +74,13 @@ export default function BuscarEmpresaModal({ isOpen, onClose }: BuscarEmpresaMod
       return;
     }
 
-    // Fallback por si acaso (aunque el API debería traerlo bien ahora)
+    // Fallback logic
     const subdomain = empresa.schema_name.replace(/_/g, '-')
-    const isProd = window.location.hostname !== 'localhost'
-    const domain = isProd ? 'ledgerxpertz.com' : 'localhost:3000'
-    const protocol = isProd ? 'https' : 'http'
+    // If we are here, url_tenant was empty.
+    // If we are in production (not localhost), we should assume ledgerxpertz.com
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const domain = isLocal ? 'localhost:3000' : 'ledgerxpertz.com';
+    const protocol = isLocal ? 'http' : 'https';
 
     window.location.href = `${protocol}://${subdomain}.${domain}/login`
   }
