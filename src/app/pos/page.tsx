@@ -771,8 +771,7 @@ export default function POSPage() {
             </div>
               )}
           </div>
-      </div>
-    </PortalModal>
+        </PortalModal>
 
       </div >
     </DashboardLayout >
