@@ -43,32 +43,32 @@ export default function LoginPage() {
 
     try {
       const response = await apiLogin(credentials.username, credentials.password)
-      
+
       if (response.success && response.user) {
         // Login exitoso - actualizar contexto global
         login(response.user)
-        
+
         // Lógica de redirección inteligente según rol
         const user = response.user
         const isAdmin = user.is_staff || user.groups?.includes('Administrador')
         const isVendedor = user.groups?.includes('Usuarios')
-        
+
         // Pequeño delay para asegurar que la sesión se establezca
         await new Promise(resolve => setTimeout(resolve, 200))
-        
+
         // Verificar si tiene turno activo
         console.log('Verificando turno para usuario:', user.username)
         const turnoResponse = await getTurnoActivo()
         console.log('Respuesta de turno:', turnoResponse)
-        
+
         // Verificar si la respuesta fue exitosa
         if (!turnoResponse.success) {
           console.warn('getTurnoActivo no fue exitoso:', turnoResponse)
           // Continuar con flujo por defecto (sin turno)
         }
-        
+
         const tieneTurnoActivo = turnoResponse.tiene_turno_activo || false
-        
+
         // LÓGICA DE NEGOCIO:
         if (isVendedor && tieneTurnoActivo) {
           // Vendedor con turno → Redirigir directamente al POS
@@ -180,7 +180,7 @@ export default function LoginPage() {
           <div className="pt-4 border-t border-gray-200">
             <p className="text-sm text-gray-600">
               ¿No tienes una empresa?{' '}
-              <a href="http://localhost:3001/registro" className="text-indigo-600 hover:text-indigo-700 font-medium">
+              <a href="https://ledgerxpertz.com/registro" className="text-indigo-600 hover:text-indigo-700 font-medium">
                 Regístrate aquí
               </a>
             </p>
