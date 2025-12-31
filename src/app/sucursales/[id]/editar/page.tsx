@@ -12,13 +12,13 @@ export default function EditarSucursalPage() {
   const params = useParams();
   const sucursalId = parseInt(params?.id as string);
   const { isAdmin } = useAuth();
-  
+
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [sucursal, setSucursal] = useState<Sucursal | null>(null);
-  
+
   const [formData, setFormData] = useState<SucursalFormData>({
     nombre: '',
     direccion: '',
@@ -31,7 +31,7 @@ export default function EditarSucursalPage() {
   // Verificar permisos
   useEffect(() => {
     if (!isAdmin) {
-      router.push('/dashboard');
+      router.push('/');
     }
   }, [isAdmin, router]);
 
@@ -42,7 +42,7 @@ export default function EditarSucursalPage() {
         setLoadingData(true);
         const api = getApiClient();
         const response = await api.getSucursal(sucursalId);
-        
+
         if (response.success && response.data) {
           setSucursal(response.data);
           setFormData({
@@ -173,7 +173,7 @@ export default function EditarSucursalPage() {
             {/* Información Básica */}
             <div className="border-b border-gray-200 pb-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Información Básica</h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -235,7 +235,7 @@ export default function EditarSucursalPage() {
             {/* Códigos SRI */}
             <div className="border-b border-gray-200 pb-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Códigos para Facturación Electrónica (SRI)</h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

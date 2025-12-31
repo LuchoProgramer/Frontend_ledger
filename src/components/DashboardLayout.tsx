@@ -180,7 +180,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                 </svg>
                             </button>
 
-                            <div className="flex items-center space-x-4 cursor-pointer" onClick={() => router.push('/dashboard')}>
+                            <div className="flex items-center space-x-4 cursor-pointer" onClick={() => router.push('/')}>
                                 <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
                                     <span className="text-white font-bold text-lg">LX</span>
                                 </div>
@@ -194,7 +194,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         {/* Desktop Menu - could be expanded but sticking to dashboard links for now */}
                         <div className="flex items-center space-x-4">
                             <button
-                                onClick={() => router.push('/dashboard')}
+                                onClick={() => router.push('/')}
                                 className="hidden md:block px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600"
                             >
                                 Dashboard
