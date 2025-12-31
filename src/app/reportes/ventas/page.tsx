@@ -60,6 +60,20 @@ export default function DetailedSalesReportPage() {
         loadSales();
     };
 
+    // Auto-refresh logic for pending invoices
+    useEffect(() => {
+        const hasPending = sales.some((s: any) => s.estado === 'EN_PROCESO' || s.estado === 'PPR');
+        if (!hasPending) return;
+
+        console.log('Detectado facturas pendientes, activando auto-refresh...');
+        const interval = setInterval(() => {
+            loadSales();
+        }, 10000); // Check every 10 seconds
+
+        return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sales]);
+
     const handleExport = async () => {
         try {
             const blob = await apiClient.exportSalesExcel({
