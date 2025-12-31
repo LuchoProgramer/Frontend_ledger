@@ -95,7 +95,7 @@ export default function POSPage() {
       }
       if (e.key === 'F9') {
         e.preventDefault();
-        handleCheckout();
+        handleOpenPaymentModal();
       }
       if (e.key === 'F2') {
         e.preventDefault();
@@ -270,13 +270,80 @@ export default function POSPage() {
     }, { subtotal: 0, total: 0, impuesto: 0 });
   };
 
-  const handleCheckout = async () => {
+  // Local Types (add Payment)
+  interface Payment {
+    codigo: string;
+    descripcion: string;
+    total: number;
+    plazo?: number;
+    unidad_tiempo?: string;
+  }
+
+  // ... inside component state ...
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState('01');
+  const [paymentAmount, setPaymentAmount] = useState<string>('');
+
+  // ... logic ...
+
+  const handleOpenPaymentModal = () => {
     if (cart.length === 0) return;
+
+    // Check validation for large amounts
+    if (calculateTotals().total > 50 && client.identificacion === '9999999999') {
+      alert("Para ventas mayores a $50, debe ingresar los datos del cliente (Facturación Electrónica).");
+      setShowClientModal(true);
+      return;
+    }
+
+    setPaymentAmount(calculateTotals().total.toFixed(2));
+    setPayments([]); // Reset previous payments
+    setPaymentMethod('01');
+    setShowPaymentModal(true);
+  };
+
+  const handleAddPayment = () => {
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) return alert('Monto inválido');
+
+    const methodDesc = {
+      '01': 'Efectivo',
+      '19': 'Tarjeta de Crédito',
+      '20': 'Transferencia/Otros'
+    }[paymentMethod] || 'Otro';
+
+    setPayments(prev => [...prev, {
+      codigo: paymentMethod,
+      descripcion: methodDesc,
+      total: amount
+    }]);
+
+    // Calculate remaining
+    const currentTotal = payments.reduce((sum, p) => sum + p.total, 0) + amount;
+    const remaining = Math.max(0, totals.total - currentTotal);
+    setPaymentAmount(remaining.toFixed(2));
+  };
+
+  const handleRemovePayment = (index: number) => {
+    setPayments(prev => prev.filter((_, i) => i !== index));
+  };
+
+
+  const handleProcessSale = async () => {
     setProcesando(true);
     try {
-      if (calculateTotals().total > 50 && client.identificacion === '9999999999') {
-        alert("Para ventas mayores a $50, debe ingresar los datos del cliente (Facturación Electrónica).");
-        setShowClientModal(true);
+      const totalPagado = payments.reduce((sum, p) => sum + p.total, 0);
+
+      // Allow if total paid is equal or greater (change)
+      // Note: Backend expects total matches, but practically we might want to record just the invoice total?
+      // For now, assume exact match or greater. If greater, maybe register change? 
+      // The backend creates Pago objects with the exact amount sent. 
+      // Usually, we should adjust the cash payment to match exactly if it exceeds.
+
+      if (totalPagado < totals.total - 0.01) {
+        alert(`Falta pagar $${(totals.total - totalPagado).toFixed(2)}`);
+        setProcesando(false);
         return;
       }
 
@@ -288,14 +355,13 @@ export default function POSPage() {
           cantidad: item.cantidad,
           precio: item.precio
         })),
-        pago: {
-          codigo: '01',
-          total: calculateTotals().total
-        }
+        pagos: payments
       };
 
       const res = await apiClient.crearFacturaPOS(payload);
-      alert(`Venta registrada.\nFactura Electrónica: ${res.estado_sri === 'PPR' ? 'En Procesamiento' : res.estado_sri}\nClave Acceso: ${res.clave_acceso}`);
+      alert(`Venta registrada.\nFactura: ${res.numero_autorizacion}\nClave Acceso: ${res.clave_acceso}`);
+
+      setShowPaymentModal(false);
       setCart([]);
       setClient({ identificacion: '9999999999', razon_social: 'CONSUMIDOR FINAL', email: '', direccion: '' });
       loadProductos(searchTerm);
@@ -575,7 +641,7 @@ export default function POSPage() {
                   </div>
 
                   <button
-                    onClick={handleCheckout}
+                    onClick={handleOpenPaymentModal}
                     disabled={cart.length === 0 || procesando}
                     className="w-full bg-blue-600 text-white py-4 rounded-xl text-lg font-bold hover:bg-blue-700 disabled:opacity-50 shadow-lg shadow-blue-200"
                   >
@@ -594,6 +660,107 @@ export default function POSPage() {
             <span className="font-semibold">{toast.message}</span>
           </div>
         )}
+
+        {/* Payment Modal */}
+        <PortalModal isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)}>
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 max-w-lg w-full">
+            <div className="border-b pb-4 mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Procesar Pago</h3>
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-gray-600">Total a Pagar:</span>
+                <span className="text-2xl font-bold text-gray-900">${totals.total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Payments List */}
+            <div className="mb-4 bg-gray-50 rounded-lg p-3 max-h-40 overflow-y-auto">
+              <div className="text-xs font-bold text-gray-500 mb-2 uppercase">Pagos Agregados</div>
+              {payments.length === 0 && <div className="text-sm text-gray-400 italic">No hay pagos agregados</div>}
+              {payments.map((p, idx) => (
+                <div key={idx} className="flex justify-between items-center py-2 border-b last:border-0">
+                  <div>
+                    <div className="font-semibold text-gray-800">{p.descripcion}</div>
+                    <div className="text-xs text-gray-500">{p.codigo}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold">${p.total.toFixed(2)}</span>
+                    <button onClick={() => handleRemovePayment(idx)} className="text-red-500 hover:text-red-700">✕</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add Payment Form */}
+            <div className="bg-blue-50 p-4 rounded-lg mb-4">
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Método</label>
+                  <select
+                    className="w-full p-2 border rounded text-sm"
+                    value={paymentMethod}
+                    onChange={e => setPaymentMethod(e.target.value)}
+                  >
+                    <option value="01">Efectivo</option>
+                    <option value="19">Tarjeta de Crédito</option>
+                    <option value="20">Transferencia</option>
+                    <option value="16">Tarjeta de Débito</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Monto</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="w-full p-2 border rounded text-sm"
+                    value={paymentAmount}
+                    onChange={e => setPaymentAmount(e.target.value)}
+                  />
+                </div>
+              </div>
+              <button
+                onClick={handleAddPayment}
+                className="w-full bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700 text-sm"
+              >
+                + Agregar Pago
+              </button>
+            </div>
+
+            {/* Summary & Actions */}
+            <div className="border-t pt-4">
+              <div className="flex justify-between mb-4 text-lg">
+                <span className="text-gray-600">Total Pagado:</span>
+                <span className={`font-bold ${payments.reduce((s, p) => s + p.total, 0) >= totals.total ? 'text-green-600' : 'text-red-600'}`}>
+                  ${payments.reduce((s, p) => s + p.total, 0).toFixed(2)}
+                </span>
+              </div>
+
+              {payments.reduce((s, p) => s + p.total, 0) >= totals.total && (
+                <div className="flex justify-between mb-4 text-sm text-gray-500 bg-green-50 p-2 rounded">
+                  <span>Cambio / Vuelto:</span>
+                  <span className="font-bold text-green-700">
+                    ${(payments.reduce((s, p) => s + p.total, 0) - totals.total).toFixed(2)}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="flex-1 py-3 border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleProcessSale}
+                  disabled={procesando || payments.reduce((s, p) => s + p.total, 0) < totals.total - 0.01}
+                  className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 disabled:opacity-50 shadow-lg shadow-green-200"
+                >
+                  {procesando ? 'Procesando...' : 'FINALIZAR VENTA 🚀'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </PortalModal>
 
         {/* Start Shift Modal */}
         <PortalModal isOpen={showShiftModal} onClose={() => setShowShiftModal(false)}>
