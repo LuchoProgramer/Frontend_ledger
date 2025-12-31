@@ -6,8 +6,9 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
 import { Proveedor } from '@/lib/types/compras';
 import { Producto } from '@/lib/types/productos';
-
 import { Impuesto } from '@/lib/types/catalogos';
+import PortalModal from '@/components/ui/PortalModal';
+import { ProveedorFormData } from '@/lib/types/proveedores';
 
 interface ItemCompra {
     producto_id: number;
@@ -40,6 +41,17 @@ export default function NuevaCompraPage() {
 
     // Search
     const [searchTerm, setSearchTerm] = useState('');
+
+    // New Provider Modal State
+    const [showProvModal, setShowProvModal] = useState(false);
+    const [newProvData, setNewProvData] = useState<ProveedorFormData>({
+        nombre: '',
+        ruc: '',
+        direccion: '',
+        telefono: '',
+        email: ''
+    });
+    const [savingProv, setSavingProv] = useState(false);
 
     // Loads
     useEffect(() => {
@@ -136,12 +148,6 @@ export default function NuevaCompraPage() {
         try {
             const total = items.reduce((sum, i) => sum + i.subtotal, 0);
 
-            // To be robust, need user and sucursal. Assuming user context handles it or hardcoded for now?
-            // api needs sucursal_id. We need to get it from context/user.
-            // For now, let's assume getApiClient() context provides current user's default sucursal, or we fetch it.
-            // Wait, we don't have sucursal in the form. We should probably fetch user info or use 1 as default.
-            // Let's quickly get user info to get sucursal.
-
             const userRes: any = await apiClient.getCurrentUser().catch(() => ({ user: null }));
             const sucursalId = userRes?.sucursales?.[0]?.id || 1;
 
@@ -167,6 +173,51 @@ export default function NuevaCompraPage() {
             alert(e.message || 'Error al guardar compra');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleCreateProveedor = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSavingProv(true);
+
+        // Basic validation
+        if (newProvData.ruc.length !== 13) {
+            alert('El RUC debe tener 13 dígitos');
+            setSavingProv(false);
+            return;
+        }
+
+        try {
+            const api = getApiClient();
+            const res = await api.crearProveedor(newProvData);
+
+            if (res.success) {
+                // Reload list
+                await loadProveedores();
+
+                // Because we just reloaded, we need to find the new one. 
+                // A reliable way is to fetch again locally or just use the response if it returns the full object.
+                // Assuming simple reload for now and trying to find by RUC in the freshly fetched list would be async race.
+                // Better: get the list again immediately.
+                const allProvs = await apiClient.getProveedores({ page_size: 100 });
+                const created = (allProvs.data || allProvs.results || []).find((p: any) => p.ruc === newProvData.ruc);
+
+                if (created) {
+                    setProveedores(allProvs.data || allProvs.results || []);
+                    setProveedorId(created.id);
+                }
+
+                setShowProvModal(false);
+                setNewProvData({ nombre: '', ruc: '', direccion: '', telefono: '', email: '' });
+                alert('Proveedor creado correctamente');
+            } else {
+                alert(typeof res.error === 'string' ? res.error : 'Error al crear proveedor');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error al crear proveedor');
+        } finally {
+            setSavingProv(false);
         }
     };
 
@@ -198,16 +249,25 @@ export default function NuevaCompraPage() {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor</label>
-                            <select
-                                className="w-full p-2 border rounded"
-                                value={proveedorId || ''}
-                                onChange={e => setProveedorId(Number(e.target.value))}
-                            >
-                                <option value="">Seleccione...</option>
-                                {proveedores.map(p => (
-                                    <option key={p.id} value={p.id}>{p.nombre} ({p.ruc})</option>
-                                ))}
-                            </select>
+                            <div className="flex gap-2">
+                                <select
+                                    className="w-full p-2 border rounded"
+                                    value={proveedorId || ''}
+                                    onChange={e => setProveedorId(Number(e.target.value))}
+                                >
+                                    <option value="">Seleccione...</option>
+                                    {proveedores.map(p => (
+                                        <option key={p.id} value={p.id}>{p.nombre} ({p.ruc})</option>
+                                    ))}
+                                </select>
+                                <button
+                                    onClick={() => setShowProvModal(true)}
+                                    className="bg-blue-600 text-white px-3 rounded hover:bg-blue-700 font-bold"
+                                    title="Nuevo Proveedor"
+                                >
+                                    +
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Nro. Factura</label>
@@ -372,6 +432,86 @@ export default function NuevaCompraPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Create Provider Modal */}
+                <PortalModal isOpen={showProvModal} onClose={() => setShowProvModal(false)}>
+                    <form onSubmit={handleCreateProveedor}>
+                        <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 max-w-lg w-full rounded-2xl">
+                            <h3 className="text-xl font-bold text-gray-900 mb-4">Nuevo Proveedor</h3>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">RUC *</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        maxLength={13}
+                                        placeholder="099..."
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        value={newProvData.ruc}
+                                        onChange={(e) => setNewProvData({ ...newProvData, ruc: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Razón Social *</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        value={newProvData.nombre}
+                                        onChange={(e) => setNewProvData({ ...newProvData, nombre: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Teléfono</label>
+                                        <input
+                                            type="text"
+                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value={newProvData.telefono}
+                                            onChange={(e) => setNewProvData({ ...newProvData, telefono: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Email</label>
+                                        <input
+                                            type="email"
+                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            value={newProvData.email}
+                                            onChange={(e) => setNewProvData({ ...newProvData, email: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Dirección</label>
+                                    <input
+                                        type="text"
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        value={newProvData.direccion}
+                                        onChange={(e) => setNewProvData({ ...newProvData, direccion: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowProvModal(false)}
+                                    className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={savingProv}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                    {savingProv ? 'Guardando...' : 'Guardar Proveedor'}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </PortalModal>
             </div>
         </DashboardLayout>
     );
