@@ -20,6 +20,7 @@ interface CartItem {
 
 interface ClientData {
   id?: number;
+  tipo_identificacion?: string;
   identificacion: string;
   razon_social: string;
   email: string;
@@ -66,6 +67,7 @@ export default function POSPage() {
   const [searchingClients, setSearchingClients] = useState(false);
   const [newClientMode, setNewClientMode] = useState(false);
   const [newClientData, setNewClientData] = useState<ClientData>({
+    tipo_identificacion: '05',
     identificacion: '',
     razon_social: '',
     email: '',
@@ -635,6 +637,19 @@ export default function POSPage() {
               {newClientMode ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Tipo Indentificación *</label>
+                      <select
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                        value={newClientData.tipo_identificacion}
+                        onChange={e => setNewClientData({ ...newClientData, tipo_identificacion: e.target.value })}
+                      >
+                        <option value="05">Cédula</option>
+                        <option value="04">RUC</option>
+                        <option value="06">Pasaporte</option>
+                        <option value="07">Consumidor Final</option>
+                      </select>
+                    </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Identificación *</label>
                       <input
