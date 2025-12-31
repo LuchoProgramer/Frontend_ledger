@@ -174,10 +174,22 @@ export default function DetailedSalesReportPage() {
                                         ${Number(sale.total_con_impuestos).toFixed(2)}
                                     </td>
                                     <td className="px-3 md:px-6 py-4 whitespace-nowrap text-center">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${sale.estado === 'AUTORIZADA' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                            }`}>
-                                            {sale.estado}
-                                        </span>
+                                        {/* Status Badge Logic */}
+                                        {(() => {
+                                            const statusMap: Record<string, { label: string; className: string }> = {
+                                                'AUTORIZADA': { label: 'Autorizada', className: 'bg-green-100 text-green-800' },
+                                                'EN_PROCESO': { label: 'Pendiente SRI', className: 'bg-yellow-100 text-yellow-800' },
+                                                'RECHAZADA': { label: 'Rechazada - SRI', className: 'bg-red-100 text-red-800' },
+                                                'ANULADA': { label: 'Anulada', className: 'bg-gray-100 text-gray-800' }
+                                            };
+                                            const statusInfo = statusMap[sale.estado] || { label: sale.estado, className: 'bg-gray-100 text-gray-800' };
+
+                                            return (
+                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.className}`}>
+                                                    {statusInfo.label}
+                                                </span>
+                                            );
+                                        })()}
                                     </td>
                                 </tr>
                             ))}
