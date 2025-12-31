@@ -681,26 +681,26 @@ export default function POSPage() {
                       onChange={e => setNewClientData({ ...newClientData, email: e.target.value })}
                     />
                   </div>
-                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Teléfono</label>
-                    <input
-                      type="text"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-                      value={newClientData.telefono || ''}
-                      onChange={e => setNewClientData({ ...newClientData, telefono: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Dirección</label>
-                    <input
-                      type="text"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
-                      value={newClientData.direccion}
-                      onChange={e => setNewClientData({ ...newClientData, direccion: e.target.value })}
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Teléfono</label>
+                      <input
+                        type="text"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                        value={newClientData.telefono || ''}
+                        onChange={e => setNewClientData({ ...newClientData, telefono: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Dirección</label>
+                      <input
+                        type="text"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                        value={newClientData.direccion}
+                        onChange={e => setNewClientData({ ...newClientData, direccion: e.target.value })}
+                      />
+                    </div>
                   </div>
 
                   <div className="pt-4 flex justify-end gap-3">
@@ -718,58 +718,59 @@ export default function POSPage() {
                     </button>
                   </div>
                 </div>
-            ) : (
-            <div className="space-y-4">
-              <input
-                autoFocus
-                type="text"
-                className="w-full p-3 border rounded-lg shadow-sm text-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                placeholder="Escribe cédula, RUC o nombre..."
-                value={clientSearchTerm}
-                onChange={e => handleClientSearch(e.target.value)}
-              />
+              ) : (
+                <div className="space-y-4">
+                  <input
+                    autoFocus
+                    type="text"
+                    className="w-full p-3 border rounded-lg shadow-sm text-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                    placeholder="Escribe cédula, RUC o nombre..."
+                    value={clientSearchTerm}
+                    onChange={e => handleClientSearch(e.target.value)}
+                  />
 
-              <div className="max-h-60 overflow-y-auto border rounded-md">
-                {searchingClients && <div className="p-4 text-center text-gray-500">Buscando...</div>}
-                {!searchingClients && clientSearchResults.length === 0 && clientSearchTerm.length > 2 && (
-                  <div className="p-4 text-center text-gray-500">
-                    No se encontraron clientes.
+                  <div className="max-h-60 overflow-y-auto border rounded-md">
+                    {searchingClients && <div className="p-4 text-center text-gray-500">Buscando...</div>}
+                    {!searchingClients && clientSearchResults.length === 0 && clientSearchTerm.length > 2 && (
+                      <div className="p-4 text-center text-gray-500">
+                        No se encontraron clientes.
+                        <button
+                          onClick={() => {
+                            setNewClientData(prev => ({ ...prev, identificacion: clientSearchTerm }));
+                            setNewClientMode(true);
+                          }}
+                          className="text-blue-600 font-bold ml-1 hover:underline"
+                        >
+                          Crear nuevo
+                        </button>
+                      </div>
+                    )}
+                    {clientSearchResults.map(c => (
+                      <div
+                        key={c.id}
+                        onClick={() => handleSelectClient(c)}
+                        className="p-3 hover:bg-indigo-50 cursor-pointer border-b last:border-b-0 flex justify-between items-center"
+                      >
+                        <div>
+                          <div className="font-bold text-gray-800">{c.razon_social}</div>
+                          <div className="text-sm text-gray-500">{c.identificacion} • {c.email}</div>
+                        </div>
+                        <span className="text-indigo-600 text-sm font-medium">Seleccionar</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2">
                     <button
-                      onClick={() => {
-                        setNewClientData(prev => ({ ...prev, identificacion: clientSearchTerm }));
-                        setNewClientMode(true);
-                      }}
-                      className="text-blue-600 font-bold ml-1 hover:underline"
+                      onClick={() => handleSelectClient({ id: undefined, identificacion: '9999999999', razon_social: 'CONSUMIDOR FINAL', email: '', direccion: '' })}
+                      className="text-sm text-gray-500 hover:text-gray-700 underline"
                     >
-                      Crear nuevo
+                      Usar Consumidor Final
                     </button>
                   </div>
-                )}
-                {clientSearchResults.map(c => (
-                  <div
-                    key={c.id}
-                    onClick={() => handleSelectClient(c)}
-                    className="p-3 hover:bg-indigo-50 cursor-pointer border-b last:border-b-0 flex justify-between items-center"
-                  >
-                    <div>
-                      <div className="font-bold text-gray-800">{c.razon_social}</div>
-                      <div className="text-sm text-gray-500">{c.identificacion} • {c.email}</div>
-                    </div>
-                    <span className="text-indigo-600 text-sm font-medium">Seleccionar</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-between items-center pt-2">
-                <button
-                  onClick={() => handleSelectClient({ id: undefined, identificacion: '9999999999', razon_social: 'CONSUMIDOR FINAL', email: '', direccion: '' })}
-                  className="text-sm text-gray-500 hover:text-gray-700 underline"
-                >
-                  Usar Consumidor Final
-                </button>
-              </div>
-            </div>
+                </div>
               )}
+            </div>
           </div>
         </PortalModal>
 
