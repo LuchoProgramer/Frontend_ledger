@@ -18,7 +18,7 @@ export default function DetalleFactura() {
       .split('; ')
       .find((row) => row.startsWith('tenant='))
       ?.split('=')[1];
-    
+
     if (cookieTenant) {
       setTenant(cookieTenant);
     }
@@ -36,9 +36,9 @@ export default function DetalleFactura() {
 
   const handleEnviarSRI = async () => {
     if (!factura) return;
-    
+
     if (!confirm('¿Estás seguro de enviar esta factura al SRI?')) return;
-    
+
     try {
       const api = getApiClient(tenant);
       const resultado = await api.enviarSRI(factura.id);
@@ -71,7 +71,7 @@ export default function DetalleFactura() {
     try {
       const api = getApiClient(tenant);
       const blob = await api.descargarXML(factura.id);
-      
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -112,11 +112,11 @@ export default function DetalleFactura() {
   }
 
   const estadoColor = {
-    AUT: 'bg-green-100 text-green-800 border-green-300',
-    PEN: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    PPR: 'bg-blue-100 text-blue-800 border-blue-300',
-    REC: 'bg-red-100 text-red-800 border-red-300',
-    DEV: 'bg-orange-100 text-orange-800 border-orange-300',
+    AUTORIZADA: 'bg-green-100 text-green-800 border-green-300',
+    EN_PROCESO: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    PPR: 'bg-yellow-100 text-yellow-800 border-yellow-300', // Legacy
+    RECHAZADA: 'bg-red-100 text-red-800 border-red-300',
+    ANULADA: 'bg-gray-100 text-gray-800 border-gray-300',
   }[factura.estado_sri] || 'bg-gray-100 text-gray-800 border-gray-300';
 
   return (
@@ -292,7 +292,7 @@ export default function DetalleFactura() {
                 📤 Enviar al SRI
               </button>
             )}
-            
+
             {factura.clave_acceso && (
               <button
                 onClick={handleConsultarSRI}
@@ -301,7 +301,7 @@ export default function DetalleFactura() {
                 🔍 Consultar Estado SRI
               </button>
             )}
-            
+
             {factura.tiene_xml_firmado && (
               <button
                 onClick={handleDescargarXML}
