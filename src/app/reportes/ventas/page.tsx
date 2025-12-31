@@ -125,18 +125,18 @@ export default function DetailedSalesReportPage() {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Desde (Fecha/Hora)</label>
                         <input
-                            type="date"
+                            type="datetime-local"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                             className="p-2 border rounded-md"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hasta (Fecha/Hora)</label>
                         <input
-                            type="date"
+                            type="datetime-local"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
                             className="p-2 border rounded-md"
