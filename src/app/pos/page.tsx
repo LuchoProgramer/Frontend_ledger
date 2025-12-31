@@ -261,68 +261,6 @@ export default function POSPage() {
     setCart(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Edit Item State
-  const [editingItem, setEditingItem] = useState<{ index: number; item: CartItem } | null>(null);
-  const [editQty, setEditQty] = useState<string>('');
-  const [editPrice, setEditPrice] = useState<string>('');
-
-  const handleEditItem = (index: number, item: CartItem) => {
-    setEditingItem({ index, item });
-    setEditQty(item.cantidad.toString());
-    setEditPrice(item.precio.toString());
-  };
-
-  const handleSaveEditItem = () => {
-    if (!editingItem) return;
-
-    const newQty = parseInt(editQty);
-    const newPrice = parseFloat(editPrice);
-
-    if (isNaN(newQty) || newQty <= 0) {
-      alert('Cantidad inválida');
-      return;
-    }
-    if (isNaN(newPrice) || newPrice < 0) {
-      alert('Precio inválido');
-      return;
-    }
-
-    // Check stock limit if increasing quantity (optional strictness, maybe allow override?)
-    // Let's keep strict stock check for now, but use the original product stock.
-    const productStock = editingItem.item.producto.stock ?? 0;
-    // Note: If we already have items in cart, we should check total. 
-    // Logic: newQty vs stock. (Simpler: just check against total stock)
-    if (newQty > productStock) {
-      // Warn but allow? Or block? Sticking to block for consistency with addToCart
-      alert(`Stock insuficiente. Disponible: ${productStock}`);
-      return;
-    }
-
-    setCart(prev => {
-      const newCart = [...prev];
-      const item = newCart[editingItem.index];
-
-      const subtotal = newQty * newPrice;
-      // Recalculate tax if applicable (assuming 0 for now based on addToCart logic, or keeping logic simple)
-      /* 
-         If we wanted real tax calc: 
-         const taxRate = item.producto.impuesto ? item.producto.impuesto.porcentaje : 0;
-         const taxValue = subtotal * (taxRate / 100);
-      */
-
-      newCart[editingItem.index] = {
-        ...item,
-        cantidad: newQty,
-        precio: newPrice,
-        subtotal: subtotal,
-        total: subtotal // + tax if needed
-      };
-      return newCart;
-    });
-
-    setEditingItem(null);
-  };
-
 
   const calculateTotals = () => {
     return cart.reduce((acc, item) => {
@@ -673,12 +611,7 @@ export default function POSPage() {
                     </div>
                   )}
                   {cart.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between items-center p-3 bg-gray-50 rounded-lg group cursor-pointer hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-200"
-                      onClick={() => handleEditItem(idx, item)}
-                      title="Click para editar cantidad o precio"
-                    >
+                    <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg group">
                       <div className="flex-1">
                         <div className="font-medium text-gray-800">{item.producto.nombre}</div>
                         <div className="text-xs text-gray-500">{item.presentacion.nombre_presentacion}</div>
@@ -839,53 +772,7 @@ export default function POSPage() {
           </div>
         </PortalModal>
 
-        {/* Edit Item Modal */}
-        <PortalModal isOpen={!!editingItem} onClose={() => setEditingItem(null)}>
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 max-w-sm w-full rounded-2xl">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Editar Item
-              <div className="text-sm font-normal text-gray-500 mt-1">{editingItem?.item.producto.nombre}</div>
-            </h3>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Cantidad</label>
-                <input
-                  type="number"
-                  className="w-full p-3 border rounded-xl text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={editQty}
-                  onChange={(e) => setEditQty(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Precio Unitario ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="w-full p-3 border rounded-xl text-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={editPrice}
-                  onChange={(e) => setEditPrice(e.target.value)}
-                />
-                <p className="text-xs text-gray-400 mt-1">Modificar este precio solo afecta a esta venta.</p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setEditingItem(null)}
-                className="flex-1 py-3 border border-gray-300 rounded-xl font-bold text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveEditItem}
-                className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-colors"
-              >
-                Guardar Cambios
-              </button>
-            </div>
-          </div>
-        </PortalModal>
 
         {/* Start Shift Modal */}
         <PortalModal isOpen={showShiftModal} onClose={() => setShowShiftModal(false)}>
