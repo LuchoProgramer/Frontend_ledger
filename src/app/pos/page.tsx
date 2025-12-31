@@ -60,6 +60,7 @@ export default function POSPage() {
   const [activeTab, setActiveTab] = useState<Tab>('catalog');
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [selectedSucursal, setSelectedSucursal] = useState<number | null>(null);
+  const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
 
   // Client Modal State
   const [showClientModal, setShowClientModal] = useState(false);
@@ -470,9 +471,16 @@ export default function POSPage() {
                     return (
                       <div
                         key={prod.id}
-                        onClick={() => hasStock && addToCart(prod)}
+                        onClick={() => {
+                          if (hasStock) {
+                            addToCart(prod);
+                            setToast({ message: `Agregado: ${prod.nombre}`, visible: true });
+                            setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 2000);
+                          }
+                        }}
                         className={`
                           relative p-4 rounded-xl shadow-sm transition-all flex flex-col justify-between h-40 border
+                          active:scale-95 duration-75
                           ${hasStock
                             ? 'bg-white hover:shadow-md cursor-pointer border-transparent hover:border-blue-300'
                             : 'bg-gray-100 cursor-not-allowed border-gray-200 opacity-70'}
@@ -578,6 +586,14 @@ export default function POSPage() {
             </>
           )}
         </div>
+
+        {/* Toast Notification */}
+        {toast.visible && (
+          <div className="fixed bottom-20 md:bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl z-50 flex items-center animate-fade-in-up">
+            <span className="text-xl mr-2">✅</span>
+            <span className="font-semibold">{toast.message}</span>
+          </div>
+        )}
 
         {/* Start Shift Modal */}
         <PortalModal isOpen={showShiftModal} onClose={() => setShowShiftModal(false)}>
