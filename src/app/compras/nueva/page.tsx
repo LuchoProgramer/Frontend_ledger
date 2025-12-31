@@ -139,6 +139,14 @@ export default function NuevaCompraPage() {
             alert('Seleccione un proveedor');
             return;
         }
+        if (!numeroFactura) {
+            alert('Ingrese el número de factura');
+            return;
+        }
+        if (!autorizacion) {
+            alert('Ingrese el número de autorización');
+            return;
+        }
         if (items.length === 0) {
             alert('Agregue al menos un producto');
             return;
@@ -280,9 +288,10 @@ export default function NuevaCompraPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Autorización (Opcional)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Autorización *</label>
                             <input
                                 type="text"
+                                required
                                 className="w-full p-2 border rounded"
                                 value={autorizacion}
                                 onChange={e => setAutorizacion(e.target.value)}
