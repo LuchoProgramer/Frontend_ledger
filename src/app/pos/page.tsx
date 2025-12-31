@@ -310,7 +310,12 @@ export default function POSPage() {
     const methodDesc = {
       '01': 'Efectivo',
       '19': 'Tarjeta de Crédito',
-      '20': 'Transferencia/Otros'
+      '16': 'Tarjeta de Débito',
+      '20': 'Transferencia / Otros',
+      '17': 'Dinero Electrónico',
+      '18': 'Tarjeta Prepago',
+      '15': 'Compensación de Deudas',
+      '21': 'Endoso de Títulos'
     }[paymentMethod] || 'Otro';
 
     setPayments(prev => [...prev, {
@@ -700,10 +705,14 @@ export default function POSPage() {
                     value={paymentMethod}
                     onChange={e => setPaymentMethod(e.target.value)}
                   >
-                    <option value="01">Efectivo</option>
+                    <option value="01">Efectivo (Sin Sist. Financiero)</option>
                     <option value="19">Tarjeta de Crédito</option>
-                    <option value="20">Transferencia</option>
                     <option value="16">Tarjeta de Débito</option>
+                    <option value="20">Transferencia / Otros con SF</option>
+                    <option value="17">Dinero Electrónico</option>
+                    <option value="18">Tarjeta Prepago</option>
+                    <option value="15">Compensación de Deudas</option>
+                    <option value="21">Endoso de Títulos</option>
                   </select>
                 </div>
                 <div>
