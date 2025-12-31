@@ -261,7 +261,7 @@ export class ApiClient {
   }
 
   async crearCliente(data: any) {
-    return this.request<any>('/api/clientes/', {
+    return this.request<any>('/api/clientes', {
       method: 'POST',
       body: JSON.stringify(data),
     });
