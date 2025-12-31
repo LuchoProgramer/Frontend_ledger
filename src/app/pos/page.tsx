@@ -198,7 +198,31 @@ export default function POSPage() {
   const allowedToClose = useRef(false); // Ref to prevent double invocation if using strict mode or weird events
 
   // Cart Actions
+  // Presentation Selection State
+  const [showPresModal, setShowPresModal] = useState(false);
+  const [productToSelect, setProductToSelect] = useState<Producto | null>(null);
+  const [availablePresentations, setAvailablePresentations] = useState<Presentacion[]>([]);
+  const [targetCartIndex, setTargetCartIndex] = useState<number | null>(null);
+
+  const handleCartItemClick = async (index: number, item: CartItem) => {
+    // Similar to addToCart but sets targetCartIndex
+    try {
+      const presRes = await apiClient.getPresentaciones(item.producto.id);
+      const presentaciones = presRes.data || [];
+      if (presentaciones.length > 0) {
+        setProductToSelect(item.producto);
+        setAvailablePresentations(presentaciones);
+        setTargetCartIndex(index);
+        setShowPresModal(true);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const addToCart = async (producto: Producto) => {
+    setTargetCartIndex(null); // Ensure we are in ADD mode
+    // ... rest of logic checks presentations ...
     const stockActual = producto.stock ?? 0;
 
     if (stockActual <= 0) {
@@ -206,56 +230,106 @@ export default function POSPage() {
       return;
     }
 
-    let presentacion: Presentacion;
     try {
       const presRes = await apiClient.getPresentaciones(producto.id);
-      if (presRes.data && presRes.data.length > 0) {
-        presentacion = presRes.data[0];
-      } else {
+      const presentaciones = presRes.data || [];
+
+      if (presentaciones.length === 0) {
         alert('Este producto no tiene presentaciones/precios definidos');
         return;
       }
+
+      if (presentaciones.length === 1) {
+        addPresentationToCart(producto, presentaciones[0]);
+      } else {
+        // Multiple presentations: Open selector
+        setProductToSelect(producto);
+        setAvailablePresentations(presentaciones);
+        setShowPresModal(true);
+      }
     } catch (e) {
       console.error(e);
-      return;
+      alert('Error obteniendo precios del producto');
     }
+  };
+
+  const addPresentationToCart = (producto: Producto, presentacion: Presentacion) => {
+    const stockActual = producto.stock ?? 0;
 
     setCart(prev => {
-      const currentQtyInCart = prev.find(i => i.producto.id === producto.id)?.cantidad || 0;
-      if (currentQtyInCart + 1 > stockActual) {
-        alert(`No puedes agregar más de ${stockActual} unidades.`);
+      // 1. Calculate currently used stock (excluding the item being modified if any)
+      const otherItemsStock = prev
+        .filter((item, idx) => item.producto.id === producto.id && idx !== targetCartIndex)
+        .reduce((sum, i) => sum + (i.cantidad * i.presentacion.cantidad), 0);
+
+      // 2. Determine quantity for the new item
+      let quantity = 1;
+      if (targetCartIndex !== null && prev[targetCartIndex]) {
+        quantity = prev[targetCartIndex].cantidad;
+      }
+
+      const requestedUnits = quantity * presentacion.cantidad;
+
+      if (otherItemsStock + requestedUnits > stockActual) {
+        alert(`No hay stock suficiente para esta presentación. Max disponible: ${stockActual - otherItemsStock} unidades.`);
         return prev;
       }
 
-      const existing = prev.find(item => item.producto.id === producto.id && item.presentacion.id === presentacion.id);
-      if (existing) {
-        return prev.map(item => {
-          if (item.producto.id === producto.id && item.presentacion.id === presentacion.id) {
-            const newQty = item.cantidad + 1;
-            const precioBase = Number(presentacion.precio);
-            return {
-              ...item,
-              cantidad: newQty,
-              subtotal: newQty * precioBase,
-              total: newQty * precioBase
-            };
-          }
-          return item;
-        });
-      }
+      // 3. Update Cart
+      if (targetCartIndex !== null) {
+        // Replace Mode
+        const newCart = [...prev];
+        const precio = Number(presentacion.precio);
+        newCart[targetCartIndex] = {
+          ...newCart[targetCartIndex],
+          presentacion: presentacion,
+          precio: precio,
+          subtotal: quantity * precio,
+          total: quantity * precio
+        };
+        return newCart;
+      } else {
+        // Add Mode
+        // Check if exactly same presentation exists to merge
+        const existingIdx = prev.findIndex(item => item.producto.id === producto.id && item.presentacion.id === presentacion.id);
 
-      const precio = Number(presentacion.precio);
-      return [...prev, {
-        producto,
-        presentacion,
-        cantidad: 1,
-        precio,
-        subtotal: precio,
-        impuesto: 0, // Should calculate real tax if needed
-        total: precio
-      }];
+        if (existingIdx >= 0) {
+          const newCart = [...prev];
+          const item = newCart[existingIdx];
+          const newQty = item.cantidad + 1;
+          const precio = Number(presentacion.precio);
+
+          newCart[existingIdx] = {
+            ...item,
+            cantidad: newQty,
+            subtotal: newQty * precio,
+            total: newQty * precio
+          };
+          return newCart;
+        }
+
+        // New Line
+        const precio = Number(presentacion.precio);
+        return [...prev, {
+          producto,
+          presentacion,
+          cantidad: 1,
+          precio,
+          subtotal: precio,
+          impuesto: 0,
+          total: precio
+        }];
+      }
     });
+
+    // Close modal if open
+    setShowPresModal(false);
+    setProductToSelect(null);
+    setTargetCartIndex(null);
+    setToast({ message: `Actualizado: ${producto.nombre}`, visible: true });
+    setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 2000);
   };
+
 
   const removeFromCart = (index: number) => {
     setCart(prev => prev.filter((_, i) => i !== index));
@@ -611,7 +685,12 @@ export default function POSPage() {
                     </div>
                   )}
                   {cart.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg group">
+                    <div
+                      key={idx}
+                      className="flex justify-between items-center p-3 bg-gray-50 rounded-lg group cursor-pointer hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-200"
+                      onClick={() => handleCartItemClick(idx, item)}
+                      title="Click para cambiar presentación"
+                    >
                       <div className="flex-1">
                         <div className="font-medium text-gray-800">{item.producto.nombre}</div>
                         <div className="text-xs text-gray-500">{item.presentacion.nombre_presentacion}</div>
@@ -773,6 +852,45 @@ export default function POSPage() {
         </PortalModal>
 
 
+
+        {/* Presentation Selection Modal */}
+        <PortalModal isOpen={showPresModal} onClose={() => setShowPresModal(false)}>
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 max-w-lg w-full rounded-2xl">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              {targetCartIndex !== null ? 'Cambiar Presentación' : 'Seleccionar Presentación'}
+            </h3>
+            <p className="text-gray-500 mb-4 text-sm">
+              Producto: <span className="font-bold text-gray-800">{productToSelect?.nombre}</span>
+            </p>
+
+            <div className="grid grid-cols-1 gap-3 max-h-[60vh] overflow-y-auto">
+              {availablePresentations.map((pres) => (
+                <button
+                  key={pres.id}
+                  onClick={() => productToSelect && addPresentationToCart(productToSelect, pres)}
+                  className="flex justify-between items-center p-4 border rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all text-left"
+                >
+                  <div>
+                    <div className="font-bold text-gray-800">{pres.nombre_presentacion}</div>
+                    <div className="text-xs text-gray-500">Contiene: {pres.cantidad} unidades</div>
+                  </div>
+                  <div className="text-lg font-bold text-blue-600">
+                    ${pres.precio}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 text-right">
+              <button
+                onClick={() => setShowPresModal(false)}
+                className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </PortalModal>
 
         {/* Start Shift Modal */}
         <PortalModal isOpen={showShiftModal} onClose={() => setShowShiftModal(false)}>
