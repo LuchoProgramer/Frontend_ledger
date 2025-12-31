@@ -120,13 +120,13 @@ export default function DetailedSalesReportPage() {
 
     return (
         <DashboardLayout>
-            <div className="p-6 space-y-6">
-                <div className="flex flex-col md:flex-row justify-between items-center">
-                    <h1 className="text-2xl font-bold text-gray-800">Reporte Detallado de Ventas</h1>
-                    <div className="flex gap-2">
+            <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-800">Reporte Detallado de Ventas</h1>
+                    <div className="flex gap-2 w-full md:w-auto">
                         <button
                             onClick={handleExport}
-                            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2"
+                            className="bg-green-600 w-full md:w-auto justify-center text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-2"
                         >
                             <span>Descargar Excel</span>
                         </button>
@@ -134,29 +134,29 @@ export default function DetailedSalesReportPage() {
                 </div>
 
                 {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500">
-                        <div className="text-sm text-gray-500">Total Vendido (Filtrado)</div>
-                        <div className="text-2xl font-bold text-gray-800">${Number(filteredSummary.total_ventas || 0).toFixed(2)}</div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+                    <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border-l-4 border-blue-500 col-span-2 md:col-span-1">
+                        <div className="text-xs md:text-sm text-gray-500">Total Vendido</div>
+                        <div className="text-xl md:text-2xl font-bold text-gray-800">${Number(filteredSummary.total_ventas || 0).toFixed(2)}</div>
                     </div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500">
-                        <div className="text-sm text-gray-500">Transacciones</div>
-                        <div className="text-2xl font-bold text-gray-800">{filteredSummary.transacciones}</div>
+                    <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border-l-4 border-green-500">
+                        <div className="text-xs md:text-sm text-gray-500">Transacciones</div>
+                        <div className="text-lg md:text-2xl font-bold text-gray-800">{filteredSummary.transacciones}</div>
                     </div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-purple-500">
-                        <div className="text-sm text-gray-500">Ticket Promedio</div>
-                        <div className="text-2xl font-bold text-gray-800">${Number(filteredSummary.ticket_promedio || 0).toFixed(2)}</div>
+                    <div className="bg-white p-3 md:p-4 rounded-lg shadow-sm border-l-4 border-purple-500">
+                        <div className="text-xs md:text-sm text-gray-500">Ticket Promedio</div>
+                        <div className="text-lg md:text-2xl font-bold text-gray-800">${Number(filteredSummary.ticket_promedio || 0).toFixed(2)}</div>
                     </div>
                 </div>
 
                 {/* Filters */}
                 <div className="bg-white p-4 rounded-lg shadow-sm flex flex-wrap gap-4 items-end">
-                    <div>
+                    <div className="w-full md:w-64">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal</label>
                         <select
                             value={sucursalId}
                             onChange={(e) => setSucursalId(e.target.value)}
-                            className="p-2 border rounded-md w-full"
+                            className="p-2 border rounded-md w-full bg-gray-50"
                         >
                             <option value="">Todas</option>
                             {sucursales.map(s => (
@@ -164,29 +164,29 @@ export default function DetailedSalesReportPage() {
                             ))}
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Desde (Fecha/Hora)</label>
+                    <div className="w-full md:w-auto">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
                         <input
                             type="datetime-local"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="p-2 border rounded-md"
+                            className="p-2 border rounded-md w-full bg-gray-50"
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Hasta (Fecha/Hora)</label>
+                    <div className="w-full md:w-auto">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
                         <input
                             type="datetime-local"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            className="p-2 border rounded-md"
+                            className="p-2 border rounded-md w-full bg-gray-50"
                         />
                     </div>
                     <button
                         onClick={handleFilter}
-                        className="bg-indigo-600 text-white px-4 py-2 rounded self-end hover:bg-indigo-700"
+                        className="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 w-full md:w-auto font-medium shadow-sm transition-colors"
                     >
-                        Filtrar
+                        Filtrar Reporte
                     </button>
                 </div>
 
