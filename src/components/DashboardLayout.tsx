@@ -26,7 +26,9 @@ import {
     CreditCard,
     Receipt,
     Calculator,
-    LayoutDashboard
+    LayoutDashboard,
+    Book,
+    FileSpreadsheet
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -103,8 +105,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             ]
         },
         {
-            title: 'Compras',
+            title: 'Logística',
             icon: <Truck className="w-5 h-5" />,
+            allowedRoles: ['Administrador', 'Bodeguero'],
+            items: [
+                { name: 'Guías de Remisión', href: '/guias', icon: <Truck className="w-4 h-4" /> },
+            ]
+        },
+        {
+            title: 'Compras',
+            icon: <ClipboardList className="w-5 h-5" />, // Changed icon slightly to differentiate
             allowedRoles: ['Administrador', 'Bodeguero'],
             items: [
                 { name: 'Registrar Compra', href: '/compras/nueva', icon: <Plus className="w-4 h-4" /> },
@@ -122,14 +132,23 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             ]
         },
         {
+            title: 'Contabilidad & Tributación',
+            icon: <Book className="w-5 h-5" />,
+            allowedRoles: ['Administrador', 'Contador'], // Added Contador role concept conceptually
+            items: [
+                { name: 'Libro Diario', href: '/contabilidad/libro-diario', icon: <Book className="w-4 h-4" /> },
+                { name: 'Plan de Cuentas', href: '/contabilidad/plan-cuentas', icon: <FileSpreadsheet className="w-4 h-4" /> },
+                { name: 'Retenciones', href: '/facturacion/retenciones', icon: <CreditCard className="w-4 h-4" /> },
+                { name: 'Gestionar Impuestos', href: '/impuestos', icon: <Calculator className="w-4 h-4" /> },
+                { name: 'Notas de Crédito', href: '/facturacion/notas-credito', icon: <Receipt className="w-4 h-4" /> },
+            ]
+        },
+        {
             title: 'Facturación SRI',
             icon: <FileText className="w-5 h-5" />,
             allowedRoles: ['Administrador'],
             items: [
                 { name: 'Dashboard SRI', href: '/facturacion', icon: <LayoutDashboard className="w-4 h-4" /> },
-                { name: 'Notas de Crédito', href: '/facturacion/notas-credito', icon: <Receipt className="w-4 h-4" /> },
-                { name: 'Retenciones', href: '/facturacion/retenciones', icon: <CreditCard className="w-4 h-4" /> },
-                { name: 'Gestionar Impuestos', href: '/impuestos', icon: <Calculator className="w-4 h-4" /> },
             ]
         },
         {

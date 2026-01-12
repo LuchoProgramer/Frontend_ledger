@@ -8,6 +8,7 @@ import ProductForm from '@/components/ProductForm';
 import PresentationsManager from '@/components/PresentationsManager';
 import type { Producto } from '@/lib/types/productos';
 import DashboardLayout from '@/components/DashboardLayout';
+import KardexViewer from '@/components/KardexViewer';
 
 // En Next.js App Router, params se recibe como prop y debe ser usado con use() si es async,
 // pero en page components params es una promesa en versiones recientes o directo.
@@ -86,6 +87,7 @@ export default function EditarProductoPage({ params }: { params: Promise<{ id: s
                     <>
                         <ProductForm initialData={producto} />
                         <PresentationsManager productoId={producto.id} />
+                        <KardexViewer productoId={producto.id} />
                     </>
                 )}
             </div>

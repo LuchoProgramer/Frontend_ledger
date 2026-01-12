@@ -797,6 +797,47 @@ export class ApiClient {
     return this.request<MovimientosResponse>(`/api/auth/inventario/movimientos/${query ? `?${query}` : ''}`);
   }
 
+  // ========== AUDITORÍA (CONTEO) ==========
+
+  async getAuditorias(params?: {
+    page?: number;
+    search?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+
+    return this.request<any>(`/conteo/auditorias/?${queryParams.toString()}`);
+  }
+
+  async getAuditoria(id: number) {
+    return this.request<AuditoriaDetailResponse>(`/conteo/auditorias/${id}/`);
+  }
+
+  async createAuditoria(data: {
+    tipo: 'INICIO_TURNO' | 'FIN_TURNO' | 'ALEATORIO';
+    productos?: number[];
+    aleatorio_cantidad?: number;
+    categoria_id?: number;
+  }) {
+    return this.request<AuditoriaDetailResponse>('/conteo/auditorias/', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async updateAuditoriaCount(id: number, items: Array<{ id: number, cantidad_fisica: number }>) {
+    return this.request<any>(`/conteo/auditorias/${id}/registrar_conteo/`, {
+      method: 'POST',
+      body: JSON.stringify({ detalles: items })
+    });
+  }
+
+  async finalizeAuditoria(id: number) {
+    return this.request<AuditoriaDetailResponse>(`/conteo/auditorias/${id}/finalizar/`, {
+      method: 'POST',
+    });
+  }
+
   // ========== CONFIGURACIÓN ==========
 
   async getConfiguracion() {
@@ -1077,33 +1118,102 @@ export class ApiClient {
     return response.blob();
   }
 
-  // ========== AUDIT INVENTARIO ==========
-  async getAuditorias() {
-    return this.request<AuditoriaItem[]>('/api/auth/inventario/auditoria/');
+
+
+  // ========== LOGÍSTICA (GUÍAS) ==========
+
+  async getGuias(params?: {
+    page?: number;
+    search?: string;
+    estado_sri?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.estado_sri) queryParams.append('estado_sri', params.estado_sri);
+    if (params?.start_date) queryParams.append('start_date', params.start_date);
+    if (params?.end_date) queryParams.append('end_date', params.end_date);
+
+    const query = queryParams.toString();
+    return this.request<any>(`/api/guias/${query ? `?${query}` : ''}`);
   }
 
-  async iniciarAuditoria(data: any) {
-    return this.request<any>('/api/auth/inventario/auditoria/iniciar/', {
+  async getGuia(id: number) {
+    return this.request<any>(`/api/guias/${id}/`);
+  }
+
+  async crearGuia(data: any) {
+    return this.request<any>('/api/guias/', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
     });
   }
 
-  async getAuditoriaDetalle(id: number) {
-    return this.request<AuditoriaDetailResponse>(`/api/auth/inventario/auditoria/${id}/`);
-  }
-
-  async guardarConteo(id: number, items: any[]) {
-    return this.request<any>(`/api/auth/inventario/auditoria/${id}/conteo/`, {
+  async enviarGuiaSRI(id: number) {
+    return this.request<any>(`/api/guias/${id}/enviar_sri/`, {
       method: 'POST',
-      body: JSON.stringify({ items })
     });
   }
 
-  async finalizarAuditoria(id: number) {
-    return this.request<any>(`/api/auth/inventario/auditoria/${id}/finalizar/`, {
-      method: 'POST'
+  async descargarGuiaXML(id: number): Promise<Blob> {
+    const url = `${this.baseURL}/api/guias/${id}/descargar_xml/`;
+    const response = await fetch(url, {
+      headers: { 'X-Tenant': this.tenant },
+      credentials: 'include',
     });
+    if (!response.ok) throw { message: 'Error descarga XML', status: response.status } as ApiError;
+    return response.blob();
+  }
+
+  async descargarGuiaPDF(id: number, filename?: string) {
+    if (!filename) filename = `guia_${id}.pdf`;
+    const url = `${this.baseURL}/api/guias/${id}/descargar_pdf/`;
+
+    try {
+      const response = await fetch(url, {
+        headers: { 'X-Tenant': this.tenant },
+        credentials: 'include',
+      });
+
+      if (!response.ok) throw new Error('Error descargando PDF');
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download PDF error:', error);
+      throw error;
+    }
+  }
+
+  // ========== CONTABILIDAD ==========
+
+  async getAsientos(params?: {
+    page?: number;
+    search?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.start_date) queryParams.append('start_date', params.start_date);
+    if (params?.end_date) queryParams.append('end_date', params.end_date);
+
+    const query = queryParams.toString();
+    return this.request<any>(`/api/contabilidad/asientos/${query ? `?${query}` : ''}`);
+  }
+
+  async getPlanCuentas() {
+    return this.request<any>('/api/contabilidad/plan-cuentas/');
   }
 }
 

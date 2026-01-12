@@ -29,9 +29,26 @@ export default function AuditoriaDetailPage(props: PageProps) {
     const loadDetalle = async () => {
         setLoading(true);
         try {
-            const res = await apiClient.getAuditoriaDetalle(Number(id));
+            // New API method
+            const res = await apiClient.getAuditoria(Number(id));
+            if (!res) throw new Error("No data");
+
             setAuditoria(res);
-            setItems(res.items || []);
+
+            // Map new structure to local state items
+            // API returns 'detalles' array
+            const mappedItems = ((res as any).detalles || []).map((d: any) => ({
+                id: d.id, // ID of DetalleAuditoria
+                producto_id: d.producto,
+                codigo: d.producto_codigo || 'N/A', // Assuming backend sends this or we need to fetch
+                nombre: d.producto_nombre || 'Producto',
+                categoria: d.categoria_nombre || 'General',
+                stock_sistema: d.cantidad_sistema,
+                conteo_fisico: d.cantidad_fisica,
+                diferencia: d.diferencia
+            }));
+
+            setItems(mappedItems);
         } catch (error) {
             console.error(error);
             alert('Error al cargar auditoría');
@@ -57,18 +74,17 @@ export default function AuditoriaDetailPage(props: PageProps) {
         setSaving(true);
         try {
             // Filtrar solo modificados para enviar
-            // O enviar todo para asegurar. Backend acepta lista.
-            // Enviemos todo lo que tenga conteo_fisico != null
             const payload = items
                 .filter(i => i.conteo_fisico !== null && i.conteo_fisico !== undefined)
                 .map(i => ({
-                    producto_id: i.producto_id,
-                    cantidad: i.conteo_fisico
+                    id: i.id, // Detalle ID
+                    cantidad_fisica: i.conteo_fisico
                 }));
 
             if (payload.length > 0) {
-                await apiClient.guardarConteo(Number(id), payload);
-                // Recargar para limpiar flags y asegurar sync
+                // New API method expects different payload
+                await apiClient.updateAuditoriaCount(Number(id), payload);
+                // Recargar
                 await loadDetalle();
             }
             alert('Avance guardado.');
@@ -87,7 +103,7 @@ export default function AuditoriaDetailPage(props: PageProps) {
             // Guardar primero
             await guardarAvance();
 
-            await apiClient.finalizarAuditoria(Number(id));
+            await apiClient.finalizeAuditoria(Number(id));
             alert('Auditoría finalizada correctamente.');
             router.push('/inventario/auditoria');
         } catch (error: any) {
@@ -189,8 +205,8 @@ export default function AuditoriaDetailPage(props: PageProps) {
                                             <input
                                                 type="number"
                                                 className={`w-24 p-1 border rounded text-right focus:ring-2 focus:ring-indigo-500 ${item.conteo_fisico !== null && item.conteo_fisico !== undefined
-                                                        ? 'bg-blue-50 border-blue-300'
-                                                        : 'bg-white'
+                                                    ? 'bg-blue-50 border-blue-300'
+                                                    : 'bg-white'
                                                     }`}
                                                 value={item.conteo_fisico === null || item.conteo_fisico === undefined ? '' : item.conteo_fisico}
                                                 onChange={(e) => handleConteoChange(item.id, e.target.value)}

@@ -6,6 +6,7 @@ import { getApiClient } from '@/lib/api';
 import { Producto, Presentacion } from '@/lib/types/productos';
 import { SucursalSimple } from '@/lib/types/usuarios';
 import PortalModal from '@/components/ui/PortalModal';
+import ShiftCloseModal, { ShiftCloseData } from '@/components/ShiftCloseModal';
 
 // Tipos locales
 interface CartItem {
@@ -61,6 +62,7 @@ export default function POSPage() {
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [selectedSucursal, setSelectedSucursal] = useState<number | null>(null);
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
+  const [showClosingModal, setShowClosingModal] = useState(false);
 
   // Client Modal State
   const [showClientModal, setShowClientModal] = useState(false);
@@ -177,21 +179,20 @@ export default function POSPage() {
   };
 
   const handleCloseTurno = async () => {
-    if (!confirm('¿Está seguro de cerrar el turno actual? Se generará el corte de caja.')) return;
+    setShowClosingModal(true);
+  };
+
+  const handleConfirmCloseTurno = async (data: ShiftCloseData) => {
     try {
-      await apiClient.cerrarTurno({
-        efectivo_total: totals.total,
-        tarjeta_total: 0,
-        transferencia_total: 0,
-        salidas_caja: 0
-      });
+      await apiClient.cerrarTurno(data);
       setTurno(null);
       setCart([]);
       setClient({ identificacion: '9999999999', razon_social: 'CONSUMIDOR FINAL', email: '', direccion: '' });
       await loadSucursales();
-      setShowShiftModal(true);
+      setShowShiftModal(true); // Mostrar modal de apertura tras cerrar
     } catch (e: any) {
       alert(e.message || 'Error al cerrar turno');
+      throw e; // Relanzar para que el modal sepa que falló (opcional, pero buena práctica)
     }
   };
 
@@ -1087,8 +1088,15 @@ export default function POSPage() {
           </div>
         </PortalModal>
 
-      </div >
-    </DashboardLayout >
+      </div>
+
+      <ShiftCloseModal
+        isOpen={showClosingModal}
+        onClose={() => setShowClosingModal(false)}
+        onConfirm={handleConfirmCloseTurno}
+      />
+
+    </DashboardLayout>
   );
 }
 

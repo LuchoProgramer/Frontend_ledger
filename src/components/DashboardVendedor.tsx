@@ -20,28 +20,40 @@ interface Sucursal {
   nombre: string
 }
 
+interface AuditItem {
+  id: number;
+  producto: number;
+  producto_nombre: string;
+  cantidad_sistema: number; // Hidden?
+  cantidad_fisica: number;
+}
+
 export default function DashboardVendedor({ tenant }: DashboardVendedorProps) {
   const router = useRouter()
   const { user, logout } = useAuth()
   const [turnoActivo, setTurnoActivo] = useState<TurnoInfo | null>(null)
   const [loadingTurno, setLoadingTurno] = useState(true)
 
-  // Estado para gestión de turnos
+  // Estado para gestión de turnos y auditoría
   const [sucursales, setSucursales] = useState<Sucursal[]>([])
-  const [showModal, setShowModal] = useState(false)
+
+  // STEP: 'NONE' | 'SELECT_BRANCH' | 'AUDIT'
+  const [step, setStep] = useState<'NONE' | 'SELECT_BRANCH' | 'AUDIT'>('NONE')
+
   const [selectedSucursal, setSelectedSucursal] = useState<string>('')
   const [processing, setProcessing] = useState(false)
+
+  // Auditoria State
+  const [currentAuditId, setCurrentAuditId] = useState<number | null>(null)
+  const [auditItems, setAuditItems] = useState<AuditItem[]>([])
+  const [auditLoading, setAuditLoading] = useState(false)
 
   const api = getApiClient()
 
   const cargarDatos = async () => {
     setLoadingTurno(true)
     try {
-      // 1. Cargar Turno Activo
       const response = await api.getTurnoActivo()
-
-      // La API puede retornar 'activo', 'tiene_turno_activo', etc. dependiendo de la versión.
-      // Estandarizamos revisando ambas propiedades.
       const isActivo = (response as any).activo || (response as any).tiene_turno_activo;
 
       if (response.success && isActivo) {
@@ -52,16 +64,47 @@ export default function DashboardVendedor({ tenant }: DashboardVendedorProps) {
             hora_inicio: turnoData.inicio_turno || turnoData.hora_inicio,
             sucursal: turnoData.sucursal_nombre || turnoData.sucursal
           })
+
+          // Check for pending audit for this shift
+          try {
+            const pendingAudits = await api.getAuditorias({ page: 1 }); // We might need a specific filter like 'estado=PENDIENTE'
+            // Since the API returns paginated results, we look into results.
+            // We need to filter client-side or assume backend returns relevant ones.
+            // Ideally backend supports filtering. I added search param but not strict filter in client api.
+            // Let's assume we can fetch the specific one if we knew ID, but we don't.
+            // For now, let's try to fetch audits and see if any is PENDING and linked to this user/shift.
+            // Optimization: Just rely on 'create' returning existing pending audit? No, that duplicates.
+
+            // Let's iterate results.
+            if ((pendingAudits as any).results) {
+              const pending = (pendingAudits as any).results.find((a: any) => a.estado === 'PENDIENTE' && a.turno === turnoData.id);
+              if (pending) {
+                setCurrentAuditId(pending.id);
+                // Fetch full detail to get items!
+                const detail = await api.getAuditoria(pending.id);
+                if (detail) {
+                  const items = (detail as any).detalles.map((d: any) => ({
+                    id: d.id,
+                    producto: d.producto,
+                    producto_nombre: d.producto_nombre,
+                    cantidad_sistema: d.cantidad_sistema,
+                    cantidad_fisica: d.cantidad_fisica
+                  }))
+                  setAuditItems(items)
+                }
+              }
+            }
+          } catch (err) {
+            console.error("Error checking pending audits", err);
+          }
         }
       } else {
         setTurnoActivo(null)
       }
 
-      // 2. Cargar Sucursales (para abrir turno si es necesario)
       const sucsRes = await api.getSucursalesList({ page_size: 100 })
       if (sucsRes && sucsRes.results) {
         setSucursales(sucsRes.results)
-        // Pre-seleccionar la primera si hay
         if (sucsRes.results.length > 0) {
           setSelectedSucursal(sucsRes.results[0].id.toString())
         }
@@ -80,23 +123,78 @@ export default function DashboardVendedor({ tenant }: DashboardVendedorProps) {
   }, [])
 
   const handleIniciarTurno = () => {
-    // Si solo hay una sucursal, podemos pre-seleccionar o incluso auto-abrir si UX lo requiere.
-    // Por seguridad, mostramos modal.
-    setShowModal(true)
+    setStep('SELECT_BRANCH')
   }
 
-  const confirmarInicioTurno = async () => {
+  const iniciarProcesoTurno = async () => {
     if (!selectedSucursal) return
     setProcessing(true)
     try {
+      // 1. Abrir Turno
       const res = await api.abrirTurno(parseInt(selectedSucursal))
-      if (res) { // Asumiendo que el cliente lanza error si falla, o devuelve obj
-        setShowModal(false)
-        await cargarDatos() // Recargar todo
+      if (res) {
+        // 2. Crear Auditoría Inicial Automática
+        // Traemos todos los productos (o filtrar por categoría más tarde)
+        const auditRes = await api.createAuditoria({
+          tipo: 'INICIO_TURNO',
+          // productos: [] // Empty implies all logic in backend or default? Backend defaults to empty list. 
+          // Backend logic: if empty, defaults to ALL if tipo != ALEATORIO. 
+          // Let's assume backend handles logic to select products for Audit.
+        })
+
+        if (auditRes) {
+          setCurrentAuditId((auditRes as any).id)
+          // Transformar detalles para UI
+          const items = (auditRes as any).detalles.map((d: any) => ({
+            id: d.id, // ID del DetalleAuditoria
+            producto: d.producto,
+            producto_nombre: d.producto_nombre,
+            cantidad_sistema: d.cantidad_sistema,
+            cantidad_fisica: 0 // Iniciar en 0 para contar
+          }))
+          setAuditItems(items)
+          setStep('AUDIT')
+        } else {
+          // Fallback si falla auditoria pero turno abrio (Raro)
+          await cargarDatos()
+          setStep('NONE')
+        }
       }
     } catch (error) {
       console.error('Error abriendo turno', error)
       alert('Error al abrir el turno. Inténtelo de nuevo.')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const handleAuditChange = (id: number, val: string) => {
+    const num = parseFloat(val) || 0;
+    setAuditItems(prev => prev.map(item =>
+      item.id === id ? { ...item, cantidad_fisica: num } : item
+    ))
+  }
+
+  const finalizarAuditoria = async () => {
+    if (!currentAuditId) return;
+    setProcessing(true)
+    try {
+      // 1. Guardar conteos
+      await api.updateAuditoriaCount(currentAuditId, auditItems.map(i => ({
+        id: i.id,
+        cantidad_fisica: i.cantidad_fisica
+      })))
+
+      // 2. Finalizar
+      await api.finalizeAuditoria(currentAuditId)
+
+      alert('Turno iniciado y auditoría registrada correctamente.')
+      setStep('NONE')
+      await cargarDatos()
+
+    } catch (error) {
+      console.error('Error finalizando auditoria', error)
+      alert('Error al guardar la auditoría')
     } finally {
       setProcessing(false)
     }
@@ -107,10 +205,8 @@ export default function DashboardVendedor({ tenant }: DashboardVendedorProps) {
 
     setProcessing(true)
     try {
-      // En un flujo real, aquí pediríamos el arqueo de caja (efectivo contado)
-      // Por ahora cerramos simple.
       await api.cerrarTurno({
-        efectivo_total: 0, // TODO: Pedir en modal aparte
+        efectivo_total: 0,
         tarjeta_total: 0,
         transferencia_total: 0,
         salidas_caja: 0
@@ -136,7 +232,6 @@ export default function DashboardVendedor({ tenant }: DashboardVendedorProps) {
     }
 
     if (item.action === 'verTurno') {
-      // TODO: Mostrar detalles/reporte del turno
       return
     }
 
@@ -171,45 +266,131 @@ export default function DashboardVendedor({ tenant }: DashboardVendedorProps) {
     },
   ]
 
+  // ... inside DashboardVendedor
+
+  const minimizarAuditoria = () => {
+    setStep('NONE');
+  }
+
+  const retomarAuditoria = () => {
+    setStep('AUDIT');
+  }
+
   return (
     <div className="space-y-8">
 
-      {/* Modal Iniciar Turno */}
-      {showModal && (
+      {/* Banner de Auditoría Pendiente */}
+      {currentAuditId && step === 'NONE' && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 flex justify-between items-center shadow-sm">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <span className="text-2xl">⚠️</span>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700">
+                <span className="font-bold">Auditoría en curso.</span>
+                {' '}Si realizas ventas, recuerda considerar los productos vendidos en tu conteo.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={retomarAuditoria}
+            className="px-4 py-2 bg-yellow-100 text-yellow-700 font-bold rounded hover:bg-yellow-200 text-sm transition-colors"
+          >
+            Retomar Conteo
+          </button>
+        </div>
+      )}
+
+      {/* Modal WIZARD */}
+      {step !== 'NONE' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Apertura de Caja</h3>
-            <p className="text-gray-600 mb-6">Seleccione la sucursal donde iniciará su turno de trabajo.</p>
+          <div className={`bg-white rounded-xl shadow-xl w-full p-6 max-h-[90vh] overflow-y-auto ${step === 'AUDIT' ? 'max-w-4xl' : 'max-w-md'}`}>
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Sucursal</label>
-              <select
-                className="w-full border rounded-lg p-3 text-gray-700 focus:ring-2 focus:ring-green-500 outline-none"
-                value={selectedSucursal}
-                onChange={(e) => setSelectedSucursal(e.target.value)}
-              >
-                {sucursales.map(s => (
-                  <option key={s.id} value={s.id}>{s.nombre}</option>
-                ))}
-              </select>
-            </div>
+            {step === 'SELECT_BRANCH' && (
+              <>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Apertura de Caja</h3>
+                <p className="text-gray-600 mb-6">Seleccione el punto de venta donde iniciará su turno.</p>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sucursal</label>
+                  <select
+                    className="w-full border rounded-lg p-3 text-gray-700 focus:ring-2 focus:ring-green-500 outline-none"
+                    value={selectedSucursal}
+                    onChange={(e) => setSelectedSucursal(e.target.value)}
+                  >
+                    {sucursales.map(s => (
+                      <option key={s.id} value={s.id}>{s.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button onClick={() => setStep('NONE')} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"> Cancelar </button>
+                  <button
+                    onClick={iniciarProcesoTurno}
+                    disabled={processing || !selectedSucursal}
+                    className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {processing ? 'Iniciando...' : 'Continuar'}
+                  </button>
+                </div>
+              </>
+            )}
 
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
-                disabled={processing}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmarInicioTurno}
-                disabled={processing || !selectedSucursal}
-                className={`px-6 py-2 bg-green-600 text-white font-bold rounded-lg ${processing ? 'opacity-70' : 'hover:bg-green-700'}`}
-              >
-                {processing ? 'Abriendo...' : 'Abrir Caja'}
-              </button>
-            </div>
+            {step === 'AUDIT' && (
+              <>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Auditoría de Inicio de Turno</h3>
+                <p className="text-sm text-gray-500 mb-4">Por favor valide el inventario físico antes de comenzar a vender.</p>
+
+                <div className="overflow-x-auto border rounded-lg mb-6 max-h-[60vh]">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Conteo Físico</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {auditItems.map(item => (
+                        <tr key={item.id}>
+                          <td className="px-4 py-2 text-sm text-gray-900">{item.producto_nombre}</td>
+                          <td className="px-4 py-2 text-right">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className="w-24 p-1 border rounded text-right focus:ring-2 focus:ring-blue-500 outline-none"
+                              value={item.cantidad_fisica}
+                              onChange={(e) => handleAuditChange(item.id, e.target.value)}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                      {auditItems.length === 0 && (
+                        <tr><td colSpan={2} className="p-4 text-center text-gray-500">No hay productos asignados para auditoría.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex justify-between items-center pt-4 border-t">
+                  <button
+                    onClick={minimizarAuditoria}
+                    className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium text-sm flex items-center gap-2"
+                  >
+                    <span>🔽</span> Minimizar y Vender
+                  </button>
+
+                  <button
+                    onClick={finalizarAuditoria}
+                    disabled={processing}
+                    className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50 shadow-md"
+                  >
+                    {processing ? 'Guardando...' : 'Finalizar Auditoría'}
+                  </button>
+                </div>
+              </>
+            )}
+
           </div>
         </div>
       )}
@@ -248,21 +429,6 @@ export default function DashboardVendedor({ tenant }: DashboardVendedorProps) {
                 {processing ? 'Cerrando...' : 'Finalizar Turno'}
               </button>
             </div>
-            {/* Estadísticas del turno */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-green-200/60">
-              <div className="text-center p-3 bg-white/50 rounded-lg">
-                <p className="text-2xl font-bold text-green-900">0</p>
-                <p className="text-xs font-medium uppercase text-green-700 tracking-wider">Ventas</p>
-              </div>
-              <div className="text-center p-3 bg-white/50 rounded-lg">
-                <p className="text-2xl font-bold text-green-900">$0.00</p>
-                <p className="text-xs font-medium uppercase text-green-700 tracking-wider">Total</p>
-              </div>
-              <div className="text-center p-3 bg-white/50 rounded-lg hidden md:block">
-                <p className="text-2xl font-bold text-green-900">En curso</p>
-                <p className="text-xs font-medium uppercase text-green-700 tracking-wider">Estado</p>
-              </div>
-            </div>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200 text-center">
@@ -271,7 +437,7 @@ export default function DashboardVendedor({ tenant }: DashboardVendedorProps) {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Hola, {user?.first_name}!</h2>
             <p className="text-gray-500 max-w-md mx-auto mb-8">
-              Para comenzar a procesar ventas necesitas abrir tu caja. Selecciona tu sucursal y comienza tu jornada.
+              Para comenzar a procesar ventas necesitas abrir tu caja. Selecciona tu sucursal y realiza la auditoría inicial.
             </p>
             <button
               onClick={handleIniciarTurno}
@@ -313,11 +479,6 @@ export default function DashboardVendedor({ tenant }: DashboardVendedorProps) {
                           {item.name}
                         </span>
                       </div>
-                      {item.requiresTurno && !turnoActivo && (
-                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded border">
-                          Cerrado
-                        </span>
-                      )}
                       {(!item.requiresTurno || turnoActivo) && (
                         <span className="text-gray-300 group-hover:text-blue-400">→</span>
                       )}

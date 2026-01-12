@@ -49,16 +49,21 @@ export default function AuditoriaListPage() {
             // Let's try to get profile or just prompt for ID (ugly).
             // Proper way: Fetch sucursales.
 
-            const sucursalesRes = await apiClient.getSucursales();
-            const sucursalId = sucursalesRes.sucursales?.[0]?.id;
+            // Fetch sucursal for scope (optional for backend if only 1, but good practice)
+            // Backend CreateAuditoriaSerializer expects 'tipo' and potentially products.
+            // Simplified: Launch a Full Audit or Random? Let's default to Full for manual creation or ask.
+            // For now, let's just trigger a random or full audit.
+            // Let's use 'ALEATORIO' for testing or 'INICIO_TURNO' semantics.
+            // Actually, if manually triggering, maybe they want to count specific things.
+            // Defaulting to ALEATORIO with 10 items for demo, or better yet, full count?
+            // Let's use 'ALEATORIO' with quantity 50 for now as a safe default if no UI.
 
-            if (!sucursalId) {
-                alert('No tienes sucursales asignadas.');
-                return;
-            }
+            const res = await apiClient.createAuditoria({
+                tipo: 'ALEATORIO',
+                aleatorio_cantidad: 20
+            });
 
-            const res = await apiClient.iniciarAuditoria({ sucursal_id: sucursalId });
-            router.push(`/inventario/auditoria/${res.id}`);
+            router.push(`/inventario/auditoria/${(res as any).id}`);
 
         } catch (error: any) {
             alert(error.error || 'Error al iniciar auditoría');
