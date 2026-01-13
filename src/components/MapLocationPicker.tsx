@@ -34,8 +34,8 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
 
     const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
         if (e.latLng) {
-            const lat = e.latLng.lat();
-            const lng = e.latLng.lng();
+            const lat = Number(e.latLng.lat().toFixed(7));
+            const lng = Number(e.latLng.lng().toFixed(7));
             setMarkerPosition({ lat, lng });
             onLocationChange(lat, lng);
         }
@@ -43,8 +43,8 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
 
     const onMarkerDragEnd = useCallback((e: google.maps.MapMouseEvent) => {
         if (e.latLng) {
-            const lat = e.latLng.lat();
-            const lng = e.latLng.lng();
+            const lat = Number(e.latLng.lat().toFixed(7));
+            const lng = Number(e.latLng.lng().toFixed(7));
             setMarkerPosition({ lat, lng });
             onLocationChange(lat, lng);
         }
