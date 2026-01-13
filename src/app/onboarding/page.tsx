@@ -68,6 +68,7 @@ export default function OnboardingPage() {
     setSuccess('');
 
     try {
+      console.log('[Onboarding] FormData antes de enviar:', JSON.stringify(formData, null, 2));
       const api = getApiClient();
       const response = await api.crearSucursal(formData);
 

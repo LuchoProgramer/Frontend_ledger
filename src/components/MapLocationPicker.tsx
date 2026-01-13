@@ -36,6 +36,8 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
         if (e.latLng) {
             const lat = Number(e.latLng.lat().toFixed(7));
             const lng = Number(e.latLng.lng().toFixed(7));
+            console.log('[MapLocationPicker] Click - Raw:', { lat: e.latLng.lat(), lng: e.latLng.lng() });
+            console.log('[MapLocationPicker] Click - Rounded:', { lat, lng });
             setMarkerPosition({ lat, lng });
             onLocationChange(lat, lng);
         }
@@ -45,6 +47,8 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
         if (e.latLng) {
             const lat = Number(e.latLng.lat().toFixed(7));
             const lng = Number(e.latLng.lng().toFixed(7));
+            console.log('[MapLocationPicker] Drag - Raw:', { lat: e.latLng.lat(), lng: e.latLng.lng() });
+            console.log('[MapLocationPicker] Drag - Rounded:', { lat, lng });
             setMarkerPosition({ lat, lng });
             onLocationChange(lat, lng);
         }
