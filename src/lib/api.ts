@@ -223,7 +223,15 @@ export class ApiClient {
   }
 
   async consultarSRI(id: number) {
-    return this.request<any>(`/api/facturas/${id}/consultar_sri/`);
+    return this.request<any>(`/api/facturas/${id}/consultar_sri/`, {
+      method: 'POST',
+    });
+  }
+
+  async promocionarFacturaSRI(id: number) {
+    return this.request<any>(`/api/facturas/${id}/promocionar_sri/`, {
+      method: 'POST',
+    });
   }
 
   async descargarXML(id: number): Promise<Blob> {

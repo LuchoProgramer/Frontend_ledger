@@ -34,6 +34,7 @@ export interface Factura {
   detalles: DetalleFactura[];
   puede_enviar_sri: boolean;
   tiene_xml_firmado: boolean;
+  es_interno: boolean;
 }
 
 export interface PaginatedResponse<T> {

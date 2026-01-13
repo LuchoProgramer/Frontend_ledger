@@ -16,6 +16,7 @@ export interface Factura {
     estado_sri?: 'PPR' | 'AUT' | 'NAT' | 'DEV';
     mensajes_sri?: string[];
     detalles?: DetalleFactura[];
+    es_interno?: boolean;
 }
 
 export interface DetalleFactura {

@@ -65,6 +65,21 @@ export default function DetalleFactura() {
     }
   };
 
+  const handlePromocionarSRI = async () => {
+    if (!factura) return;
+
+    if (!confirm('Esta nota se convertirá en una factura oficial ante el SRI. ¿Deseas continuar?')) return;
+
+    try {
+      const api = getApiClient(tenant);
+      const resultado = await api.promocionarFacturaSRI(factura.id);
+      alert(resultado.message || 'Proceso de promoción iniciado. La factura se enviará al SRI.');
+      refetch();
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    }
+  };
+
   const handleDescargarXML = async () => {
     if (!factura) return;
 
@@ -143,8 +158,15 @@ export default function DetalleFactura() {
                 })}
               </p>
             </div>
-            <div className={`px-4 py-2 rounded-lg border-2 ${estadoColor}`}>
-              <span className="font-semibold">Estado: {factura.estado_sri}</span>
+            <div className="flex items-center gap-3">
+              {factura.es_interno && (
+                <div className="px-3 py-1 bg-indigo-600 text-white text-xs font-bold rounded-full animate-pulse">
+                  NOTA INTERNA
+                </div>
+              )}
+              <div className={`px-4 py-2 rounded-lg border-2 ${estadoColor}`}>
+                <span className="font-semibold">Estado: {factura.es_interno ? 'INTERNO' : (factura.estado_sri || 'PENDIENTE')}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -308,6 +330,15 @@ export default function DetalleFactura() {
                 className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 font-semibold"
               >
                 📥 Descargar XML
+              </button>
+            )}
+
+            {factura.es_interno && (
+              <button
+                onClick={handlePromocionarSRI}
+                className="px-6 py-3 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-bold shadow-lg shadow-indigo-200 flex items-center gap-2"
+              >
+                🚀 Promocionar a SRI (Oficializar)
               </button>
             )}
 
