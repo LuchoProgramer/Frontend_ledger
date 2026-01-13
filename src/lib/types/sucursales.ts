@@ -11,6 +11,9 @@ export interface Sucursal {
   punto_emision: string;
   es_matriz: boolean;
   secuencial_actual: string;
+  latitud?: number | null;
+  longitud?: number | null;
+  mostrar_en_mapa?: boolean;
   usuarios_count?: number;
   usuarios?: Array<{
     id: number;
@@ -28,6 +31,9 @@ export interface SucursalFormData {
   codigo_establecimiento: string;
   punto_emision: string;
   es_matriz: boolean;
+  latitud?: number;
+  longitud?: number;
+  mostrar_en_mapa?: boolean;
 }
 
 export interface SucursalesListResponse {

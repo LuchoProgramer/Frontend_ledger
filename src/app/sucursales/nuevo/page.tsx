@@ -6,6 +6,13 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiClient } from '@/lib/api';
 import type { SucursalFormData } from '@/lib/types/sucursales';
+import dynamic from 'next/dynamic';
+
+// Cargar MapLocationPicker dinámicamente (solo en cliente)
+const MapLocationPicker = dynamic(() => import('@/components/MapLocationPicker'), {
+  ssr: false,
+  loading: () => <p className="text-gray-500">Cargando mapa...</p>
+});
 
 export default function NuevaSucursalPage() {
   const router = useRouter();
@@ -13,6 +20,7 @@ export default function NuevaSucursalPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [mostrarMapa, setMostrarMapa] = useState(false);
 
   const [formData, setFormData] = useState<SucursalFormData>({
     nombre: '',
@@ -21,6 +29,9 @@ export default function NuevaSucursalPage() {
     codigo_establecimiento: '',
     punto_emision: '',
     es_matriz: false,
+    latitud: undefined,
+    longitud: undefined,
+    mostrar_en_mapa: false,
   });
 
   // Verificar permisos
@@ -152,6 +163,61 @@ export default function NuevaSucursalPage() {
                     Es sucursal matriz
                   </label>
                 </div>
+              </div>
+
+              {/* Geolocalización Opcional */}
+              <div className="md:col-span-2 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <h3 className="font-semibold text-gray-900 text-sm">Ubicación en Mapa (Opcional)</h3>
+                  </div>
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={mostrarMapa}
+                      onChange={(e) => setMostrarMapa(e.target.checked)}
+                      className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <span className="text-sm text-gray-700">Ubicar en mapa</span>
+                  </label>
+                </div>
+
+                {mostrarMapa && (
+                  <>
+                    <MapLocationPicker
+                      initialLat={formData.latitud}
+                      initialLng={formData.longitud}
+                      onLocationChange={(lat, lng) => {
+                        setFormData({ ...formData, latitud: lat, longitud: lng });
+                      }}
+                      apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
+                    />
+
+                    <div className="mt-3">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.mostrar_en_mapa}
+                          onChange={(e) => setFormData({ ...formData, mostrar_en_mapa: e.target.checked })}
+                          className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm text-gray-700">
+                          Mostrar en mapa público del e-commerce
+                        </span>
+                      </label>
+                    </div>
+                  </>
+                )}
+
+                {!mostrarMapa && (
+                  <p className="text-sm text-gray-600">
+                    Útil para negocios con tienda física. Permite a tus clientes encontrarte fácilmente.
+                  </p>
+                )}
               </div>
             </div>
 
