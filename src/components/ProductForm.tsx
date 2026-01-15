@@ -122,6 +122,12 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
                 submitData.append('image', selectedFile);
             }
 
+            // DEBUG LOGS
+            console.log('🚀 [DEBUG] Enviando Formulario Producto:', Object.fromEntries(submitData.entries()));
+            for (let [key, value] of submitData.entries()) {
+                console.log(`[FormData] ${key}:`, value);
+            }
+
             let response;
             if (isEditing && initialData) {
                 response = await api.actualizarProducto(initialData.id, submitData);
