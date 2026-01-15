@@ -65,7 +65,7 @@ export class ApiClient {
 
   /**
    * Construir URL completa para imágenes desde rutas relativas del backend
-   * @param imagePath - Ruta relativa de la imagen (ej: /media/productos/imagen.jpg)
+   * @param imagePath - Ruta relativa de la imagen (ej: /media/productos/imagen.jpg o productos/imagen.jpg)
    * @returns URL completa de la imagen
    */
   getImageUrl(imagePath?: string | null): string | null {
@@ -76,9 +76,11 @@ export class ApiClient {
       return imagePath;
     }
 
-    // Construir URL completa con el baseURL del backend
-    // Remover /api del baseURL si existe
-    const backendUrl = this.baseURL.replace('/api', '');
+    // Obtener la URL base del backend desde variable de entorno
+    const backendBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.ledgerxpertz.com/api';
+
+    // Remover /api del final si existe para obtener la URL raíz del backend
+    const backendUrl = backendBaseUrl.replace(/\/api\/?$/, '');
 
     // Asegurar que imagePath empiece con /
     const path = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
