@@ -45,6 +45,10 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
         meta_descripcion: initialData?.meta_descripcion || '',
     });
 
+    // Image state
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(initialData?.image || null);
+
     // Cargar catálogos
     useEffect(() => {
         const cargarCatalogos = async () => {
@@ -77,6 +81,14 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
         }));
     };
 
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setSelectedFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -90,6 +102,7 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
             if (!formData.precio_base && !isEditing) throw new Error('El precio base es obligatorio para nuevos productos');
 
             // Preparar payload
+            // Preparar payload
             const payload = {
                 ...formData,
                 categoria_id: formData.categoria_id ? Number(formData.categoria_id) : null,
@@ -97,11 +110,23 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
                 stock_minimo: Number(formData.stock_minimo),
             };
 
+            // Convertir a FormData para envío con imagen
+            const submitData = new FormData();
+            Object.entries(payload).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    submitData.append(key, String(value));
+                }
+            });
+
+            if (selectedFile) {
+                submitData.append('image', selectedFile);
+            }
+
             let response;
             if (isEditing && initialData) {
-                response = await api.actualizarProducto(initialData.id, payload);
+                response = await api.actualizarProducto(initialData.id, submitData);
             } else {
-                response = await api.crearProducto(payload);
+                response = await api.crearProducto(submitData);
             }
 
             if (response.success) {
@@ -139,6 +164,46 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Imagen del Producto */}
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Imagen del Producto</label>
+                    <div className="flex items-center space-x-6">
+                        <div className="shrink-0">
+                            {previewUrl ? (
+                                <img
+                                    className="h-24 w-24 object-contain rounded-lg border border-gray-200 bg-gray-50"
+                                    src={previewUrl}
+                                    alt="Vista previa"
+                                />
+                            ) : (
+                                <div className="h-24 w-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 text-gray-400">
+                                    <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                            )}
+                        </div>
+                        <label className="block">
+                            <span className="sr-only">Elegir imagen</span>
+                            <input
+                                type="file"
+                                accept=".webp, .png, .jpg, .jpeg"
+                                onChange={handleImageChange}
+                                className="block w-full text-sm text-slate-500
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-full file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-blue-50 file:text-blue-700
+                                  hover:file:bg-blue-100
+                                "
+                            />
+                            <p className="mt-1 text-xs text-gray-500">
+                                Recomendado: .webp o .png transparente (1000x1000px)
+                            </p>
+                        </label>
+                    </div>
+                </div>
+
                 {/* Nombre */}
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Producto *</label>

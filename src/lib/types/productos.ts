@@ -29,6 +29,7 @@ export interface Producto {
     mostrar_en_web?: boolean;
     es_premium?: boolean;
     meta_descripcion?: string;
+    image?: string; // URL de la imagen si existe
     // Detalle
     presentaciones?: Presentacion[];
     sucursales_ids?: number[];
@@ -94,6 +95,7 @@ export interface ProductoFormData {
     mostrar_en_web?: boolean;
     es_premium?: boolean;
     meta_descripcion?: string;
+    image?: File | null; // Nuevo campo para subida
 }
 
 export interface CategoriasResponse {

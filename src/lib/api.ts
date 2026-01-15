@@ -569,7 +569,7 @@ export class ApiClient {
   async crearProducto(data: any) {
     return this.request<ProductoResponse>('/api/auth/productos/', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     });
   }
 
@@ -613,7 +613,7 @@ export class ApiClient {
   async actualizarProducto(id: number, data: any) {
     return this.request<ProductoResponse>(`/api/auth/productos/${id}/`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     });
   }
 
