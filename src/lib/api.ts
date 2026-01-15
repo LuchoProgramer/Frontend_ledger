@@ -63,6 +63,29 @@ export class ApiClient {
     this.baseURL = getApiUrl(hostname);
   }
 
+  /**
+   * Construir URL completa para imágenes desde rutas relativas del backend
+   * @param imagePath - Ruta relativa de la imagen (ej: /media/productos/imagen.jpg)
+   * @returns URL completa de la imagen
+   */
+  getImageUrl(imagePath?: string | null): string | null {
+    if (!imagePath) return null;
+
+    // Si ya es una URL completa, retornarla tal cual
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath;
+    }
+
+    // Construir URL completa con el baseURL del backend
+    // Remover /api del baseURL si existe
+    const backendUrl = this.baseURL.replace('/api', '');
+
+    // Asegurar que imagePath empiece con /
+    const path = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+
+    return `${backendUrl}${path}`;
+  }
+
   private getCookie(name: string): string | null {
     if (typeof document === 'undefined') return null;
     const value = `; ${document.cookie} `;

@@ -47,7 +47,14 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
 
     // Image state
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(initialData?.image || null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(() => {
+        // Construir URL completa para la imagen existente
+        if (initialData?.image) {
+            const api = getApiClient();
+            return api.getImageUrl(initialData.image);
+        }
+        return null;
+    });
 
     // Cargar catálogos
     useEffect(() => {
