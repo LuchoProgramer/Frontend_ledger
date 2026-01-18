@@ -43,6 +43,9 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
         mostrar_en_web: initialData?.mostrar_en_web ?? false,
         es_premium: initialData?.es_premium ?? false,
         meta_descripcion: initialData?.meta_descripcion || '',
+        gtin: initialData?.gtin || '',
+        marca: initialData?.marca || '',
+        abv: initialData?.abv || '',
     });
 
     // Image state
@@ -431,6 +434,61 @@ export default function ProductForm({ initialData, onSuccess }: ProductFormProps
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                         placeholder="Detalles adicionales del producto..."
                     />
+                </div>
+
+                {/* Google Merchant Center / SEO Extra Fields */}
+                <div className="md:col-span-2 border-t border-gray-100 pt-6 mt-2">
+                    <h3 className="text-sm font-bold text-orange-600 uppercase tracking-wider flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        Google Merchant Center / Atributos Avanzados
+                    </h3>
+                </div>
+
+                {/* GTIN */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">GTIN (Código de Barras EAN/UPC)</label>
+                    <input
+                        type="text"
+                        name="gtin"
+                        value={formData.gtin}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                        placeholder="Ej: 7861234567890"
+                    />
+                </div>
+
+                {/* Marca */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Marca</label>
+                    <input
+                        type="text"
+                        name="marca"
+                        value={formData.marca}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                        placeholder="Ej: Johnnie Walker"
+                    />
+                </div>
+
+                {/* ABV */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Grado Alcohólico (% ABV)</label>
+                    <div className="relative">
+                        <input
+                            type="number"
+                            name="abv"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            value={formData.abv}
+                            onChange={handleChange}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                            placeholder="Ej: 40.00"
+                        />
+                        <span className="absolute right-3 top-2 text-gray-500">%</span>
+                    </div>
                 </div>
 
             </div>

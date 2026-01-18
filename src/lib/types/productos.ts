@@ -29,6 +29,9 @@ export interface Producto {
     mostrar_en_web?: boolean;
     es_premium?: boolean;
     meta_descripcion?: string;
+    gtin?: string;
+    marca?: string;
+    abv?: string;
     image?: string; // URL de la imagen si existe
     // Detalle
     presentaciones?: Presentacion[];
@@ -70,6 +73,8 @@ export interface Presentacion {
     nombre_presentacion: string;
     cantidad: number;
     precio: string;
+    canal: 'LOCAL' | 'UBER' | 'RAPPI' | 'WEB';
+    canal_display?: string;
     porcentaje_adicional?: string;
     sucursal_id?: number;
     sucursal_nombre?: string;
@@ -95,6 +100,9 @@ export interface ProductoFormData {
     mostrar_en_web?: boolean;
     es_premium?: boolean;
     meta_descripcion?: string;
+    gtin?: string;
+    marca?: string;
+    abv?: string;
     image?: File | null; // Nuevo campo para subida
 }
 

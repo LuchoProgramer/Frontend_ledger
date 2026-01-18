@@ -18,7 +18,8 @@ export default function PresentationsManager({ productoId }: PresentationsManage
     const [newForm, setNewForm] = useState({
         nombre_presentacion: '',
         cantidad: '',
-        precio: ''
+        precio: '',
+        canal: 'LOCAL'
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -52,7 +53,7 @@ export default function PresentationsManager({ productoId }: PresentationsManage
             const response = await api.crearPresentacion(productoId, newForm);
 
             if (response.success) {
-                setNewForm({ nombre_presentacion: '', cantidad: '', precio: '' });
+                setNewForm({ nombre_presentacion: '', cantidad: '', precio: '', canal: 'LOCAL' });
                 setIsAdding(false);
                 cargarPresentaciones();
             } else {
@@ -105,7 +106,7 @@ export default function PresentationsManager({ productoId }: PresentationsManage
 
             {isAdding && (
                 <form onSubmit={handleAdd} className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                         <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">Nombre (ej: Caja x12)</label>
                             <input
@@ -142,6 +143,20 @@ export default function PresentationsManager({ productoId }: PresentationsManage
                                 placeholder="0.00"
                             />
                         </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Canal de Venta</label>
+                            <select
+                                required
+                                value={newForm.canal}
+                                onChange={e => setNewForm({ ...newForm, canal: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-md text-sm"
+                            >
+                                <option value="LOCAL">🏪 Local / POS</option>
+                                <option value="UBER">🚗 Uber Eats</option>
+                                <option value="RAPPI">🛵 Rappi</option>
+                                <option value="WEB">🌐 Tienda Online</option>
+                            </select>
+                        </div>
                         <button
                             type="submit"
                             disabled={submitting}
@@ -159,6 +174,7 @@ export default function PresentationsManager({ productoId }: PresentationsManage
                         <tr>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contenido</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Canal</th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio Global</th>
                             <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                         </tr>
@@ -168,6 +184,15 @@ export default function PresentationsManager({ productoId }: PresentationsManage
                             <tr key={p.id}>
                                 <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{p.nombre_presentacion}</td>
                                 <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{p.cantidad} unidades</td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm">
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${p.canal === 'LOCAL' ? 'bg-blue-100 text-blue-800' :
+                                            p.canal === 'UBER' ? 'bg-green-100 text-green-800' :
+                                                p.canal === 'RAPPI' ? 'bg-orange-100 text-orange-800' :
+                                                    'bg-purple-100 text-purple-800'
+                                        }`}>
+                                        {p.canal_display || p.canal}
+                                    </span>
+                                </td>
                                 <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">${p.precio}</td>
                                 <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
                                     {p.nombre_presentacion !== 'Unidad' && (
