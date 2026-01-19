@@ -68,7 +68,7 @@ export default function ConfiguracionPage() {
 
                 <div className="bg-white shadow rounded-lg p-6">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Razón Social</label>
                                 <input
@@ -89,7 +89,7 @@ export default function ConfiguracionPage() {
                                 />
                             </div>
 
-                            <div className="col-span-2">
+                            <div>
                                 <label className="block text-sm font-medium text-gray-700">Nombre Comercial</label>
                                 <input
                                     type="text"
@@ -99,7 +99,7 @@ export default function ConfiguracionPage() {
                                 />
                             </div>
 
-                            <div className="col-span-2">
+                            <div>
                                 <label className="block text-sm font-medium text-gray-700">Dirección Matriz</label>
                                 <input
                                     type="text"
