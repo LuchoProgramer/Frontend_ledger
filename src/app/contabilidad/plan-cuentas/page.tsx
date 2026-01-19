@@ -115,16 +115,7 @@ export default function PlanCuentasPage() {
         }
     };
 
-    const buildTree = (items: PlanCuenta[], padreId: number | null = null): PlanCuenta[] => {
-        return items
-            .filter(item => item.padre === padreId)
-            .map(item => ({
-                ...item,
-                children: buildTree(items, item.id)
-            }));
-    };
-
-    const renderTreeRow = (cuenta: PlanCuenta, depth: number = 0) => {
+    const renderTreeRow = (cuenta: PlanCuenta, depth: number = 0): React.ReactNode => {
         const hasChildren = cuentas.some(c => c.padre === cuenta.id);
         const isExpanded = expanded[cuenta.id];
         const paddingLeft = `${depth * 20 + 10}px`;
