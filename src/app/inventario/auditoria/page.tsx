@@ -72,21 +72,21 @@ export default function AuditoriaListPage() {
 
     return (
         <DashboardLayout>
-            <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
+            <div className="p-4 md:p-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800">Auditoría de Inventario</h1>
                         <p className="text-gray-500 text-sm">Gestiona y verifica tu stock físico.</p>
                     </div>
                     <button
                         onClick={handleNuevaAuditoria}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 shadow-sm flex items-center gap-2"
+                        className="w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 shadow-sm flex items-center justify-center gap-2"
                     >
                         <span>+</span> Nueva Auditoría
                     </button>
                 </div>
 
-                <div className="bg-white rounded-lg shadow overflow-hidden">
+                <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
@@ -132,9 +132,57 @@ export default function AuditoriaListPage() {
                                 </tr>
                             ))}
                         </tbody>
+
                     </table>
                 </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4">
+                    {loading && <div className="p-4 text-center bg-white rounded-lg shadow">Cargando...</div>}
+                    {!loading && auditorias.length === 0 && (
+                        <div className="p-8 text-center bg-white rounded-lg shadow text-gray-500">No hay auditorías registradas.</div>
+                    )}
+                    {auditorias.map((aud) => (
+                        <div key={aud.id} className="bg-white rounded-lg shadow p-4 space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="font-medium text-gray-900">Auditoría #{aud.id}</div>
+                                    <div className="text-sm text-gray-500">{new Date(aud.fecha_inicio).toLocaleDateString()}</div>
+                                </div>
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full 
+                                    ${aud.estado === 'FINALIZADA' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                    {aud.estado}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                    <span className="text-gray-500 block">Sucursal</span>
+                                    <span className="text-gray-900">{aud.sucursal}</span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-500 block">Items</span>
+                                    <span className="text-gray-900">{aud.total_items}</span>
+                                </div>
+                            </div>
+
+                            <div className="text-sm">
+                                <span className="text-gray-500 block">Responsable</span>
+                                <span className="text-gray-900">{aud.usuario}</span>
+                            </div>
+
+                            <div className="pt-2 border-t border-gray-100">
+                                <button
+                                    onClick={() => router.push(`/inventario/auditoria/${aud.id}`)}
+                                    className="w-full py-2 text-center text-indigo-600 font-medium hover:bg-indigo-50 rounded transition-colors"
+                                >
+                                    {aud.estado === 'BORRADOR' ? 'Continuar Auditoría' : 'Ver Resultados'}
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
-        </DashboardLayout>
+        </DashboardLayout >
     );
 }
