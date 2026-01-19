@@ -45,6 +45,11 @@ import type {
   RetencionesResponse,
   CreateRetencionPayload
 } from './types/retenciones';
+import type {
+  PlanCuenta,
+  PlanCuentasResponse,
+  CreatePlanCuentaPayload
+} from './types/contabilidad';
 
 export interface ApiError {
   message: string;
@@ -1245,8 +1250,39 @@ export class ApiClient {
     return this.request<any>(`/api/contabilidad/asientos/${query ? `?${query}` : ''}`);
   }
 
-  async getPlanCuentas() {
-    return this.request<any>('/api/contabilidad/plan-cuentas/');
+  async getPlanCuentas(params?: {
+    search?: string;
+    page?: number;
+    page_size?: number;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.page_size) queryParams.append('page_size', params.page_size.toString());
+
+    const query = queryParams.toString();
+    // Use the Auth API path consistent with other secure endpoints
+    return this.request<PlanCuentasResponse>(`/api/auth/contabilidad/plan-cuentas/${query ? `?${query}` : ''}`);
+  }
+
+  async crearCuentaContable(data: CreatePlanCuentaPayload) {
+    return this.request<PlanCuenta>('/api/auth/contabilidad/plan-cuentas/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async actualizarCuentaContable(id: number, data: Partial<CreatePlanCuentaPayload>) {
+    return this.request<PlanCuenta>(`/api/auth/contabilidad/plan-cuentas/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async eliminarCuentaContable(id: number) {
+    return this.request<any>(`/api/auth/contabilidad/plan-cuentas/${id}/`, {
+      method: 'DELETE',
+    });
   }
 }
 
