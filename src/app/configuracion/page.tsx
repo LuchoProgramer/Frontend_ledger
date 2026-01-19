@@ -172,11 +172,11 @@ export default function ConfiguracionPage() {
                             </div>
                         )}
 
-                        <div className="flex justify-end">
+                        <div className="flex justify-end pt-4">
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none disabled:opacity-50"
+                                className="w-full sm:w-auto inline-flex justify-center py-3 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none disabled:opacity-50 transition-colors"
                             >
                                 {saving ? 'Guardando...' : 'Guardar Cambios'}
                             </button>
