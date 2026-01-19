@@ -74,55 +74,55 @@ export default function PurchasesPage() {
 
     return (
         <DashboardLayout>
-            <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
+            <div className="p-4 md:p-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <h1 className="text-2xl font-bold text-gray-800">Historial de Compras</h1>
-                    <div className="space-x-2">
+                    <div className="flex flex-wrap gap-2 w-full md:w-auto">
                         <button
                             onClick={() => setShowUploadModal(true)}
-                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                            className="flex-1 md:flex-none px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-center whitespace-nowrap"
                         >
                             Importar XML
                         </button>
                         <Link
                             href="/compras/nueva"
-                            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                            className="flex-1 md:flex-none px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-center whitespace-nowrap"
                         >
-                            + Registrar Compra
+                            + Registrar
                         </Link>
                         <button
                             onClick={() => loadCompras()}
-                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                            className="flex-none px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
                         >
-                            Actualizar
+                            ↻
                         </button>
                     </div>
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white p-4 rounded-lg shadow-sm mb-6 flex gap-4 items-end">
-                    <div>
+                <div className="bg-white p-4 rounded-lg shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-end">
+                    <div className="w-full md:w-auto">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
                         <input
                             type="date"
                             value={startDate}
                             onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-                            className="p-2 border rounded-md"
+                            className="w-full p-2 border rounded-md"
                         />
                     </div>
-                    <div>
+                    <div className="w-full md:w-auto">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
                         <input
                             type="date"
                             value={endDate}
                             onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-                            className="p-2 border rounded-md"
+                            className="w-full p-2 border rounded-md"
                         />
                     </div>
                 </div>
 
-                {/* Table */}
-                <div className="bg-white rounded-lg shadow overflow-hidden">
+                {/* Table - Desktop */}
+                <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
@@ -165,6 +165,38 @@ export default function PurchasesPage() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4">
+                    {loading && <div className="p-4 text-center bg-white rounded-lg shadow">Cargando...</div>}
+                    {!loading && compras.length === 0 && (
+                        <div className="p-4 text-center bg-white rounded-lg shadow text-gray-500">No hay compras registradas</div>
+                    )}
+                    {compras.map((compra) => (
+                        <div key={compra.id} className="bg-white rounded-lg shadow p-4 space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="font-medium text-gray-900">{compra.proveedor_nombre}</div>
+                                    <Link href={`/compras/${compra.id}`} className="text-sm text-indigo-600 font-mono hover:underline">
+                                        {compra.numero_factura || 'Sin Factura'}
+                                    </Link>
+                                </div>
+                                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                    {compra.estado}
+                                </span>
+                            </div>
+
+                            <div className="text-sm text-gray-500">
+                                {new Date(compra.fecha_emision).toLocaleDateString()}
+                            </div>
+
+                            <div className="pt-2 border-t border-gray-100 flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-700">Total</span>
+                                <span className="text-lg font-bold text-gray-900">${Number(compra.total_con_impuestos).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 
