@@ -53,41 +53,44 @@ export default function TurnosPage() {
 
     return (
         <DashboardLayout>
-            <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
+            <div className="p-4 md:p-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <h1 className="text-2xl font-bold text-gray-800">Historial de Turnos (Cajas)</h1>
                     <button
                         onClick={() => loadTurnos()}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                        className="w-full md:w-auto px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 flex justify-center items-center"
                     >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
                         Actualizar
                     </button>
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white p-4 rounded-lg shadow-sm mb-6 flex gap-4 items-end">
-                    <div>
+                <div className="bg-white p-4 rounded-lg shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-end">
+                    <div className="w-full md:w-auto">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
                         <input
                             type="date"
                             value={startDate}
                             onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-                            className="p-2 border rounded-md"
+                            className="w-full p-2 border rounded-md"
                         />
                     </div>
-                    <div>
+                    <div className="w-full md:w-auto">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
                         <input
                             type="date"
                             value={endDate}
                             onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-                            className="p-2 border rounded-md"
+                            className="w-full p-2 border rounded-md"
                         />
                     </div>
                 </div>
 
-                {/* Table */}
-                <div className="bg-white rounded-lg shadow overflow-hidden">
+                {/* Table - Desktop */}
+                <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
@@ -132,7 +135,46 @@ export default function TurnosPage() {
                                 </tr>
                             ))}
                         </tbody>
+
                     </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4">
+                    {loading && <div className="p-4 text-center bg-white rounded-lg shadow">Cargando...</div>}
+                    {!loading && turnos.length === 0 && (
+                        <div className="p-4 text-center bg-white rounded-lg shadow text-gray-500">No hay turnos registrados</div>
+                    )}
+                    {turnos.map((turno) => (
+                        <div key={turno.id} className="bg-white rounded-lg shadow p-4 space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="font-medium text-gray-900">{turno.usuario_nombre}</div>
+                                    <div className="text-sm text-gray-500">{turno.sucursal_nombre}</div>
+                                </div>
+                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${turno.estado === 'Abierto' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                    {turno.estado}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                    <span className="text-gray-500 block">Apertura</span>
+                                    <span className="text-gray-900">{new Date(turno.inicio_turno).toLocaleString()}</span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-500 block">Cierre</span>
+                                    <span className="text-gray-900">{turno.fin_turno ? new Date(turno.fin_turno).toLocaleString() : '-'}</span>
+                                </div>
+                            </div>
+
+                            <div className="pt-2 border-t border-gray-100 flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-700">Total Ventas</span>
+                                <span className="text-lg font-bold text-gray-900">${Number(turno.total_ventas || 0).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
                 {/* Pagination */}
@@ -156,6 +198,6 @@ export default function TurnosPage() {
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+        </DashboardLayout >
     );
 }
