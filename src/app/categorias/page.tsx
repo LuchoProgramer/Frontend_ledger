@@ -19,7 +19,7 @@ export default function CategoriasPage() {
     // Modal State
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
-    const [formData, setFormData] = useState({ nombre: '', descripcion: '' });
+    const [formData, setFormData] = useState({ nombre: '', descripcion: '', google_category_id: '' });
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -54,14 +54,14 @@ export default function CategoriasPage() {
 
     const handleOpenCreate = () => {
         setEditingId(null);
-        setFormData({ nombre: '', descripcion: '' });
+        setFormData({ nombre: '', descripcion: '', google_category_id: '' });
         setShowModal(true);
         setError('');
     };
 
     const handleOpenEdit = (cat: Categoria) => {
         setEditingId(cat.id);
-        setFormData({ nombre: cat.nombre, descripcion: cat.descripcion || '' });
+        setFormData({ nombre: cat.nombre, descripcion: cat.descripcion || '', google_category_id: cat.google_category_id || '' });
         setShowModal(true);
         setError('');
     };
@@ -253,6 +253,16 @@ export default function CategoriasPage() {
                                                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                                         value={formData.descripcion}
                                                         onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">ID Google Merchant (Opcional)</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Ej: 436 (Aguas), 499678 (Whisky)"
+                                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                                        value={formData.google_category_id}
+                                                        onChange={(e) => setFormData({ ...formData, google_category_id: e.target.value })}
                                                     />
                                                 </div>
                                             </div>

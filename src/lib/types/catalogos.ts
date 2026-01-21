@@ -4,11 +4,13 @@ export interface Categoria {
     id: number;
     nombre: string;
     descripcion?: string;
+    google_category_id?: string;
 }
 
 export interface CategoriaFormData {
     nombre: string;
     descripcion?: string;
+    google_category_id?: string;
 }
 
 export interface Impuesto {
