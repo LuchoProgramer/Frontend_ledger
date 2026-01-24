@@ -14,6 +14,7 @@ interface CategoryModalProps {
 export default function CategoryModal({ isOpen, onClose, onSuccess }: CategoryModalProps) {
     const [nombre, setNombre] = useState('');
     const [descripcion, setDescripcion] = useState('');
+    const [googleCategoryId, setGoogleCategoryId] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -30,7 +31,11 @@ export default function CategoryModal({ isOpen, onClose, onSuccess }: CategoryMo
 
         try {
             const api = getApiClient();
-            const res = await api.crearCategoria({ nombre, descripcion });
+            const res = await api.crearCategoria({
+                nombre,
+                descripcion,
+                google_category_id: googleCategoryId || undefined
+            });
 
             if (res.success && res.data) {
                 onSuccess(res.data);
@@ -38,6 +43,7 @@ export default function CategoryModal({ isOpen, onClose, onSuccess }: CategoryMo
                 // Limpiar campos
                 setNombre('');
                 setDescripcion('');
+                setGoogleCategoryId('');
             } else {
                 setError(res.error || 'Error al crear la categoría');
             }
@@ -84,6 +90,29 @@ export default function CategoryModal({ isOpen, onClose, onSuccess }: CategoryMo
                                         rows={3}
                                         className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                     />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 text-left">
+                                        Google Category ID (Opcional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={googleCategoryId}
+                                        onChange={(e) => setGoogleCategoryId(e.target.value)}
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                        placeholder="Ej: 499 (Bebidas Alcohólicas)"
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500 text-left">
+                                        ID de categoría de Google Merchant Center.
+                                        <a
+                                            href="https://www.google.com/basepages/producttype/taxonomy-with-ids.es-ES.txt"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline ml-1"
+                                        >
+                                            Ver lista completa
+                                        </a>
+                                    </p>
                                 </div>
                                 <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-2">
                                     <button
