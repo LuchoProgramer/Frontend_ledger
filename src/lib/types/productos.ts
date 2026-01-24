@@ -32,6 +32,7 @@ export interface Producto {
     gtin?: string;
     marca?: string;
     abv?: string;
+    google_category_id?: string;
     image?: string; // URL de la imagen si existe
     // Detalle
     presentaciones?: Presentacion[];
@@ -103,6 +104,7 @@ export interface ProductoFormData {
     gtin?: string;
     marca?: string;
     abv?: string;
+    google_category_id?: string;
     image?: File | null; // Nuevo campo para subida
 }
 
