@@ -753,11 +753,13 @@ export class ApiClient {
     page?: number;
     search?: string;
     sucursal?: number;
+    agrupado?: boolean;
   }) {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.search) queryParams.append('search', params.search);
     if (params?.sucursal) queryParams.append('sucursal', params.sucursal.toString());
+    if (params?.agrupado) queryParams.append('agrupado', 'true');
 
     const query = queryParams.toString();
     return this.request<InventarioResponse>(`/api/auth/inventario/${query ? `?${query}` : ''}`);

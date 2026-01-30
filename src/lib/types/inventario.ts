@@ -2,12 +2,21 @@
 export interface InventarioItem {
     id: number;
     producto: number;
-    producto_nombre: string;
-    producto_codigo: string;
-    sucursal: number;
-    sucursal_nombre: string;
-    cantidad: number; // Decimal string or number from backend
-    fecha_actualizacion: string;
+    producto_nombre?: string; // Standard view
+    nombre?: string; // Grouped view
+    producto_codigo?: string; // Standard view
+    codigo_producto?: string; // Grouped view
+    sucursal?: number;
+    sucursal_nombre?: string;
+    cantidad?: number; // Standard view
+    stock_total_global?: number; // Grouped view
+    fecha_actualizacion?: string;
+    desglose?: {
+        id: number;
+        sucursal: number;
+        sucursal_nombre: string;
+        cantidad: number;
+    }[];
 }
 
 export interface InventarioResponse {
@@ -17,6 +26,7 @@ export interface InventarioResponse {
     current_page: number;
     has_next: boolean;
     has_previous: boolean;
+    mode?: 'detalle' | 'agrupado';
 }
 
 export interface MovimientoItem {

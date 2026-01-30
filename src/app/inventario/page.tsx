@@ -62,20 +62,32 @@ export default function InventarioPage() {
         }
     }, [authLoading, user, router]);
 
+    // View Mode
+    const [viewMode, setViewMode] = useState<'detalle' | 'agrupado'>('detalle');
+    const [expandedItems, setExpandedItems] = useState<number[]>([]);
+
     // Load Initial Data
     const loadData = useCallback(async () => {
         try {
             setLoading(true);
             const api = getApiClient();
 
+            // Sila sucursal no está seleccionada, pedimos agrupado por defecto
+            const isGrouped = !selectedSucursal;
+
             // Parallel fetch
             const [invRes, sucRes, prodRes] = await Promise.all([
-                api.getInventario({ sucursal: selectedSucursal, search: searchTerm }),
+                api.getInventario({
+                    sucursal: selectedSucursal,
+                    search: searchTerm,
+                    agrupado: isGrouped
+                }),
                 api.getSucursalesList({ page_size: 100 }), // Fetch all for dropdowns
                 api.getProductos({ page_size: 100, activo: true }) // Fetch products for dropdowns
             ]);
 
             if (invRes.results) setInventario(invRes.results);
+            if (invRes.mode) setViewMode(invRes.mode);
             if (sucRes.results) setSucursales(sucRes.results);
             if (prodRes.results) setProductos(prodRes.results);
 
@@ -85,6 +97,12 @@ export default function InventarioPage() {
             setLoading(false);
         }
     }, [selectedSucursal, searchTerm]);
+
+    const toggleExpand = (id: number) => {
+        setExpandedItems(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
 
     useEffect(() => {
         if (user) {
@@ -211,7 +229,7 @@ export default function InventarioPage() {
     const openAjusteModal = (item?: InventarioItem) => {
         setAjusteForm({
             producto_id: item ? item.producto : (productos[0]?.id || 0),
-            sucursal_id: item ? item.sucursal : (sucursales[0]?.id || 0),
+            sucursal_id: item?.sucursal ?? (sucursales[0]?.id || 0),
             tipo: 'ENTRADA',
             cantidad: '',
             motivo: ''
@@ -315,7 +333,6 @@ export default function InventarioPage() {
                         </div>
                     </div>
                 )}
-
                 {/* Desktop Table View */}
                 <div className="hidden md:block flex flex-col">
                     <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
@@ -349,33 +366,88 @@ export default function InventarioPage() {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            inventario.map((item) => (
-                                                <tr key={item.id}>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm font-medium text-gray-900">{item.producto_nombre}</div>
-                                                        <div className="text-sm text-gray-500">{item.producto_codigo}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        {item.sucursal_nombre}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${Number(item.cantidad) > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                            {Number(item.cantidad).toFixed(2)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        {new Date(item.fecha_actualizacion).toLocaleDateString()}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                        <button
-                                                            onClick={() => openAjusteModal(item)}
-                                                            className="text-indigo-600 hover:text-indigo-900"
-                                                        >
-                                                            Ajustar
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))
+                                            inventario.map((item) => {
+                                                const isGroupedRow = viewMode === 'agrupado';
+                                                const itemName = item.producto_nombre || item.nombre;
+                                                const itemCode = item.producto_codigo || item.codigo_producto;
+                                                const itemStock = isGroupedRow ? item.stock_total_global : item.cantidad;
+                                                const isExpanded = expandedItems.includes(item.id);
+
+                                                return (
+                                                    <>
+                                                        <tr key={item.id} className={isExpanded && isGroupedRow ? 'bg-gray-50' : ''}>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="flex items-center">
+                                                                    {isGroupedRow && item.desglose && item.desglose.length > 0 && (
+                                                                        <button
+                                                                            onClick={() => toggleExpand(item.id)}
+                                                                            className="mr-2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                                                        >
+                                                                            {isExpanded ? (
+                                                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                                </svg>
+                                                                            ) : (
+                                                                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                                </svg>
+                                                                            )}
+                                                                        </button>
+                                                                    )}
+                                                                    <div>
+                                                                        <div className="text-sm font-medium text-gray-900">{itemName}</div>
+                                                                        <div className="text-sm text-gray-500">{itemCode}</div>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                {isGroupedRow ? (
+                                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                        Global ({item.desglose?.length || 0} sucursales)
+                                                                    </span>
+                                                                ) : (
+                                                                    item.sucursal_nombre
+                                                                )}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${Number(itemStock) > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                                    {Number(itemStock).toFixed(2)}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                {item.fecha_actualizacion ? new Date(item.fecha_actualizacion).toLocaleDateString() : '-'}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                                {!isGroupedRow && (
+                                                                    <button
+                                                                        onClick={() => openAjusteModal(item)}
+                                                                        className="text-indigo-600 hover:text-indigo-900"
+                                                                    >
+                                                                        Ajustar
+                                                                    </button>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                        {isGroupedRow && isExpanded && item.desglose?.map((subItem) => (
+                                                            <tr key={`sub-${subItem.id}`} className="bg-gray-50">
+                                                                <td className="px-6 py-2 whitespace-nowrap pl-14">
+                                                                    <span className="text-xs text-gray-400">└</span>
+                                                                    <span className="ml-1 text-sm text-gray-500">En {subItem.sucursal_nombre}</span>
+                                                                </td>
+                                                                <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500">
+                                                                    {subItem.sucursal_nombre}
+                                                                </td>
+                                                                <td className="px-6 py-2 whitespace-nowrap">
+                                                                    <span className="text-sm font-medium text-gray-700">
+                                                                        {Number(subItem.cantidad).toFixed(2)}
+                                                                    </span>
+                                                                </td>
+                                                                <td colSpan={2} className="px-6 py-2"></td>
+                                                            </tr>
+                                                        ))}
+                                                    </>
+                                                );
+                                            })
                                         )}
                                     </tbody>
                                 </table>
@@ -391,35 +463,64 @@ export default function InventarioPage() {
                             No se encontraron registros de inventario.
                         </div>
                     ) : (
-                        inventario.map((item) => (
-                            <div key={item.id} className="bg-white shadow rounded-lg p-4 space-y-3">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h3 className="text-lg font-medium text-gray-900">{item.producto_nombre}</h3>
-                                        <p className="text-sm font-mono text-gray-500 mt-1">{item.producto_codigo}</p>
+                        inventario.map((item) => {
+                            const isGroupedRow = viewMode === 'agrupado';
+                            const itemName = item.producto_nombre || item.nombre;
+                            const itemCode = item.producto_codigo || item.codigo_producto;
+                            const itemStock = isGroupedRow ? item.stock_total_global : item.cantidad;
+                            const isExpanded = expandedItems.includes(item.id);
+
+                            return (
+                                <div key={item.id} className="bg-white shadow rounded-lg p-4 space-y-3">
+                                    <div className="flex justify-between items-start">
+                                        <div onClick={() => isGroupedRow && toggleExpand(item.id)} className={isGroupedRow ? "cursor-pointer" : ""}>
+                                            <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                                                {itemName}
+                                                {isGroupedRow && (
+                                                    <span className="ml-2 text-xs text-blue-600">
+                                                        {isExpanded ? '▲' : '▼'}
+                                                    </span>
+                                                )}
+                                            </h3>
+                                            <p className="text-sm font-mono text-gray-500 mt-1">{itemCode}</p>
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${Number(itemStock) > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                Stock: {Number(itemStock).toFixed(2)}
+                                            </span>
+                                            <span className="text-xs text-gray-400 mt-1">
+                                                {isGroupedRow ? 'Global' : item.sucursal_nombre}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col items-end">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${Number(item.cantidad) > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                            Stock: {Number(item.cantidad).toFixed(2)}
+
+                                    {isGroupedRow && isExpanded && (
+                                        <div className="mt-3 border-t pt-2 bg-gray-50 rounded p-2">
+                                            {item.desglose?.map(subItem => (
+                                                <div key={subItem.id} className="flex justify-between py-1 text-sm">
+                                                    <span className="text-gray-600">{subItem.sucursal_nombre}</span>
+                                                    <span className="font-medium">{Number(subItem.cantidad).toFixed(2)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-between items-center border-t pt-3 mt-3">
+                                        <span className="text-xs text-gray-500">
+                                            Act: {item.fecha_actualizacion ? new Date(item.fecha_actualizacion).toLocaleDateString() : '-'}
                                         </span>
-                                        <span className="text-xs text-gray-400 mt-1">
-                                            {item.sucursal_nombre}
-                                        </span>
+                                        {!isGroupedRow && (
+                                            <button
+                                                onClick={() => openAjusteModal(item)}
+                                                className="text-indigo-600 font-medium text-sm px-3 py-1 bg-indigo-50 rounded hover:bg-indigo-100"
+                                            >
+                                                Ajustar Stock
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="flex justify-between items-center border-t pt-3 mt-3">
-                                    <span className="text-xs text-gray-500">
-                                        Act: {new Date(item.fecha_actualizacion).toLocaleDateString()}
-                                    </span>
-                                    <button
-                                        onClick={() => openAjusteModal(item)}
-                                        className="text-indigo-600 font-medium text-sm px-3 py-1 bg-indigo-50 rounded hover:bg-indigo-100"
-                                    >
-                                        Ajustar Stock
-                                    </button>
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
 
@@ -701,8 +802,8 @@ export default function InventarioPage() {
                     </form>
                 </PortalModal>
 
-            </div>
-        </DashboardLayout>
+            </div >
+        </DashboardLayout >
     );
 }
 
