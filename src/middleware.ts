@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+export const runtime = 'experimental-edge'; // Enforce Edge Runtime for Cloudflare compatibility
+
 /**
  * Proxy middleware para detectar el tenant desde el subdominio
  * Ejemplo: yanett.localhost:3000 → tenant = yanett
@@ -10,7 +12,7 @@ import type { NextRequest } from 'next/server';
 export default function proxy(request: NextRequest) {
   // IMPORTANTE: Nunca interceptar rutas /api/* - dejar que los rewrites las manejen
   const pathname = request.nextUrl.pathname;
-  
+
   if (pathname.startsWith('/api/')) {
     console.log('[Proxy] 🚫 Saltando ruta API:', pathname);
     return NextResponse.next();
@@ -22,7 +24,7 @@ export default function proxy(request: NextRequest) {
 
   // Obtener el host (ejemplo: yanett.localhost:3000)
   const host = request.headers.get('host') || '';
-  
+
   // Extraer el subdominio
   const parts = host.split('.');
   let tenant = 'public';

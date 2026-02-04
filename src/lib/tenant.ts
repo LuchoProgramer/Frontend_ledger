@@ -15,20 +15,20 @@
 export function getTenant(): string {
   // Solo funciona en el cliente
   if (typeof window === 'undefined') return 'public';
-  
+
   const hostname = window.location.hostname;
   const parts = hostname.split('.');
-  
+
   // localhost sin subdominio -> tenant público
   if (parts.length === 1 || hostname === 'localhost' || hostname === '127.0.0.1') {
     return 'public';
   }
-  
+
   // Si el primer segmento es 'www', tratarlo como público
   if (parts[0] === 'www') {
     return 'public';
   }
-  
+
   // Retornar el subdominio
   return parts[0];
 }
@@ -61,18 +61,17 @@ export function getTenantFromHostname(hostname?: string): string {
  * y compartir cookies entre frontend y backend
  */
 export function getApiUrl(hostname?: string): string {
-  // En desarrollo, usamos rutas relativas para que el proxy de Next.js funcione
-  // Esto permite que las cookies se compartan correctamente
-  if (process.env.NODE_ENV === 'development') {
-    return ''; // Ruta relativa, Next.js rewrites hará proxy a localhost:8000
-  }
-  
-  // En producción, usar la URL completa del API
-  const apiUrlTemplate = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-  const currentTenant = getTenantFromHostname(hostname);
-  
-  // Reemplazar {tenant} con el tenant actual
-  return apiUrlTemplate.replace('{tenant}', currentTenant);
+  // En desarrollo (localhost), usamos rutas relativas para proxy si se desea,
+  // PERO para la migración a Cloudflare (y testing local similar),
+  // es mejor apuntar directo al backend si estamos en la rama de feature.
+
+  // Para esta migración, forzamos el uso del Backend Centralizado
+  // Esto permitirá probar la "SPA Pura" incluso en local
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.ledgerxpertz.com/api';
+
+  // Eliminamos lógica de reemplazo de {tenant} en URL porque el backend
+  // centralizado usa Headers (X-Tenant) para diferenciar, no subdominios en la API.
+  return API_URL;
 }
 
 /**
