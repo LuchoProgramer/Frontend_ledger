@@ -73,7 +73,7 @@ async function testAPI() {
         console.error('❌ Error fatal en la prueba:');
         if (error instanceof Error) {
             console.error(`   ${error.message}`);
-            if (error.source) console.error('   Causa probable: Error de red o DNS', error.cause);
+            if ('cause' in error) console.error('   Causa probable: Error de red o DNS', (error as any).cause);
         } else {
             console.error(error);
         }
