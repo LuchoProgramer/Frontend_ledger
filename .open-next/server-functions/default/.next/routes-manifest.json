@@ -1,0 +1,333 @@
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "priority": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/compras/[id]",
+      "regex": "^/compras/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/compras/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/facturas/[id]",
+      "regex": "^/facturas/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/facturas/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/inventario/auditoria/[id]",
+      "regex": "^/inventario/auditoria/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/inventario/auditoria/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/productos/[id]/editar",
+      "regex": "^/productos/([^/]+?)/editar(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/productos/(?<nxtPid>[^/]+?)/editar(?:/)?$"
+    },
+    {
+      "page": "/sucursales/[id]/editar",
+      "regex": "^/sucursales/([^/]+?)/editar(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/sucursales/(?<nxtPid>[^/]+?)/editar(?:/)?$"
+    },
+    {
+      "page": "/usuarios/[id]/editar",
+      "regex": "^/usuarios/([^/]+?)/editar(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/usuarios/(?<nxtPid>[^/]+?)/editar(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_global-error",
+      "regex": "^/_global\\-error(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_global\\-error(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/categorias",
+      "regex": "^/categorias(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/categorias(?:/)?$"
+    },
+    {
+      "page": "/certificados",
+      "regex": "^/certificados(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/certificados(?:/)?$"
+    },
+    {
+      "page": "/compras",
+      "regex": "^/compras(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/compras(?:/)?$"
+    },
+    {
+      "page": "/compras/nueva",
+      "regex": "^/compras/nueva(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/compras/nueva(?:/)?$"
+    },
+    {
+      "page": "/configuracion",
+      "regex": "^/configuracion(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/configuracion(?:/)?$"
+    },
+    {
+      "page": "/contabilidad/libro-diario",
+      "regex": "^/contabilidad/libro\\-diario(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/contabilidad/libro\\-diario(?:/)?$"
+    },
+    {
+      "page": "/contabilidad/plan-cuentas",
+      "regex": "^/contabilidad/plan\\-cuentas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/contabilidad/plan\\-cuentas(?:/)?$"
+    },
+    {
+      "page": "/facturacion",
+      "regex": "^/facturacion(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/facturacion(?:/)?$"
+    },
+    {
+      "page": "/facturacion/notas-credito",
+      "regex": "^/facturacion/notas\\-credito(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/facturacion/notas\\-credito(?:/)?$"
+    },
+    {
+      "page": "/facturacion/notas-credito/nueva",
+      "regex": "^/facturacion/notas\\-credito/nueva(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/facturacion/notas\\-credito/nueva(?:/)?$"
+    },
+    {
+      "page": "/facturacion/retenciones",
+      "regex": "^/facturacion/retenciones(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/facturacion/retenciones(?:/)?$"
+    },
+    {
+      "page": "/facturacion/retenciones/nueva",
+      "regex": "^/facturacion/retenciones/nueva(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/facturacion/retenciones/nueva(?:/)?$"
+    },
+    {
+      "page": "/guias",
+      "regex": "^/guias(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/guias(?:/)?$"
+    },
+    {
+      "page": "/guias/nueva",
+      "regex": "^/guias/nueva(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/guias/nueva(?:/)?$"
+    },
+    {
+      "page": "/impuestos",
+      "regex": "^/impuestos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/impuestos(?:/)?$"
+    },
+    {
+      "page": "/inventario",
+      "regex": "^/inventario(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/inventario(?:/)?$"
+    },
+    {
+      "page": "/inventario/ajustes",
+      "regex": "^/inventario/ajustes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/inventario/ajustes(?:/)?$"
+    },
+    {
+      "page": "/inventario/auditoria",
+      "regex": "^/inventario/auditoria(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/inventario/auditoria(?:/)?$"
+    },
+    {
+      "page": "/inventario/transferencias",
+      "regex": "^/inventario/transferencias(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/inventario/transferencias(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/mis-ventas",
+      "regex": "^/mis\\-ventas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/mis\\-ventas(?:/)?$"
+    },
+    {
+      "page": "/onboarding",
+      "regex": "^/onboarding(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/onboarding(?:/)?$"
+    },
+    {
+      "page": "/pos",
+      "regex": "^/pos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/pos(?:/)?$"
+    },
+    {
+      "page": "/productos",
+      "regex": "^/productos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/productos(?:/)?$"
+    },
+    {
+      "page": "/productos/carga-masiva",
+      "regex": "^/productos/carga\\-masiva(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/productos/carga\\-masiva(?:/)?$"
+    },
+    {
+      "page": "/productos/nuevo",
+      "regex": "^/productos/nuevo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/productos/nuevo(?:/)?$"
+    },
+    {
+      "page": "/proveedores",
+      "regex": "^/proveedores(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/proveedores(?:/)?$"
+    },
+    {
+      "page": "/registro",
+      "regex": "^/registro(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registro(?:/)?$"
+    },
+    {
+      "page": "/registro/exitoso",
+      "regex": "^/registro/exitoso(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/registro/exitoso(?:/)?$"
+    },
+    {
+      "page": "/reportes",
+      "regex": "^/reportes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/reportes(?:/)?$"
+    },
+    {
+      "page": "/reportes/ventas",
+      "regex": "^/reportes/ventas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/reportes/ventas(?:/)?$"
+    },
+    {
+      "page": "/sucursales",
+      "regex": "^/sucursales(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/sucursales(?:/)?$"
+    },
+    {
+      "page": "/sucursales/nuevo",
+      "regex": "^/sucursales/nuevo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/sucursales/nuevo(?:/)?$"
+    },
+    {
+      "page": "/turnos",
+      "regex": "^/turnos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/turnos(?:/)?$"
+    },
+    {
+      "page": "/usuarios",
+      "regex": "^/usuarios(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/usuarios(?:/)?$"
+    },
+    {
+      "page": "/usuarios/nuevo",
+      "regex": "^/usuarios/nuevo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/usuarios/nuevo(?:/)?$"
+    },
+    {
+      "page": "/ventas",
+      "regex": "^/ventas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ventas(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments",
+    "clientParamParsing": false,
+    "dynamicRSCPrerender": false
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}
