@@ -406,7 +406,7 @@ export default function RegistroPage() {
                   placeholder="Ej: admin, jperez, gerencia"
                   required
                   minLength={3}
-                  pattern="[a-zA-Z0-9_.-]+"
+                  pattern="[a-zA-Z0-9_.\-]+"
                   title="Solo letras, números, guiones y puntos"
                 />
                 <p className="mt-1 text-sm text-gray-500">

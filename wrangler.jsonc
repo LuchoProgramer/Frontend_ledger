@@ -11,6 +11,16 @@
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
 	},
+	"routes": [
+		{
+			"pattern": "ledgerxpertz.com",
+			"custom_domain": true
+		},
+		{
+			"pattern": "www.ledgerxpertz.com",
+			"custom_domain": true
+		}
+	],
 	"services": [
 		{
 			// Self-reference service binding, the service name must match the worker name

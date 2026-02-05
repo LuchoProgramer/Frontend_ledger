@@ -20,8 +20,14 @@ export function Providers({ children, isPublic }: ProvidersProps) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000, // 1 minuto
+        staleTime: 30 * 1000,      // 30 segundos (datos frescos)
+        gcTime: 5 * 60 * 1000,     // 5 minutos en memoria (antes cacheTime)
+        retry: 2,                  // Reintentar fallos de red
         refetchOnWindowFocus: false,
+        refetchOnReconnect: true,
+      },
+      mutations: {
+        retry: 1, // Reintentar mutaciones una vez
       },
     },
   }))

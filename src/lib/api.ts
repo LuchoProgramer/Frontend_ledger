@@ -110,10 +110,19 @@ export class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
+    // Headers base
     const headers: Record<string, string> = {
       ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...(options.headers as Record<string, string> || {}),
     };
+
+    // Cache-Control para Cloudflare (Solo GET)
+    // Si options tiene un header costum 'X-Cache-Time', lo convertimos a Cache-Control
+    // O si queremos aplicar una política por defecto
+    if (!options.method || options.method === 'GET') {
+      // Por defecto no cacheamos nada sensible dinámico, pero si quisiéramos:
+      // headers['Cache-Control'] = 'private, max-age=0, no-cache';
+    }
 
     // Solo agregar X-Tenant si NO es el tenant público
     // El tenant público no necesita header porque usa el schema público de Django

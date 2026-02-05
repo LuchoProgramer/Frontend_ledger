@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
+
+
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,6 +24,7 @@ export default function ProductosPage() {
 
     // Filtros
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 500);
     const [categoriaFilter, setCategoriaFilter] = useState<number | ''>('');
     const [activoFilter, setActivoFilter] = useState<'all' | 'active' | 'inactive'>('active');
 
@@ -62,7 +66,7 @@ export default function ProductosPage() {
     useEffect(() => {
         if (!user) return;
         cargarProductos();
-    }, [page, search, categoriaFilter, activoFilter, user]);
+    }, [page, debouncedSearch, categoriaFilter, activoFilter, user]);
 
     const cargarProductos = async () => {
         try {
@@ -77,7 +81,7 @@ export default function ProductosPage() {
                 activo: activoFilter === 'all' ? undefined : (activoFilter === 'active'),
             };
 
-            if (search) params.search = search;
+            if (debouncedSearch) params.search = debouncedSearch;
             if (categoriaFilter) params.categoria = categoriaFilter;
 
             const response = await api.getProductos(params);
