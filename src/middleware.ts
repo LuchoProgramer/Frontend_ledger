@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export const runtime = 'experimental-edge'; // Enforce Edge Runtime for Cloudflare compatibility
+export const runtime = 'experimental-edge'; // Next.js 15.5+ requires experimental-edge for middleware
 
 /**
- * Proxy middleware para detectar el tenant desde el subdominio
+ * Middleware para detectar el tenant desde el subdominio
  * Ejemplo: yanett.localhost:3000 → tenant = yanett
- * 
- * Migrado de middleware.ts a proxy.ts para Next.js 16+
  */
-export default function proxy(request: NextRequest) {
+export default function middleware(request: NextRequest) {
   // IMPORTANTE: Nunca interceptar rutas /api/* - dejar que los rewrites las manejen
   const pathname = request.nextUrl.pathname;
 

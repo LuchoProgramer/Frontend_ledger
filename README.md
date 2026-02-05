@@ -1,36 +1,132 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LedgerXpertz Frontend
 
-## Getting Started
+Sistema de facturación electrónica multi-tenant construido con Next.js 15 y desplegado en Cloudflare Workers.
 
-First, run the development server:
+## 🚀 Stack Tecnológico
 
+- **Framework:** Next.js 15.5.12
+- **Runtime:** Cloudflare Workers
+- **Adapter:** @opennextjs/cloudflare 1.16.2
+- **UI:** React 19.2.0
+- **Styling:** Tailwind CSS
+- **State Management:** TanStack Query
+
+## 🏗️ Arquitectura
+
+### Multi-Tenancy
+El sistema soporta múltiples tenants mediante subdomains:
+- `yanett.app.ledgerxpertz.com` → Tenant: yanett
+- `tenant2.app.ledgerxpertz.com` → Tenant: tenant2
+- `app.ledgerxpertz.com` → Tenant: public
+
+La detección de tenant se realiza en [`src/middleware.ts`](./src/middleware.ts).
+
+### Deployment
+- **Producción:** Cloudflare Workers
+- **URL Actual:** https://ledgerxpertz-frontend.luchoviteri1990.workers.dev
+- **Custom Domain:** (pendiente configuración)
+
+## 📚 Documentación
+
+### Deployment
+Ver [`docs/deployment/`](./docs/deployment/) para documentación completa sobre:
+- ✅ [Migración a Cloudflare Workers](./docs/deployment/CLOUDFLARE_WORKERS_MIGRATION.md)
+- 📋 [Plan de Implementación](./docs/deployment/CLOUDFLARE_WORKERS_PLAN.md)
+- 🔧 [Troubleshooting y Comandos](./docs/deployment/README.md)
+
+## 🛠️ Desarrollo Local
+
+### Prerequisitos
+- Node.js 20+
+- npm o pnpm
+
+### Setup
 ```bash
+# Instalar dependencias
+npm install
+
+# Copiar variables de entorno
+cp .env.local.example .env.local
+
+# Iniciar servidor de desarrollo
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Variables de Entorno
+```env
+NEXT_PUBLIC_API_URL=https://api.ledgerxpertz.com/api
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=tu_api_key
+NEXT_PUBLIC_DEFAULT_TENANT=public
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚢 Deploy
 
-## Learn More
+### Build Local
+```bash
+# Build con OpenNext
+npx @opennextjs/cloudflare build
 
-To learn more about Next.js, take a look at the following resources:
+# El output estará en .open-next/
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Deploy a Cloudflare Workers
+```bash
+# Deploy a producción
+npx @opennextjs/cloudflare deploy
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Ver logs en tiempo real
+npx wrangler tail ledgerxpertz-frontend --format pretty
+```
 
-## Deploy on Vercel
+## ⚠️ Reglas Importantes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **NO usar `export const runtime = 'edge'` en layouts/pages**
+   - Solo en `middleware.ts` con `experimental-edge`
+   - OpenNext no soporta edge runtime en páginas individuales
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+2. **Usar Next.js 15.x**
+   - Next.js 16 tiene bugs conocidos con OpenNext
+   - Ver [CLOUDFLARE_WORKERS_MIGRATION.md](./docs/deployment/CLOUDFLARE_WORKERS_MIGRATION.md) para detalles
+
+3. **Middleware debe llamarse `middleware.ts`**
+   - Aunque Next.js 16 usa `proxy.ts`, OpenNext requiere `middleware.ts`
+
+## 🧪 Testing
+
+```bash
+# Ejecutar tests
+npm test
+
+# Ejecutar linter
+npm run lint
+```
+
+## 📦 Estructura del Proyecto
+
+```
+ledgerxpertz-frontend/
+├── docs/                    # Documentación del proyecto
+│   └── deployment/          # Docs de deployment
+├── src/
+│   ├── app/                 # Next.js App Router
+│   ├── components/          # Componentes React
+│   ├── lib/                 # Utilidades y helpers
+│   ├── utils/               # Funciones de utilidad
+│   └── middleware.ts        # Middleware de tenant detection
+├── public/                  # Assets estáticos
+├── wrangler.jsonc           # Configuración de Cloudflare Workers
+└── next.config.ts           # Configuración de Next.js
+```
+
+## 🤝 Contribuir
+
+1. Crear una rama desde `main`
+2. Hacer cambios y commit
+3. Crear Pull Request
+4. Esperar review y merge
+
+## 📄 Licencia
+
+Propietario: LedgerXpertz
