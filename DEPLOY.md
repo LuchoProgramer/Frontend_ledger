@@ -8,13 +8,17 @@ A diferencia de Vercel, el despliegue a Cloudflare Workers **requiere un paso ma
 
 ### Comando de Despliegue
 
-Para subir la última versión de tu código a `ledgerxpertz.com` y todos los subdominios:
+Para subir la última versión de tu código a `ledgerxpertz.com` y todos los subdominios, debes ejecutar los siguientes comandos en orden:
 
 ```bash
+# 1. Compila los últimos cambios del Frontend
+npx @opennextjs/cloudflare build
+
+# 2. Despliega la compilación a la red de Edge de Cloudflare
 npx wrangler deploy
 ```
 
-> **Nota:** Este comando compilará la aplicación Next.js (usando OpenNext) y subirá los assets y el worker a la red global de Cloudflare.
+> **Nota Crítica:** El comando `wrangler deploy` **NO** compila el proyecto de Next.js automáticamente. Solo sube la carpeta oculta `.open-next` existente. Si omites el paso 1, Cloudflare subirá la versión anterior de tu código.
 
 ---
 
@@ -70,6 +74,7 @@ El archivo `wrangler.jsonc` controla qué dominios maneja el Worker.
 
 3.  **Desplegar a Producción:**
     ```bash
+    npx @opennextjs/cloudflare build
     npx wrangler deploy
     ```
 

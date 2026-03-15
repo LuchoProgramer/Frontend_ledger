@@ -23,6 +23,16 @@ export default function PresentationsManager({ productoId }: PresentationsManage
     });
     const [submitting, setSubmitting] = useState(false);
 
+    // Edit State
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editForm, setEditForm] = useState({
+        nombre_presentacion: '',
+        cantidad: '',
+        precio: '',
+        canal: 'LOCAL'
+    });
+    const [savingId, setSavingId] = useState<number | null>(null);
+
     const cargarPresentaciones = useCallback(async () => {
         try {
             setLoading(true);
@@ -63,6 +73,40 @@ export default function PresentationsManager({ productoId }: PresentationsManage
             setError(err.message || 'Error al crear presentación');
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleEditClick = (p: Presentacion) => {
+        setEditingId(p.id);
+        setEditForm({
+            nombre_presentacion: p.nombre_presentacion,
+            cantidad: p.cantidad?.toString() || '',
+            precio: p.precio?.toString() || '',
+            canal: p.canal || 'LOCAL'
+        });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+    };
+
+    const handleSaveEdit = async (id: number) => {
+        setSavingId(id);
+        setError('');
+        try {
+            const api = getApiClient();
+            const response = await api.actualizarPresentacion(productoId, id, editForm);
+
+            if (response.success) {
+                setEditingId(null);
+                cargarPresentaciones();
+            } else {
+                setError(response.error || 'Error al actualizar presentación');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Error al actualizar presentación');
+        } finally {
+            setSavingId(null);
         }
     };
 
@@ -180,35 +224,108 @@ export default function PresentationsManager({ productoId }: PresentationsManage
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {presentaciones.map((p) => (
-                            <tr key={p.id}>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{p.nombre_presentacion}</td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{p.cantidad} unidades</td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm">
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${p.canal === 'LOCAL' ? 'bg-blue-100 text-blue-800' :
+                        {presentaciones.map((p) => {
+                            const isEditing = editingId === p.id;
+
+                            if (isEditing) {
+                                return (
+                                    <tr key={p.id} className="bg-blue-50">
+                                        <td className="px-3 py-2 whitespace-nowrap text-sm">
+                                            <input
+                                                type="text"
+                                                value={editForm.nombre_presentacion}
+                                                onChange={e => setEditForm(prev => ({ ...prev, nombre_presentacion: e.target.value }))}
+                                                className="w-full px-2 py-1 border rounded text-sm"
+                                                disabled={p.nombre_presentacion === 'Unidad'}
+                                            />
+                                        </td>
+                                        <td className="px-3 py-2 whitespace-nowrap text-sm">
+                                            <input
+                                                type="number"
+                                                value={editForm.cantidad}
+                                                onChange={e => setEditForm(prev => ({ ...prev, cantidad: e.target.value }))}
+                                                className="w-24 px-2 py-1 border rounded text-sm"
+                                                disabled={p.nombre_presentacion === 'Unidad'}
+                                            />
+                                        </td>
+                                        <td className="px-3 py-2 whitespace-nowrap text-sm">
+                                            <select
+                                                value={editForm.canal}
+                                                onChange={e => setEditForm(prev => ({ ...prev, canal: e.target.value }))}
+                                                className="w-28 px-2 py-1 border rounded text-sm"
+                                            >
+                                                <option value="LOCAL">LOCAL</option>
+                                                <option value="UBER">UBER</option>
+                                                <option value="RAPPI">RAPPI</option>
+                                                <option value="WEB">WEB</option>
+                                            </select>
+                                        </td>
+                                        <td className="px-3 py-2 whitespace-nowrap text-sm">
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={editForm.precio}
+                                                onChange={e => setEditForm(prev => ({ ...prev, precio: e.target.value }))}
+                                                className="w-24 px-2 py-1 border rounded text-sm"
+                                            />
+                                        </td>
+                                        <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
+                                            <button
+                                                onClick={() => handleSaveEdit(p.id)}
+                                                disabled={savingId === p.id}
+                                                className="text-white bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs mr-2 disabled:opacity-50"
+                                            >
+                                                {savingId === p.id ? '...' : 'Guardar'}
+                                            </button>
+                                            <button
+                                                onClick={handleCancelEdit}
+                                                disabled={savingId === p.id}
+                                                className="text-gray-600 hover:text-gray-900 border px-2 py-1 rounded text-xs"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            }
+
+                            return (
+                                <tr key={p.id}>
+                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{p.nombre_presentacion}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">{p.cantidad} unidades</td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-sm">
+                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${p.canal === 'LOCAL' ? 'bg-blue-100 text-blue-800' :
                                             p.canal === 'UBER' ? 'bg-green-100 text-green-800' :
                                                 p.canal === 'RAPPI' ? 'bg-orange-100 text-orange-800' :
                                                     'bg-purple-100 text-purple-800'
-                                        }`}>
-                                        {p.canal_display || p.canal}
-                                    </span>
-                                </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">${p.precio}</td>
-                                <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
-                                    {p.nombre_presentacion !== 'Unidad' && (
+                                            }`}>
+                                            {p.canal_display || p.canal}
+                                        </span>
+                                    </td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-medium">${p.precio}</td>
+                                    <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
                                         <button
-                                            onClick={() => handleDelete(p.id)}
-                                            className="text-red-600 hover:text-red-900 ml-3"
+                                            onClick={() => handleEditClick(p)}
+                                            className="text-yellow-600 hover:text-yellow-900 ml-3"
                                         >
-                                            Eliminar
+                                            Editar
                                         </button>
-                                    )}
-                                    {p.nombre_presentacion === 'Unidad' && (
-                                        <span className="text-gray-400 text-xs italic">Principal</span>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
+
+                                        {p.nombre_presentacion !== 'Unidad' && (
+                                            <button
+                                                onClick={() => handleDelete(p.id)}
+                                                className="text-red-600 hover:text-red-900 ml-3"
+                                            >
+                                                Eliminar
+                                            </button>
+                                        )}
+                                        {p.nombre_presentacion === 'Unidad' && (
+                                            <span className="text-gray-400 text-xs italic ml-3">Principal</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

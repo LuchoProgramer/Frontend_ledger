@@ -274,7 +274,11 @@ export class ApiClient {
       drainQueue(error);
       if (typeof window !== 'undefined') {
         localStorage.removeItem('user');
-        window.location.href = '/login';
+        const isLoginPage = window.location.pathname === '/login'
+          || window.location.pathname.endsWith('/login');
+        if (!isLoginPage) {
+          window.location.href = '/login';
+        }
       }
       throw error;
     } finally {
