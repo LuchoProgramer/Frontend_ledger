@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkSession = async () => {
     try {
-      // Carga optimista
+      // Carga optimista: mostrar usuario cacheado mientras se verifica
       const savedUser = localStorage.getItem('user')
       if (savedUser) {
         try {
@@ -55,7 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Verificar con backend
+      // Verificar con backend — el interceptor en api.ts maneja el refresh
+      // automáticamente si el access_token expiró. Si el refresh también falla,
+      // el interceptor redirige a /login.
       const response = await apiClient.getCurrentUser()
 
       if (response.success && response.user) {
@@ -65,11 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
         localStorage.removeItem('user')
       }
-    } catch (error: any) {
-      if (error?.status === 401) {
-        setUser(null)
-        localStorage.removeItem('user')
-      }
+    } catch {
+      // El interceptor ya manejó el caso de token expirado.
+      // Aquí solo llegan errores de red o servidor no disponible.
+      setUser(null)
+      localStorage.removeItem('user')
     } finally {
       setLoading(false)
     }

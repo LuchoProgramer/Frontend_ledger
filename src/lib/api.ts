@@ -57,6 +57,22 @@ export interface ApiError {
   data?: any;
 }
 
+// ── Refresh coordination (module-level para coordinar entre instancias) ──────
+let isRefreshing = false;
+let pendingQueue: Array<{
+  resolve: (value: unknown) => void;
+  reject:  (reason: unknown) => void;
+}> = [];
+
+function drainQueue(error: unknown = null): void {
+  pendingQueue.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve(undefined);
+  });
+  pendingQueue = [];
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export class ApiClient {
   private baseURL: string;
   private tenant: string;
@@ -93,20 +109,13 @@ export class ApiClient {
     return `${backendUrl}${path}`;
   }
 
-  private getCookie(name: string): string | null {
-    if (typeof document === 'undefined') return null;
-    const value = `; ${document.cookie} `;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-    return null;
-  }
-
   /**
    * Método genérico para hacer requests a la API
    */
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    isRetry = false
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
 
@@ -128,12 +137,6 @@ export class ApiClient {
     // El tenant público no necesita header porque usa el schema público de Django
     if (this.tenant !== 'public') {
       headers['X-Tenant'] = this.tenant;
-    }
-
-    // Agregar CSRF Token si existe en cookie
-    const csrftoken = this.getCookie('csrftoken');
-    if (csrftoken) {
-      headers['X-CSRFToken'] = csrftoken;
     }
 
     console.log('[ApiClient] Request:', {
@@ -177,6 +180,13 @@ export class ApiClient {
       } catch (parseError) {
         console.error('[ApiClient] Error parseando respuesta:', parseError);
         responseData = { error: 'Error parseando respuesta del servidor' };
+      }
+
+      // ── 401: intentar refresh automático (excepto en endpoints de auth y reintentos) ──
+      if (response.status === 401 && !isRetry
+          && endpoint !== '/api/auth/refresh/'
+          && endpoint !== '/api/auth/login/') {
+        return this.refreshAndRetry<T>(endpoint, options);
       }
 
       if (!response.ok) {
@@ -226,6 +236,53 @@ export class ApiClient {
       } as ApiError;
     }
   }
+
+  // ── Refresh token + cola de requests pendientes ──────────────────────────
+
+  private async refreshToken(): Promise<void> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (this.tenant !== 'public') headers['X-Tenant'] = this.tenant;
+
+    const response = await fetch(`${this.baseURL}/api/auth/refresh/`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw { message: 'Sesión expirada', status: response.status } as ApiError;
+    }
+  }
+
+  private async refreshAndRetry<T>(endpoint: string, options: RequestInit): Promise<T> {
+    if (isRefreshing) {
+      // Encolar y esperar a que el refresh en curso termine
+      return new Promise<T>((resolve, reject) => {
+        pendingQueue.push({
+          resolve: resolve as (value: unknown) => void,
+          reject,
+        });
+      }).then(() => this.request<T>(endpoint, options, true));
+    }
+
+    isRefreshing = true;
+    try {
+      await this.refreshToken();
+      drainQueue();
+      return this.request<T>(endpoint, options, true);
+    } catch (error) {
+      drainQueue(error);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+      throw error;
+    } finally {
+      isRefreshing = false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   // ========== FACTURAS ==========
 
@@ -984,11 +1041,6 @@ export class ApiClient {
     if (this.tenant !== 'public') {
       headers['X-Tenant'] = this.tenant;
     }
-    // Agregar CSRF Token si existe en cookie
-    const csrftoken = this.getCookie('csrftoken');
-    if (csrftoken) {
-      headers['X-CSRFToken'] = csrftoken;
-    }
 
     const config: RequestInit = {
       method: 'GET',
@@ -1157,10 +1209,12 @@ export class ApiClient {
     Object.keys(params).forEach(key => {
       if (params[key] !== undefined && params[key] !== '') query.append(key, params[key]);
     });
+    const headers: Record<string, string> = {};
+    if (this.tenant !== 'public') headers['X-Tenant'] = this.tenant;
+
     const response = await fetch(`${this.baseURL}/api/reportes/ventas/excel/?${query.toString()}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
+      headers,
+      credentials: 'include',
     });
 
     if (!response.ok) throw new Error('Error downloading excel');
