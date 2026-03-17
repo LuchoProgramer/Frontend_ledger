@@ -916,11 +916,11 @@ export class ApiClient {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
 
-    return this.request<any>(`/conteo/auditorias/?${queryParams.toString()}`);
+    return this.request<any>(`/api/conteo/auditorias/?${queryParams.toString()}`);
   }
 
   async getAuditoria(id: number) {
-    return this.request<AuditoriaDetailResponse>(`/conteo/auditorias/${id}/`);
+    return this.request<AuditoriaDetailResponse>(`/api/conteo/auditorias/${id}/`);
   }
 
   async createAuditoria(data: {
@@ -929,21 +929,21 @@ export class ApiClient {
     aleatorio_cantidad?: number;
     categoria_id?: number;
   }) {
-    return this.request<AuditoriaDetailResponse>('/conteo/auditorias/', {
+    return this.request<AuditoriaDetailResponse>('/api/conteo/auditorias/', {
       method: 'POST',
       body: JSON.stringify(data)
     });
   }
 
   async updateAuditoriaCount(id: number, items: Array<{ id: number, cantidad_fisica: number }>) {
-    return this.request<any>(`/conteo/auditorias/${id}/registrar_conteo/`, {
+    return this.request<any>(`/api/conteo/auditorias/${id}/registrar_conteo/`, {
       method: 'POST',
       body: JSON.stringify({ detalles: items })
     });
   }
 
   async finalizeAuditoria(id: number) {
-    return this.request<AuditoriaDetailResponse>(`/conteo/auditorias/${id}/finalizar/`, {
+    return this.request<AuditoriaDetailResponse>(`/api/conteo/auditorias/${id}/finalizar/`, {
       method: 'POST',
     });
   }
