@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     isAuthenticated: !!user,
     isAdmin: user?.is_staff || user?.groups?.includes('Administrador') || false,
-    isVendedor: user?.groups?.includes('Usuarios') || false,
+    isVendedor: user?.groups?.includes('Vendedor') || false,
     api: apiClient // <--- Inyectamos la instancia
   }), [user, loading])
 
