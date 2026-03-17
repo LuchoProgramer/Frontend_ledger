@@ -79,6 +79,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             name: string;
             href: string;
             icon: React.ReactNode;
+            allowedRoles?: string[];
         }[];
     }
 
@@ -98,10 +99,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             icon: <ShoppingCart className="w-5 h-5" />,
             allowedRoles: ['Administrador', 'Vendedor'],
             items: [
-                { name: 'Punto de Venta (POS)', href: '/pos', icon: <Store className="w-4 h-4" /> },
-                { name: 'Historial de Ventas', href: '/ventas', icon: <History className="w-4 h-4" /> },
-                { name: 'Historial de Cajas', href: '/turnos', icon: <Briefcase className="w-4 h-4" /> },
-                { name: 'Reportes de Ventas', href: '/reportes', icon: <TrendingUp className="w-4 h-4" /> },
+                { name: 'Punto de Venta (POS)', href: '/pos', icon: <Store className="w-4 h-4" />, allowedRoles: ['Administrador', 'Vendedor'] },
+                { name: 'Historial de Ventas', href: '/ventas', icon: <History className="w-4 h-4" />, allowedRoles: ['Administrador'] },
+                { name: 'Historial de Cajas', href: '/turnos', icon: <Briefcase className="w-4 h-4" />, allowedRoles: ['Administrador'] },
+                { name: 'Reportes de Ventas', href: '/reportes', icon: <TrendingUp className="w-4 h-4" />, allowedRoles: ['Administrador'] },
             ]
         },
         {
@@ -127,8 +128,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             icon: <BarChart3 className="w-5 h-5" />,
             allowedRoles: ['Administrador', 'Bodeguero', 'Vendedor'],
             items: [
-                { name: 'Gestión de Stock', href: '/inventario', icon: <Package className="w-4 h-4" /> },
-                { name: 'Auditoría', href: '/inventario/auditoria', icon: <ShieldCheck className="w-4 h-4" /> },
+                { name: 'Gestión de Stock', href: '/inventario', icon: <Package className="w-4 h-4" />, allowedRoles: ['Administrador', 'Bodeguero'] },
+                { name: 'Auditoría', href: '/inventario/auditoria', icon: <ShieldCheck className="w-4 h-4" />, allowedRoles: ['Administrador', 'Bodeguero', 'Vendedor'] },
             ]
         },
         {
@@ -164,10 +165,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         },
     ];
 
-    const filteredMenuItems = menuItems.filter(section => {
-        if (!section.allowedRoles) return true; // Public if undefined
-        return hasRole(section.allowedRoles);
-    });
+    const filteredMenuItems = menuItems
+        .filter(section => !section.allowedRoles || hasRole(section.allowedRoles))
+        .map(section => ({
+            ...section,
+            items: section.items.filter(item => !item.allowedRoles || hasRole(item.allowedRoles))
+        }))
+        .filter(section => section.items.length > 0);
 
     if (authLoading) {
         return (

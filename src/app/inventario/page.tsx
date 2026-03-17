@@ -55,10 +55,15 @@ export default function InventarioPage() {
         transportista_placa: ''
     });
 
-    // Check Auth
+    // Check Auth and Permissions
     useEffect(() => {
-        if (!authLoading && !user) {
-            router.push('/login');
+        if (!authLoading) {
+            if (!user) {
+                router.push('/login');
+            } else if (user.groups?.includes('Vendedor') && !user.is_superuser && !user.is_staff) {
+                // Si es vendedor y no es admin/staff, redirigir al dashboard
+                router.push('/');
+            }
         }
     }, [authLoading, user, router]);
 
@@ -259,27 +264,32 @@ export default function InventarioPage() {
                         </h2>
                     </div>
                     <div className="mt-4 flex md:mt-0 md:ml-4 space-x-3">
-                        <button
-                            type="button"
-                            onClick={() => setShowUploadModal(true)}
-                            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                            Importar Excel
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setShowTransferenciaModal(true)}
-                            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                            Transferir Stock
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => openAjusteModal()}
-                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                            Nuevo Ajuste
-                        </button>
+                        {/* Solo mostrar botones de gestión a Admins o Bodegueros */}
+                        {(user?.is_superuser || user?.is_staff || user?.groups?.includes('Administrador') || user?.groups?.includes('Bodeguero')) && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowUploadModal(true)}
+                                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    Importar Excel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowTransferenciaModal(true)}
+                                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    Transferir Stock
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => openAjusteModal()}
+                                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    Nuevo Ajuste
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
 

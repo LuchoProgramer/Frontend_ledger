@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
 import {
@@ -10,6 +12,8 @@ import {
 import Link from 'next/link';
 
 export default function ReportesPage() {
+    const { user, loading: authLoading } = useAuth();
+    const router = useRouter();
     const [periodo, setPeriodo] = useState('mensual');
     const [sucursalId, setSucursalId] = useState<string>('');
 
@@ -20,6 +24,18 @@ export default function ReportesPage() {
     const [loading, setLoading] = useState(true);
 
     const apiClient = getApiClient();
+
+    // Check Auth and Permissions
+    useEffect(() => {
+        if (!authLoading) {
+            if (!user) {
+                router.push('/login');
+            } else if (user.groups?.includes('Vendedor') && !user.is_superuser && !user.is_staff) {
+                // Si es vendedor y no es admin/staff, redirigir al dashboard
+                router.push('/');
+            }
+        }
+    }, [authLoading, user, router]);
 
     useEffect(() => {
         loadData();

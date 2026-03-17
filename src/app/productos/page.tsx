@@ -162,24 +162,29 @@ export default function ProductosPage() {
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2 md:gap-4">
-                            <Link
-                                href="/productos/nuevo"
-                                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                            >
-                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Nuevo Producto
-                            </Link>
-                            <Link
-                                href="/productos/carga-masiva"
-                                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200"
-                            >
-                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                </svg>
-                                Carga Masiva
-                            </Link>
+                            {/* Solo mostrar botones de creación a Admins o Bodegueros */}
+                            {(user?.is_superuser || user?.is_staff || user?.groups?.includes('Administrador') || user?.groups?.includes('Bodeguero')) && (
+                                <>
+                                    <Link
+                                        href="/productos/nuevo"
+                                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                                    >
+                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Nuevo Producto
+                                    </Link>
+                                    <Link
+                                        href="/productos/carga-masiva"
+                                        className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200"
+                                    >
+                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </svg>
+                                        Carga Masiva
+                                    </Link>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -349,29 +354,33 @@ export default function ProductosPage() {
                                                         {producto.activo ? 'Activo' : 'Inactivo'}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <Link
-                                                            href={`/productos/${producto.id}/editar`}
-                                                            className="text-blue-600 hover:text-blue-900"
-                                                            title="Editar"
-                                                        >
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                            </svg>
-                                                        </Link>
-                                                        {isAdmin && (
-                                                            <button
-                                                                onClick={() => handleEliminar(producto.id, producto.nombre)}
-                                                                className="text-red-600 hover:text-red-900"
-                                                                title="Eliminar"
+                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    {(user?.is_superuser || user?.is_staff || user?.groups?.includes('Administrador') || user?.groups?.includes('Bodeguero')) ? (
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <Link
+                                                                href={`/productos/${producto.id}/editar`}
+                                                                className="text-blue-600 hover:text-blue-900"
+                                                                title="Editar"
                                                             >
                                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                                 </svg>
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                            </Link>
+                                                            {isAdmin && (
+                                                                <button
+                                                                    onClick={() => handleEliminar(producto.id, producto.nombre)}
+                                                                    className="text-red-600 hover:text-red-900"
+                                                                    title="Eliminar"
+                                                                >
+                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 italic text-xs">Solo lectura</span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
@@ -400,20 +409,24 @@ export default function ProductosPage() {
                                             <p><span className="font-medium">Tipo:</span> <span className="capitalize">{producto.tipo}</span></p>
                                         </div>
 
-                                        <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
-                                            <Link
-                                                href={`/productos/${producto.id}/editar`}
-                                                className="px-3 py-1.5 bg-blue-50 text-blue-700 text-sm font-medium rounded hover:bg-blue-100"
-                                            >
-                                                Editar
-                                            </Link>
-                                            {isAdmin && (
-                                                <button
-                                                    onClick={() => handleEliminar(producto.id, producto.nombre)}
-                                                    className="px-3 py-1.5 bg-red-50 text-red-700 text-sm font-medium rounded hover:bg-red-100"
-                                                >
-                                                    Eliminar
-                                                </button>
+                                         <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                                            {(user?.is_superuser || user?.is_staff || user?.groups?.includes('Administrador') || user?.groups?.includes('Bodeguero')) && (
+                                                <>
+                                                    <Link
+                                                        href={`/productos/${producto.id}/editar`}
+                                                        className="px-3 py-1.5 bg-blue-50 text-blue-700 text-sm font-medium rounded hover:bg-blue-100"
+                                                    >
+                                                        Editar
+                                                    </Link>
+                                                    {isAdmin && (
+                                                        <button
+                                                            onClick={() => handleEliminar(producto.id, producto.nombre)}
+                                                            className="px-3 py-1.5 bg-red-50 text-red-700 text-sm font-medium rounded hover:bg-red-100"
+                                                        >
+                                                            Eliminar
+                                                        </button>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </div>

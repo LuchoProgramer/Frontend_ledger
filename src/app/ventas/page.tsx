@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
 import { Factura } from '@/lib/types/ventas';
 
 export default function SalesHistoryPage() {
+    const { user, loading: authLoading } = useAuth();
+    const router = useRouter();
     const [facturas, setFacturas] = useState<Factura[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -17,6 +21,18 @@ export default function SalesHistoryPage() {
     const [totalPages, setTotalPages] = useState(1);
 
     const apiClient = getApiClient();
+
+    // Check Auth and Permissions
+    useEffect(() => {
+        if (!authLoading) {
+            if (!user) {
+                router.push('/login');
+            } else if (user.groups?.includes('Vendedor') && !user.is_superuser && !user.is_staff) {
+                // Si es vendedor y no es admin/staff, redirigir al dashboard
+                router.push('/');
+            }
+        }
+    }, [authLoading, user, router]);
 
     const loadFacturas = async () => {
         setLoading(true);
