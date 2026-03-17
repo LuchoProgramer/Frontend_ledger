@@ -9,6 +9,14 @@ interface PageProps {
     params: Promise<{ id: string }>;
 }
 
+const formatFecha = (val: string | null | undefined) => {
+    if (!val) return '—';
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        + ' ' + d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+};
+
 export default function AuditoriaDetailPage(props: PageProps) {
     const params = use(props.params);
     const id = params.id;
@@ -29,25 +37,20 @@ export default function AuditoriaDetailPage(props: PageProps) {
     const loadDetalle = async () => {
         setLoading(true);
         try {
-            // New API method
             const res = await apiClient.getAuditoria(Number(id));
-            if (!res) throw new Error("No data");
-
+            if (!res) throw new Error('No data');
             setAuditoria(res);
-
-            // Map new structure to local state items
-            // API returns 'detalles' array
             const mappedItems = ((res as any).detalles || []).map((d: any) => ({
-                id: d.id, // ID of DetalleAuditoria
+                id: d.id,
                 producto_id: d.producto,
-                codigo: d.producto_codigo || 'N/A', // Assuming backend sends this or we need to fetch
+                codigo: d.producto_codigo || '—',
                 nombre: d.producto_nombre || 'Producto',
                 categoria: d.categoria_nombre || 'General',
                 stock_sistema: d.cantidad_sistema,
                 conteo_fisico: d.cantidad_fisica,
-                diferencia: d.diferencia
+                diferencia: d.diferencia,
+                modificado: false,
             }));
-
             setItems(mappedItems);
         } catch (error) {
             console.error(error);
@@ -58,33 +61,22 @@ export default function AuditoriaDetailPage(props: PageProps) {
     };
 
     const handleConteoChange = (itemId: number, cantidad: string) => {
-        const nuevosItems = items.map(item => {
-            if (item.id === itemId) {
-                const val = cantidad === '' ? null : parseFloat(cantidad);
-                // Calcular diferencia visualmente
-                const diff = val !== null ? val - item.stock_sistema : null;
-                return { ...item, conteo_fisico: val, diferencia: diff, modificado: true };
-            }
-            return item;
-        });
-        setItems(nuevosItems);
+        setItems(prev => prev.map(item => {
+            if (item.id !== itemId) return item;
+            const val = cantidad === '' ? null : parseFloat(cantidad);
+            const diff = val !== null ? val - Number(item.stock_sistema) : null;
+            return { ...item, conteo_fisico: val, diferencia: diff, modificado: true };
+        }));
     };
 
     const guardarAvance = async () => {
         setSaving(true);
         try {
-            // Filtrar solo modificados para enviar
             const payload = items
                 .filter(i => i.conteo_fisico !== null && i.conteo_fisico !== undefined)
-                .map(i => ({
-                    id: i.id, // Detalle ID
-                    cantidad_fisica: i.conteo_fisico
-                }));
-
+                .map(i => ({ id: i.id, cantidad_fisica: i.conteo_fisico }));
             if (payload.length > 0) {
-                // New API method expects different payload
                 await apiClient.updateAuditoriaCount(Number(id), payload);
-                // Recargar
                 await loadDetalle();
             }
             alert('Avance guardado.');
@@ -97,17 +89,14 @@ export default function AuditoriaDetailPage(props: PageProps) {
     };
 
     const finalizarAuditoria = async () => {
-        if (!confirm('¿Estás seguro de finalizar la auditoría? Esto cerrará el conteo y generará el reporte final.')) return;
-
+        if (!confirm('¿Finalizar la auditoría? Esto cerrará el conteo y generará el reporte final.')) return;
         try {
-            // Guardar primero
             await guardarAvance();
-
             await apiClient.finalizeAuditoria(Number(id));
             alert('Auditoría finalizada correctamente.');
             router.push('/inventario/auditoria');
         } catch (error: any) {
-            alert(error.error || 'Error al finalizar');
+            alert(error.message || 'Error al finalizar');
         }
     };
 
@@ -116,45 +105,54 @@ export default function AuditoriaDetailPage(props: PageProps) {
         item.codigo.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (loading) return <DashboardLayout><div className="p-8 text-center">Cargando...</div></DashboardLayout>;
-    if (!auditoria) return <DashboardLayout><div className="p-8 text-center">Auditoría no encontrada</div></DashboardLayout>;
+    const contados = items.filter(i => i.conteo_fisico !== null && i.conteo_fisico !== undefined).length;
+    const isPendiente = auditoria?.estado === 'PENDIENTE';
 
-    const isBorrador = auditoria.estado === 'PENDIENTE';
+    if (loading) return <DashboardLayout><div className="p-8 text-center text-gray-400">Cargando...</div></DashboardLayout>;
+    if (!auditoria) return <DashboardLayout><div className="p-8 text-center text-gray-500">Auditoría no encontrada</div></DashboardLayout>;
 
     return (
         <DashboardLayout>
-            <div className="p-6">
+            <div className="p-4 md:p-6">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                     <div>
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-2xl font-bold text-gray-800">
-                                Auditoría #{auditoria.id}
-                            </h1>
-                            <span className={`px-2 py-1 text-xs rounded-full font-bold ${isBorrador ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                                }`}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 text-sm">← Volver</button>
+                            <h1 className="text-xl font-bold text-gray-800">Auditoría #{auditoria.id}</h1>
+                            <span className={`px-2 py-0.5 text-xs rounded-full font-bold
+                                ${auditoria.estado === 'FINALIZADA' ? 'bg-green-100 text-green-800' :
+                                  auditoria.estado === 'AJUSTADA' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-yellow-100 text-yellow-800'}`}>
                                 {auditoria.estado}
                             </span>
                         </div>
                         <p className="text-gray-500 text-sm mt-1">
-                            Sucursal: {auditoria.sucursal} | Inicio: {new Date(auditoria.fecha_inicio).toLocaleString()}
+                            Inicio: {formatFecha(auditoria.fecha_creacion)}
+                            {auditoria.fecha_finalizacion && (
+                                <> · Fin: {formatFecha(auditoria.fecha_finalizacion)}</>
+                            )}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                            Contados: <span className="font-semibold text-gray-600">{contados}</span> / {items.length}
                         </p>
                     </div>
 
-                    {isBorrador && (
-                        <div className="flex gap-2">
+                    {isPendiente && (
+                        <div className="flex gap-2 w-full md:w-auto">
                             <button
                                 onClick={guardarAvance}
                                 disabled={saving}
-                                className="px-4 py-2 border border-gray-300 bg-white rounded text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                                className="flex-1 md:flex-none px-4 py-2 border border-gray-300 bg-white rounded text-gray-700 hover:bg-gray-50 disabled:opacity-50 text-sm"
                             >
                                 {saving ? 'Guardando...' : 'Guardar Avance'}
                             </button>
                             <button
                                 onClick={finalizarAuditoria}
-                                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 shadow-sm"
+                                disabled={saving}
+                                className="flex-1 md:flex-none px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 shadow-sm disabled:opacity-50 text-sm"
                             >
-                                Finalizar Auditoría
+                                Finalizar
                             </button>
                         </div>
                     )}
@@ -164,68 +162,69 @@ export default function AuditoriaDetailPage(props: PageProps) {
                 <div className="mb-4">
                     <input
                         type="text"
-                        placeholder="Buscar producto por nombre o código..."
-                        className="w-full p-2 border rounded shadow-sm"
+                        placeholder="Buscar por nombre o código..."
+                        className="w-full p-2 border rounded shadow-sm text-sm"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
 
-                {/* Tabla de Conteo */}
-                <div className="bg-white rounded-lg shadow overflow-hidden">
+                {/* Tabla desktop */}
+                <div className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Stock Sistema</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Conteo Físico</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Diferencia</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Stock Sistema</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Conteo Físico</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Diferencia</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
+                            {filteredItems.length === 0 && (
+                                <tr><td colSpan={6} className="p-6 text-center text-gray-400">Sin productos{searchTerm && ' con ese criterio'}.</td></tr>
+                            )}
                             {filteredItems.map((item) => (
-                                <tr key={item.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                                        {item.codigo}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {item.nombre}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {item.categoria}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right">
-                                        {/* Ocultar stock sistema si se desea conteo ciego real, pero para audit es mejor mostrar tras contar o permitir ver. Aquí mostramos. */}
+                                <tr key={item.id} className={`hover:bg-gray-50 ${item.modificado ? 'bg-blue-50/30' : ''}`}>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">{item.codigo}</td>
+                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.nombre}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{item.categoria}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right">
                                         {Number(item.stock_sistema).toFixed(2)}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                                        {isBorrador ? (
+                                    <td className="px-4 py-3 whitespace-nowrap text-right">
+                                        {isPendiente ? (
                                             <input
                                                 type="number"
-                                                className={`w-24 p-1 border rounded text-right focus:ring-2 focus:ring-indigo-500 ${item.conteo_fisico !== null && item.conteo_fisico !== undefined
-                                                    ? 'bg-blue-50 border-blue-300'
-                                                    : 'bg-white'
-                                                    }`}
+                                                min="0"
+                                                step="0.01"
+                                                className={`w-24 p-1 border rounded text-right text-sm focus:ring-2 focus:ring-indigo-500
+                                                    ${item.conteo_fisico !== null && item.conteo_fisico !== undefined
+                                                        ? 'bg-blue-50 border-blue-300'
+                                                        : 'bg-white border-gray-300'}`}
                                                 value={item.conteo_fisico === null || item.conteo_fisico === undefined ? '' : item.conteo_fisico}
                                                 onChange={(e) => handleConteoChange(item.id, e.target.value)}
                                                 placeholder="0.00"
                                             />
                                         ) : (
-                                            <span className="text-sm font-bold">{item.conteo_fisico !== null ? Number(item.conteo_fisico).toFixed(2) : '-'}</span>
+                                            <span className="text-sm font-semibold">
+                                                {item.conteo_fisico !== null && item.conteo_fisico !== undefined
+                                                    ? Number(item.conteo_fisico).toFixed(2) : '—'}
+                                            </span>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold">
-                                        {item.conteo_fisico !== null ? (
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-bold">
+                                        {item.conteo_fisico !== null && item.conteo_fisico !== undefined ? (
                                             <span className={
-                                                (item.diferencia || 0) < 0 ? 'text-red-600' :
-                                                    (item.diferencia || 0) > 0 ? 'text-green-600' : 'text-gray-400'
+                                                (item.diferencia ?? 0) < 0 ? 'text-red-600' :
+                                                (item.diferencia ?? 0) > 0 ? 'text-green-600' : 'text-gray-400'
                                             }>
-                                                {(item.diferencia || 0) > 0 ? '+' : ''}{Number(item.diferencia || 0).toFixed(2)}
+                                                {(item.diferencia ?? 0) > 0 ? '+' : ''}{Number(item.diferencia ?? 0).toFixed(2)}
                                             </span>
                                         ) : (
-                                            <span className="text-gray-300">-</span>
+                                            <span className="text-gray-300">—</span>
                                         )}
                                     </td>
                                 </tr>
@@ -233,6 +232,82 @@ export default function AuditoriaDetailPage(props: PageProps) {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Cards mobile */}
+                <div className="md:hidden space-y-3">
+                    {filteredItems.length === 0 && (
+                        <div className="p-6 text-center bg-white rounded-lg shadow text-gray-400">
+                            Sin productos{searchTerm && ' con ese criterio'}.
+                        </div>
+                    )}
+                    {filteredItems.map((item) => (
+                        <div key={item.id} className={`bg-white rounded-lg shadow p-4 space-y-3 ${item.modificado ? 'border-l-4 border-indigo-400' : ''}`}>
+                            <div className="flex justify-between items-start gap-2">
+                                <div className="min-w-0">
+                                    <div className="font-medium text-gray-900 truncate">{item.nombre}</div>
+                                    <div className="text-xs text-gray-400 font-mono">{item.codigo} · {item.categoria}</div>
+                                </div>
+                                {item.conteo_fisico !== null && item.conteo_fisico !== undefined && (
+                                    <span className={`text-sm font-bold shrink-0
+                                        ${(item.diferencia ?? 0) < 0 ? 'text-red-600' :
+                                          (item.diferencia ?? 0) > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                                        {(item.diferencia ?? 0) > 0 ? '+' : ''}{Number(item.diferencia ?? 0).toFixed(2)}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <div className="text-sm text-gray-500">
+                                    Sistema: <span className="font-semibold text-gray-700">{Number(item.stock_sistema).toFixed(2)}</span>
+                                </div>
+                                <div className="text-sm text-gray-500 flex items-center gap-1">
+                                    Físico:
+                                    {isPendiente ? (
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            className={`w-20 p-1 border rounded text-right text-sm ml-1 focus:ring-2 focus:ring-indigo-500
+                                                ${item.conteo_fisico !== null && item.conteo_fisico !== undefined
+                                                    ? 'bg-blue-50 border-blue-300'
+                                                    : 'bg-white border-gray-300'}`}
+                                            value={item.conteo_fisico === null || item.conteo_fisico === undefined ? '' : item.conteo_fisico}
+                                            onChange={(e) => handleConteoChange(item.id, e.target.value)}
+                                            placeholder="0.00"
+                                        />
+                                    ) : (
+                                        <span className="font-semibold text-gray-700 ml-1">
+                                            {item.conteo_fisico !== null && item.conteo_fisico !== undefined
+                                                ? Number(item.conteo_fisico).toFixed(2) : '—'}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Botones flotantes en mobile cuando está pendiente */}
+                {isPendiente && (
+                    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex gap-2 z-10">
+                        <button
+                            onClick={guardarAvance}
+                            disabled={saving}
+                            className="flex-1 py-2 border border-gray-300 rounded text-gray-700 text-sm font-medium disabled:opacity-50"
+                        >
+                            {saving ? 'Guardando...' : 'Guardar'}
+                        </button>
+                        <button
+                            onClick={finalizarAuditoria}
+                            disabled={saving}
+                            className="flex-1 py-2 bg-green-600 text-white rounded text-sm font-medium disabled:opacity-50"
+                        >
+                            Finalizar
+                        </button>
+                    </div>
+                )}
+                {/* Espacio para los botones flotantes en mobile */}
+                {isPendiente && <div className="md:hidden h-16" />}
             </div>
         </DashboardLayout>
     );
