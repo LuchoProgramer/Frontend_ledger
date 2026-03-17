@@ -126,7 +126,7 @@ export default function AuditoriaListPage() {
                                             onClick={() => router.push(`/inventario/auditoria/${aud.id}`)}
                                             className="text-indigo-600 hover:text-indigo-900"
                                         >
-                                            {aud.estado === 'BORRADOR' ? 'Continuar' : 'Ver Resultados'}
+                                            {aud.estado === 'PENDIENTE' ? 'Continuar' : 'Ver Resultados'}
                                         </button>
                                     </td>
                                 </tr>
@@ -176,7 +176,7 @@ export default function AuditoriaListPage() {
                                     onClick={() => router.push(`/inventario/auditoria/${aud.id}`)}
                                     className="w-full py-2 text-center text-indigo-600 font-medium hover:bg-indigo-50 rounded transition-colors"
                                 >
-                                    {aud.estado === 'BORRADOR' ? 'Continuar Auditoría' : 'Ver Resultados'}
+                                    {aud.estado === 'PENDIENTE' ? 'Continuar Auditoría' : 'Ver Resultados'}
                                 </button>
                             </div>
                         </div>

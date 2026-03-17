@@ -119,7 +119,7 @@ export default function AuditoriaDetailPage(props: PageProps) {
     if (loading) return <DashboardLayout><div className="p-8 text-center">Cargando...</div></DashboardLayout>;
     if (!auditoria) return <DashboardLayout><div className="p-8 text-center">Auditoría no encontrada</div></DashboardLayout>;
 
-    const isBorrador = auditoria.estado === 'BORRADOR';
+    const isBorrador = auditoria.estado === 'PENDIENTE';
 
     return (
         <DashboardLayout>
