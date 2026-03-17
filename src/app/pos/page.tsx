@@ -632,7 +632,7 @@ export default function POSPage() {
                           }
                         }}
                         className={`
-                          relative p-4 rounded-xl shadow-sm transition-all flex flex-col justify-between h-40 border
+                          relative p-4 rounded-xl shadow-sm transition-all flex flex-col justify-between min-h-40 border
                           active:scale-95 duration-75
                           ${hasStock
                             ? 'bg-white hover:shadow-md cursor-pointer border-transparent hover:border-blue-300'
@@ -652,7 +652,7 @@ export default function POSPage() {
 
                         <div>
                           <div className="text-xs text-gray-500 mb-1">{prod.codigo_producto || 'S/C'}</div>
-                          <h3 className="font-semibold text-gray-800 line-clamp-2 leading-tight">{prod.nombre}</h3>
+                          <h3 className="font-semibold text-gray-800 leading-tight break-words">{prod.nombre}</h3>
                         </div>
                         <div className="mt-2 flex justify-between items-end">
                           <div className="text-xs text-gray-500">
