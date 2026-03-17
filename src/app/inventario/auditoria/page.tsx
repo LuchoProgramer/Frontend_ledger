@@ -20,7 +20,7 @@ export default function AuditoriaListPage() {
         setLoading(true);
         try {
             const res = await apiClient.getAuditorias();
-            setAuditorias(res || []);
+            setAuditorias((res as any)?.results ?? res ?? []);
         } catch (error) {
             console.error(error);
         } finally {
