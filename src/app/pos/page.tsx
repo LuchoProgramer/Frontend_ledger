@@ -241,14 +241,12 @@ export default function POSPage() {
         return;
       }
 
-      if (presentaciones.length === 1) {
-        addPresentationToCart(producto, presentaciones[0]);
-      } else {
-        // Multiple presentations: Open selector
-        setProductToSelect(producto);
-        setAvailablePresentations(presentaciones);
-        setShowPresModal(true);
-      }
+      // Siempre agregar directamente al carrito usando una presentación por defecto.
+      // Preferimos canal LOCAL si existe; en caso contrario, usamos la primera.
+      const defaultPresentation =
+        presentaciones.find((p: Presentacion) => p.canal === 'LOCAL') || presentaciones[0];
+
+      addPresentationToCart(producto, defaultPresentation);
     } catch (e) {
       console.error(e);
       alert('Error obteniendo precios del producto');
