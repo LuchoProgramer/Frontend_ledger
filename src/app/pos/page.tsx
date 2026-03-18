@@ -343,6 +343,21 @@ export default function POSPage() {
     setCart(prev => prev.filter((_, i) => i !== index));
   };
 
+  const updateQuantity = (index: number, newQty: number) => {
+    if (newQty < 1) return;
+    setCart(prev => {
+      const newCart = [...prev];
+      const item = newCart[index];
+      newCart[index] = {
+        ...item,
+        cantidad: newQty,
+        subtotal: newQty * item.precio,
+        total: newQty * item.precio,
+      };
+      return newCart;
+    });
+  };
+
 
   const calculateTotals = () => {
     return cart.reduce((acc, item) => {
@@ -700,21 +715,56 @@ export default function POSPage() {
                   {cart.map((item, idx) => (
                     <div
                       key={idx}
-                      className="flex justify-between items-center p-3 bg-gray-50 rounded-lg group cursor-pointer hover:bg-blue-50 transition-colors border border-transparent hover:border-blue-200"
-                      onClick={() => handleCartItemClick(idx, item)}
-                      title="Click para cambiar presentación"
+                      className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-transparent hover:border-blue-200 hover:bg-blue-50 transition-colors"
                     >
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-800">{item.producto.nombre}</div>
+                      {/* Nombre + presentación — tap para cambiar presentación */}
+                      <div
+                        className="flex-1 min-w-0 cursor-pointer"
+                        onClick={() => handleCartItemClick(idx, item)}
+                        title="Toca para cambiar presentación"
+                      >
+                        <div className="font-medium text-gray-800 truncate">{item.producto.nombre}</div>
                         <div className="text-xs text-gray-500">{item.presentacion.nombre_presentacion}</div>
-                        <div className="text-sm">
-                          <span className="font-bold">{item.cantidad}</span> x ${item.precio.toFixed(2)}
-                        </div>
+                        <div className="text-xs text-gray-400">${item.precio.toFixed(2)} c/u</div>
                       </div>
-                      <div className="text-right">
+
+                      {/* Stepper [-] [qty] [+] */}
+                      <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(idx, item.cantidad - 1)}
+                          disabled={item.cantidad <= 1}
+                          className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-xl font-bold transition-colors"
+                        >
+                          −
+                        </button>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={String(item.cantidad)}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10);
+                            if (!isNaN(v) && v >= 1) updateQuantity(idx, v);
+                          }}
+                          className="w-12 min-h-[44px] text-center font-bold text-gray-900 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(idx, item.cantidad + 1)}
+                          className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 active:bg-gray-200 text-xl font-bold transition-colors"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      {/* Total + Eliminar */}
+                      <div className="text-right shrink-0 min-w-[64px]">
                         <div className="font-bold text-gray-800">${item.total.toFixed(2)}</div>
                         <button
-                          onClick={(e) => { e.stopPropagation(); removeFromCart(idx); }}
+                          type="button"
+                          onClick={() => removeFromCart(idx)}
                           className="text-red-400 hover:text-red-600 text-xs mt-1 p-1"
                         >
                           Eliminar
