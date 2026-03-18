@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, useRef, useMemo, use } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
@@ -24,7 +24,11 @@ export default function AuditoriaDetailPage(props: PageProps) {
     const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [categoriaInput, setCategoriaInput] = useState('');
+    const [selectedCategoria, setSelectedCategoria] = useState<string | null>(null);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const [saving, setSaving] = useState(false);
+    const categoriaRef = useRef<HTMLDivElement>(null);
 
     const router = useRouter();
     const apiClient = getApiClient();
@@ -33,6 +37,16 @@ export default function AuditoriaDetailPage(props: PageProps) {
         loadDetalle();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (categoriaRef.current && !categoriaRef.current.contains(e.target as Node)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     const loadDetalle = async () => {
         setLoading(true);
@@ -100,10 +114,23 @@ export default function AuditoriaDetailPage(props: PageProps) {
         }
     };
 
-    const filteredItems = items.filter(item =>
-        item.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.codigo.toLowerCase().includes(searchTerm.toLowerCase())
+    // Unique sorted categories derived from loaded items
+    const categoriasUnicas = useMemo(
+        () => [...new Set(items.map(i => i.categoria))].sort(),
+        [items]
     );
+
+    const suggestions = categoriaInput.trim() === ''
+        ? categoriasUnicas
+        : categoriasUnicas.filter(c => c.toLowerCase().includes(categoriaInput.toLowerCase()));
+
+    const filteredItems = items.filter(item => {
+        const matchesSearch =
+            item.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.codigo.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategoria = selectedCategoria === null || item.categoria === selectedCategoria;
+        return matchesSearch && matchesCategoria;
+    });
 
     const contados = items.filter(i => i.conteo_fisico !== null && i.conteo_fisico !== undefined).length;
     const isPendiente = auditoria?.estado === 'PENDIENTE';
@@ -158,15 +185,73 @@ export default function AuditoriaDetailPage(props: PageProps) {
                     )}
                 </div>
 
-                {/* Buscador */}
-                <div className="mb-4">
+                {/* Buscador + filtro de categoría */}
+                <div className="mb-4 flex flex-col sm:flex-row gap-2">
                     <input
                         type="text"
                         placeholder="Buscar por nombre o código..."
-                        className="w-full p-2 border rounded shadow-sm text-sm"
+                        className="flex-1 p-2 border rounded shadow-sm text-sm"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                     />
+
+                    {/* Autocomplete de categoría */}
+                    <div ref={categoriaRef} className="relative sm:w-56">
+                        <div className={`flex items-center border rounded shadow-sm bg-white ${showSuggestions ? 'ring-2 ring-indigo-500 border-indigo-500' : ''}`}>
+                            <input
+                                type="text"
+                                placeholder="Categoría..."
+                                className="flex-1 p-2 text-sm bg-transparent outline-none min-w-0"
+                                value={selectedCategoria !== null ? selectedCategoria : categoriaInput}
+                                onFocus={() => {
+                                    if (selectedCategoria !== null) setCategoriaInput('');
+                                    setShowSuggestions(true);
+                                }}
+                                onChange={e => {
+                                    setCategoriaInput(e.target.value);
+                                    setSelectedCategoria(null);
+                                    setShowSuggestions(true);
+                                }}
+                            />
+                            {selectedCategoria !== null && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedCategoria(null);
+                                        setCategoriaInput('');
+                                    }}
+                                    className="px-2 text-gray-400 hover:text-gray-600"
+                                    title="Limpiar filtro"
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Suggestions dropdown */}
+                        {showSuggestions && suggestions.length > 0 && (
+                            <ul className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto">
+                                {suggestions.map(cat => (
+                                    <li key={cat}>
+                                        <button
+                                            type="button"
+                                            onMouseDown={e => e.preventDefault()} // evita blur antes del click
+                                            onClick={() => {
+                                                setSelectedCategoria(cat);
+                                                setCategoriaInput('');
+                                                setShowSuggestions(false);
+                                            }}
+                                            className={`w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${
+                                                selectedCategoria === cat ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'
+                                            }`}
+                                        >
+                                            {cat}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
                 </div>
 
                 {/* Tabla desktop */}
@@ -184,7 +269,7 @@ export default function AuditoriaDetailPage(props: PageProps) {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredItems.length === 0 && (
-                                <tr><td colSpan={6} className="p-6 text-center text-gray-400">Sin productos{searchTerm && ' con ese criterio'}.</td></tr>
+                                <tr><td colSpan={6} className="p-6 text-center text-gray-400">Sin productos{(searchTerm || selectedCategoria) && ' con ese criterio'}.</td></tr>
                             )}
                             {filteredItems.map((item) => (
                                 <tr key={item.id} className={`hover:bg-gray-50 ${item.modificado ? 'bg-blue-50/30' : ''}`}>
@@ -237,7 +322,7 @@ export default function AuditoriaDetailPage(props: PageProps) {
                 <div className="md:hidden space-y-3">
                     {filteredItems.length === 0 && (
                         <div className="p-6 text-center bg-white rounded-lg shadow text-gray-400">
-                            Sin productos{searchTerm && ' con ese criterio'}.
+                            Sin productos{(searchTerm || selectedCategoria) && ' con ese criterio'}.
                         </div>
                     )}
                     {filteredItems.map((item) => (
