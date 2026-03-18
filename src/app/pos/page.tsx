@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
-import { Producto, Presentacion } from '@/lib/types/productos';
+import { Producto, Presentacion, Categoria } from '@/lib/types/productos';
 import { SucursalSimple } from '@/lib/types/usuarios';
 import PortalModal from '@/components/ui/PortalModal';
 import ShiftCloseModal, { ShiftCloseData } from '@/components/ShiftCloseModal';
@@ -45,6 +45,8 @@ export default function POSPage() {
 
   // Data State
   const [sucursales, setSucursales] = useState<SucursalSimple[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [selectedCategoria, setSelectedCategoria] = useState<number | null>(null);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [client, setClient] = useState<ClientData>({
@@ -118,6 +120,7 @@ export default function POSPage() {
         setTurno(res.data);
         // Important: Pass sucursal ID explicitly because state update is async
         loadProductos('', res.data.sucursal);
+        loadCategorias();
       } else {
         setTurno(null);
         await loadSucursales();
@@ -144,18 +147,28 @@ export default function POSPage() {
     }
   };
 
-  const loadProductos = async (search = '', sucursalId?: number) => {
+  const loadCategorias = async () => {
+    try {
+      const res = await apiClient.getCategorias();
+      setCategorias(res.data ?? []);
+    } catch {
+      // non-critical — sidebar stays empty
+    }
+  };
+
+  const loadProductos = async (search = '', sucursalId?: number, categoriaId?: number | null) => {
     setLoadingProducts(true);
     try {
-      // Determine which sucursal ID to use: passed arg -> active shift -> null
       const targetSucursal = sucursalId || turno?.sucursal;
-
-      const res = await apiClient.getProductos({
+      const params: Record<string, unknown> = {
         search,
         page_size: 20,
         activo: true,
-        sucursal: targetSucursal
-      });
+        sucursal: targetSucursal,
+      };
+      if (categoriaId) params.categoria = categoriaId;
+
+      const res = await apiClient.getProductos(params as Parameters<typeof apiClient.getProductos>[0]);
       setProductos(res.results || res.data || []);
     } catch (error) {
       console.error('Error loading products', error);
@@ -172,7 +185,8 @@ export default function POSPage() {
       if (res.success) {
         setTurno(res.data);
         setShowShiftModal(false);
-        loadProductos('', selectedSucursal); // Load for fresh sucursal
+        loadProductos('', selectedSucursal);
+        loadCategorias();
       }
     } catch (e: any) {
       alert(e.message || 'Error al abrir turno');
@@ -472,7 +486,7 @@ export default function POSPage() {
       setShowPaymentModal(false);
       setCart([]);
       setClient({ identificacion: '9999999999', razon_social: 'CONSUMIDOR FINAL', email: '', direccion: '' });
-      loadProductos(searchTerm);
+      loadProductos(searchTerm, undefined, selectedCategoria);
     } catch (error: any) {
       const msg = error?.errorMessage || error?.message || 'Error al procesar venta';
       alert(msg);
@@ -619,9 +633,11 @@ export default function POSPage() {
             </div>
           ) : (
             <>
-              {/* Left Side: Product Grid */}
+              {/* Left Side: Category Sidebar + Product Grid */}
               <div className={`flex-1 flex flex-col p-4 bg-gray-50 md:flex ${activeTab === 'cart' ? 'hidden' : 'block'}`}>
-                <div className="mb-4">
+
+                {/* Search */}
+                <div className="mb-3">
                   <input
                     ref={searchInputRef}
                     type="text"
@@ -630,60 +646,122 @@ export default function POSPage() {
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
-                      loadProductos(e.target.value);
+                      loadProductos(e.target.value, undefined, selectedCategoria);
                     }}
                   />
                 </div>
 
-                <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 content-start pb-20">
-                  {loadingProducts ? (
-                    <div className="col-span-full text-center py-10">Cargando productos...</div>
-                  ) : productos.map(prod => {
-                    const stock = prod.stock ?? 0;
-                    const hasStock = stock > 0;
-
-                    return (
-                      <div
-                        key={prod.id}
-                        onClick={() => {
-                          if (hasStock) {
-                            addToCart(prod);
-                            setToast({ message: `Agregado: ${prod.nombre}`, visible: true });
-                            setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 2000);
-                          }
-                        }}
-                        className={`
-                          relative p-4 rounded-xl shadow-sm transition-all flex flex-col justify-between min-h-40 border
-                          active:scale-95 duration-75
-                          ${hasStock
-                            ? 'bg-white hover:shadow-md cursor-pointer border-transparent hover:border-blue-300'
-                            : 'bg-gray-100 cursor-not-allowed border-gray-200 opacity-70'}
-                        `}
+                {/* Mobile: horizontal category pill scroll (< sm) */}
+                {categorias.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2 mb-3 sm:hidden shrink-0 -mx-4 px-4 scrollbar-none">
+                    <button
+                      onClick={() => { setSelectedCategoria(null); loadProductos(searchTerm, undefined, null); }}
+                      className={`shrink-0 px-4 min-h-[44px] rounded-full text-sm font-medium whitespace-nowrap border transition-colors ${
+                        selectedCategoria === null
+                          ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#4F46E5]'
+                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      Todos
+                    </button>
+                    {categorias.map(cat => (
+                      <button
+                        key={cat.id}
+                        onClick={() => { setSelectedCategoria(cat.id); loadProductos(searchTerm, undefined, cat.id); }}
+                        className={`shrink-0 px-4 min-h-[44px] rounded-full text-sm font-medium whitespace-nowrap border transition-colors ${
+                          selectedCategoria === cat.id
+                            ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#4F46E5]'
+                            : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                        }`}
                       >
-                        {!hasStock && (
-                          <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full z-10">
-                            AGOTADO
-                          </div>
-                        )}
-                        {hasStock && stock <= 5 && (
-                          <div className="absolute top-2 right-2 bg-orange-100 text-orange-600 text-xs font-bold px-2 py-1 rounded-full z-10">
-                            {stock} left
-                          </div>
-                        )}
+                        {cat.nombre}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">{prod.codigo_producto || 'S/C'}</div>
-                          <h3 className="font-semibold text-gray-800 leading-tight break-words">{prod.nombre}</h3>
-                        </div>
-                        <div className="mt-2 flex justify-between items-end">
-                          <div className="text-xs text-gray-500">
-                            Stock: <span className={hasStock ? 'text-gray-700' : 'text-red-500'}>{formatStock(stock)}</span>
+                {/* Desktop: sidebar + grid */}
+                <div className="flex-1 flex overflow-hidden gap-0">
+
+                  {/* Category sidebar (sm+) */}
+                  {categorias.length > 0 && (
+                    <div className="hidden sm:flex flex-col w-[110px] shrink-0 overflow-y-auto border-r border-gray-200 pr-0 mr-3 gap-0.5">
+                      <button
+                        onClick={() => { setSelectedCategoria(null); loadProductos(searchTerm, undefined, null); }}
+                        className={`w-full text-left px-3 py-2 min-h-[44px] text-sm font-medium leading-tight transition-colors border-l-[3px] ${
+                          selectedCategoria === null
+                            ? 'bg-[#EEF2FF] text-[#4F46E5] border-l-[#4F46E5]'
+                            : 'text-gray-600 hover:bg-gray-100 border-l-transparent'
+                        }`}
+                      >
+                        Todos
+                      </button>
+                      {categorias.map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => { setSelectedCategoria(cat.id); loadProductos(searchTerm, undefined, cat.id); }}
+                          className={`w-full text-left px-3 py-2 min-h-[44px] text-sm font-medium leading-tight transition-colors border-l-[3px] ${
+                            selectedCategoria === cat.id
+                              ? 'bg-[#EEF2FF] text-[#4F46E5] border-l-[#4F46E5]'
+                              : 'text-gray-600 hover:bg-gray-100 border-l-transparent'
+                          }`}
+                        >
+                          {cat.nombre}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Product grid */}
+                  <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 content-start pb-20">
+                    {loadingProducts ? (
+                      <div className="col-span-full text-center py-10">Cargando productos...</div>
+                    ) : productos.map(prod => {
+                      const stock = prod.stock ?? 0;
+                      const hasStock = stock > 0;
+
+                      return (
+                        <div
+                          key={prod.id}
+                          onClick={() => {
+                            if (hasStock) {
+                              addToCart(prod);
+                              setToast({ message: `Agregado: ${prod.nombre}`, visible: true });
+                              setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 2000);
+                            }
+                          }}
+                          className={`
+                            relative p-4 rounded-xl shadow-sm transition-all flex flex-col justify-between min-h-40 border
+                            active:scale-95 duration-75
+                            ${hasStock
+                              ? 'bg-white hover:shadow-md cursor-pointer border-transparent hover:border-blue-300'
+                              : 'bg-gray-100 cursor-not-allowed border-gray-200 opacity-70'}
+                          `}
+                        >
+                          {!hasStock && (
+                            <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full z-10">
+                              AGOTADO
+                            </div>
+                          )}
+                          {hasStock && stock <= 5 && (
+                            <div className="absolute top-2 right-2 bg-orange-100 text-orange-600 text-xs font-bold px-2 py-1 rounded-full z-10">
+                              {stock} left
+                            </div>
+                          )}
+                          <div>
+                            <div className="text-xs text-gray-500 mb-1">{prod.codigo_producto || 'S/C'}</div>
+                            <h3 className="font-semibold text-gray-800 leading-tight break-words">{prod.nombre}</h3>
                           </div>
-                          <span className="text-lg font-bold text-blue-600 block">$ -</span>
+                          <div className="mt-2 flex justify-between items-end">
+                            <div className="text-xs text-gray-500">
+                              Stock: <span className={hasStock ? 'text-gray-700' : 'text-red-500'}>{formatStock(stock)}</span>
+                            </div>
+                            <span className="text-lg font-bold text-blue-600 block">$ -</span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
