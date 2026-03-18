@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDebounce } from '@/hooks/useDebounce';
 import { formatCurrency } from '../../lib/utils';
 import PortalModal from '@/components/ui/PortalModal';
 import { getApiClient } from '@/lib/api';
@@ -30,20 +32,11 @@ export default function InventarioPage() {
     const [searchTerm, setSearchTerm] = useState('');
 
     // Modals
-    const [showAjusteModal, setShowAjusteModal] = useState(false);
     const [showTransferenciaModal, setShowTransferenciaModal] = useState(false);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [saving, setSaving] = useState(false);
 
     // Form Data
-    const [ajusteForm, setAjusteForm] = useState({
-        producto_id: 0,
-        sucursal_id: 0,
-        tipo: 'ENTRADA' as 'ENTRADA' | 'SALIDA',
-        cantidad: '',
-        motivo: ''
-    });
-
     const [transferenciaForm, setTransferenciaForm] = useState({
         producto_id: 0,
         origen_id: 0,
@@ -71,6 +64,8 @@ export default function InventarioPage() {
     const [viewMode, setViewMode] = useState<'detalle' | 'agrupado'>('detalle');
     const [expandedItems, setExpandedItems] = useState<number[]>([]);
 
+    const debouncedSearch = useDebounce(searchTerm, 400);
+
     // Load Initial Data
     const loadData = useCallback(async () => {
         try {
@@ -84,7 +79,7 @@ export default function InventarioPage() {
             const [invRes, sucRes, prodRes] = await Promise.all([
                 api.getInventario({
                     sucursal: selectedSucursal,
-                    search: searchTerm,
+                    search: debouncedSearch,
                     agrupado: isGrouped
                 }),
                 api.getSucursalesList({ page_size: 100 }), // Fetch all for dropdowns
@@ -101,7 +96,7 @@ export default function InventarioPage() {
         } finally {
             setLoading(false);
         }
-    }, [selectedSucursal, searchTerm]);
+    }, [selectedSucursal, debouncedSearch]);
 
     const toggleExpand = (id: number) => {
         setExpandedItems(prev =>
@@ -114,28 +109,6 @@ export default function InventarioPage() {
             loadData();
         }
     }, [user, loadData]);
-
-    const handleAjusteSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setSaving(true);
-        setError('');
-        setSuccessMessage('');
-
-        try {
-            const api = getApiClient();
-            await api.ajusteInventario({
-                ...ajusteForm,
-                cantidad: Number(ajusteForm.cantidad)
-            });
-            setSuccessMessage('Ajuste realizado correctamente');
-            setShowAjusteModal(false);
-            loadData();
-        } catch (err: any) {
-            setError(err.message || 'Error al realizar ajuste');
-        } finally {
-            setSaving(false);
-        }
-    };
 
     const handleTransferenciaSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -231,17 +204,6 @@ export default function InventarioPage() {
         }
     };
 
-    const openAjusteModal = (item?: InventarioItem) => {
-        setAjusteForm({
-            producto_id: item ? item.producto : (productos[0]?.id || 0),
-            sucursal_id: item?.sucursal ?? (sucursales[0]?.id || 0),
-            tipo: 'ENTRADA',
-            cantidad: '',
-            motivo: ''
-        });
-        setShowAjusteModal(true);
-    };
-
     if (authLoading || (loading && inventario.length === 0 && sucursales.length === 0)) {
         return (
             <DashboardLayout>
@@ -281,13 +243,12 @@ export default function InventarioPage() {
                                 >
                                     Transferir Stock
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => openAjusteModal()}
+                                <Link
+                                    href="/inventario/ajustes"
                                     className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                 >
                                     Nuevo Ajuste
-                                </button>
+                                </Link>
                             </>
                         )}
                     </div>
@@ -429,12 +390,12 @@ export default function InventarioPage() {
                                                             </td>
                                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                                 {!isGroupedRow && (
-                                                                    <button
-                                                                        onClick={() => openAjusteModal(item)}
-                                                                        className="text-indigo-600 hover:text-indigo-900"
+                                                                    <Link
+                                                                        href="/inventario/ajustes"
+                                                                        className="text-indigo-600 hover:text-indigo-900 font-medium"
                                                                     >
                                                                         Ajustar
-                                                                    </button>
+                                                                    </Link>
                                                                 )}
                                                             </td>
                                                         </tr>
@@ -520,12 +481,12 @@ export default function InventarioPage() {
                                             Act: {item.fecha_actualizacion ? new Date(item.fecha_actualizacion).toLocaleDateString() : '-'}
                                         </span>
                                         {!isGroupedRow && (
-                                            <button
-                                                onClick={() => openAjusteModal(item)}
+                                            <Link
+                                                href="/inventario/ajustes"
                                                 className="text-indigo-600 font-medium text-sm px-3 py-1 bg-indigo-50 rounded hover:bg-indigo-100"
                                             >
                                                 Ajustar Stock
-                                            </button>
+                                            </Link>
                                         )}
                                     </div>
                                 </div>
@@ -533,89 +494,6 @@ export default function InventarioPage() {
                         })
                     )}
                 </div>
-
-                {/* MODAL AJUSTE */}
-                <PortalModal isOpen={showAjusteModal} onClose={() => setShowAjusteModal(false)}>
-                    <form onSubmit={handleAjusteSubmit}>
-                        <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Ajuste de Stock</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Producto</label>
-                                    <select
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                        value={ajusteForm.producto_id}
-                                        onChange={(e) => setAjusteForm({ ...ajusteForm, producto_id: Number(e.target.value) })}
-                                    >
-                                        {productos.map(p => (
-                                            <option key={p.id} value={p.id}>{p.nombre}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Sucursal</label>
-                                    <select
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                        value={ajusteForm.sucursal_id}
-                                        onChange={(e) => setAjusteForm({ ...ajusteForm, sucursal_id: Number(e.target.value) })}
-                                    >
-                                        {sucursales.map(s => (
-                                            <option key={s.id} value={s.id}>{s.nombre}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Tipo Ajuste</label>
-                                    <select
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                        value={ajusteForm.tipo}
-                                        onChange={(e) => setAjusteForm({ ...ajusteForm, tipo: e.target.value as any })}
-                                    >
-                                        <option value="ENTRADA">ENTRADA (Agregar)</option>
-                                        <option value="SALIDA">SALIDA (Descontar)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Cantidad</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                        value={ajusteForm.cantidad}
-                                        onChange={(e) => setAjusteForm({ ...ajusteForm, cantidad: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Motivo</label>
-                                    <input
-                                        type="text"
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                        value={ajusteForm.motivo}
-                                        onChange={(e) => setAjusteForm({ ...ajusteForm, motivo: e.target.value })}
-                                        required
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-                            >
-                                {saving ? 'Guardando...' : 'Guardar Ajuste'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setShowAjusteModal(false)}
-                                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
-                </PortalModal>
 
                 {/* MODAL TRANSFERENCIA */}
                 <PortalModal isOpen={showTransferenciaModal} onClose={() => setShowTransferenciaModal(false)}>
