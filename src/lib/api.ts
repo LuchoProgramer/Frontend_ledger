@@ -1144,7 +1144,7 @@ export class ApiClient {
   }
 
   async getCompraDetail(id: number) {
-    return this.request<any>(`/api/auth/compras/${id}/`);
+    return this.request<any>(`/api/compras/${id}/`);
   }
 
   async uploadCompraXML(file: File, sucursalId: number) {
@@ -1157,7 +1157,7 @@ export class ApiClient {
       message: string;
       compra_id?: number;
       error?: string;
-    }>('/api/auth/compras/xml/', {
+    }>('/api/compras/xml/', {
       method: 'POST',
       body: formData,
     });
