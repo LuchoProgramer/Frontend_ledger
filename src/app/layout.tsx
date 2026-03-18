@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
@@ -16,9 +16,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: '#4F46E5',
+};
+
 export const metadata: Metadata = {
   title: "LedgerXpertz - Sistema de Facturación Electrónica",
   description: "Sistema multi-tenant de facturación electrónica integrado con SRI Ecuador",
+  manifest: '/manifest.json',
+  icons: {
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export default async function RootLayout({
