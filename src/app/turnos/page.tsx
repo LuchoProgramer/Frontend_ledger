@@ -14,6 +14,8 @@ interface Turno {
     inicio_turno: string;
     fin_turno: string | null;
     total_ventas: string;
+    total_efectivo: string;
+    otros_metodos_pago: string;
     estado: string;
 }
 
@@ -116,6 +118,7 @@ export default function TurnosPage() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cierre</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ventas</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Reporte</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -126,7 +129,11 @@ export default function TurnosPage() {
                                 <tr><td colSpan={6} className="p-4 text-center text-gray-500">No hay turnos registrados</td></tr>
                             )}
                             {turnos.map((turno) => (
-                                <tr key={turno.id} className="hover:bg-gray-50">
+                                <tr
+                                    key={turno.id}
+                                    onClick={() => turno.estado === 'Cerrado' && router.push(`/turnos/${turno.id}`)}
+                                    className={`hover:bg-gray-50 ${turno.estado === 'Cerrado' ? 'cursor-pointer' : ''}`}
+                                >
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {turno.usuario_nombre}
                                     </td>
@@ -140,13 +147,25 @@ export default function TurnosPage() {
                                         {turno.fin_turno ? new Date(turno.fin_turno).toLocaleString() : '-'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-bold">
-                                        ${Number(turno.total_ventas || 0).toFixed(2)}
+                                        ${(Number(turno.total_efectivo || 0) + Number(turno.otros_metodos_pago || 0)).toFixed(2)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-center">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${turno.estado === 'Abierto' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                                             }`}>
                                             {turno.estado}
                                         </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                        {turno.estado === 'Cerrado' ? (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); router.push(`/turnos/${turno.id}`); }}
+                                                className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                                            >
+                                                Ver →
+                                            </button>
+                                        ) : (
+                                            <span className="text-gray-400 text-sm">En curso</span>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -187,8 +206,18 @@ export default function TurnosPage() {
 
                             <div className="pt-2 border-t border-gray-100 flex justify-between items-center">
                                 <span className="text-sm font-medium text-gray-700">Total Ventas</span>
-                                <span className="text-lg font-bold text-gray-900">${Number(turno.total_ventas || 0).toFixed(2)}</span>
+                                <span className="text-lg font-bold text-gray-900">
+                                    ${(Number(turno.total_efectivo || 0) + Number(turno.otros_metodos_pago || 0)).toFixed(2)}
+                                </span>
                             </div>
+                            {turno.estado === 'Cerrado' && (
+                                <button
+                                    onClick={() => router.push(`/turnos/${turno.id}`)}
+                                    className="w-full mt-2 py-2 text-sm text-indigo-600 font-medium border border-indigo-200 rounded-lg hover:bg-indigo-50"
+                                >
+                                    Ver reporte de cierre →
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>
