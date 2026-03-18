@@ -896,12 +896,16 @@ export class ApiClient {
     producto?: number;
     sucursal?: number;
     tipo?: string;
+    fecha_desde?: string; // YYYY-MM-DD
+    fecha_hasta?: string; // YYYY-MM-DD
   }) {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.producto) queryParams.append('producto', params.producto.toString());
     if (params?.sucursal) queryParams.append('sucursal', params.sucursal.toString());
     if (params?.tipo) queryParams.append('tipo', params.tipo);
+    if (params?.fecha_desde) queryParams.append('fecha_desde', params.fecha_desde);
+    if (params?.fecha_hasta) queryParams.append('fecha_hasta', params.fecha_hasta);
 
     const query = queryParams.toString();
     return this.request<MovimientosResponse>(`/api/auth/inventario/movimientos/${query ? `?${query}` : ''}`);

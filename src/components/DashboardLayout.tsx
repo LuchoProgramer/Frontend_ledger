@@ -131,6 +131,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             items: [
                 { name: 'Gestión de Stock', href: '/inventario', icon: <Package className="w-4 h-4" />, allowedRoles: ['Administrador', 'Bodeguero'] },
                 { name: 'Ajuste de Stock', href: '/inventario/ajustes', icon: <SlidersHorizontal className="w-4 h-4" />, allowedRoles: ['Administrador'] },
+                { name: 'Movimientos', href: '/inventario/movimientos', icon: <History className="w-4 h-4" />, allowedRoles: ['Administrador'] },
                 { name: 'Auditoría', href: '/inventario/auditoria', icon: <ShieldCheck className="w-4 h-4" />, allowedRoles: ['Administrador', 'Bodeguero', 'Vendedor'] },
             ]
         },
