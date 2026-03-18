@@ -31,6 +31,8 @@ export default function TurnoCierrePage() {
     const { user, loading: authLoading } = useAuth();
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [expandedId, setExpandedId] = useState<number | null>(null);
+    const [detallesCache, setDetallesCache] = useState<Record<number, any[]>>({});
 
     useEffect(() => {
         if (!authLoading && !user) router.push('/login');
@@ -62,6 +64,22 @@ export default function TurnoCierrePage() {
     }
 
     const { turno, cierre, resumen, facturas } = data;
+
+    const handleRowClick = async (facturaId: number) => {
+        if (expandedId === facturaId) {
+            setExpandedId(null);
+            return;
+        }
+        setExpandedId(facturaId);
+        if (!detallesCache[facturaId]) {
+            try {
+                const detail = await getApiClient().getFactura(facturaId);
+                setDetallesCache(prev => ({ ...prev, [facturaId]: detail.detalles || [] }));
+            } catch {
+                setDetallesCache(prev => ({ ...prev, [facturaId]: [] }));
+            }
+        }
+    };
     const totalDeclarado = Number(turno.total_efectivo || 0) + Number(turno.otros_metodos_pago || 0);
     const diff = cierre ? Number(cierre.diferencia_total) : 0;
 
@@ -198,27 +216,66 @@ export default function TurnoCierrePage() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {facturas.map((f: any) => (
-                                        <tr key={f.id} className="hover:bg-gray-50">
-                                            <td className="px-5 py-3 font-mono text-xs text-gray-600">
-                                                {f.es_interno ? `NOTA-${f.id}` : f.numero_autorizacion}
-                                            </td>
-                                            <td className="px-5 py-3 text-gray-700 max-w-[160px] truncate">{f.cliente}</td>
-                                            <td className="px-5 py-3 text-gray-600">
-                                                {METODO_PAGO_LABEL[f.metodo_pago] || f.metodo_pago}
-                                            </td>
-                                            <td className="px-5 py-3 text-right font-medium text-gray-900">
-                                                ${Number(f.total_con_impuestos).toFixed(2)}
-                                            </td>
-                                            <td className="px-5 py-3 text-center">
-                                                <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                                                    f.estado === 'AUTORIZADO' ? 'bg-green-100 text-green-700' :
-                                                    f.es_interno ? 'bg-gray-100 text-gray-600' :
-                                                    'bg-yellow-100 text-yellow-700'
-                                                }`}>
-                                                    {f.es_interno ? 'Interna' : f.estado}
-                                                </span>
-                                            </td>
-                                        </tr>
+                                        <>
+                                            <tr
+                                                key={f.id}
+                                                onClick={() => handleRowClick(f.id)}
+                                                className="hover:bg-gray-50 cursor-pointer select-none"
+                                            >
+                                                <td className="px-5 py-3 font-mono text-xs text-gray-600">
+                                                    <span className="mr-1 text-gray-400">{expandedId === f.id ? '▼' : '▶'}</span>
+                                                    {f.es_interno ? `NOTA-${f.id}` : f.numero_autorizacion}
+                                                </td>
+                                                <td className="px-5 py-3 text-gray-700 max-w-[160px] truncate">{f.cliente}</td>
+                                                <td className="px-5 py-3 text-gray-600">
+                                                    {METODO_PAGO_LABEL[f.metodo_pago] || f.metodo_pago}
+                                                </td>
+                                                <td className="px-5 py-3 text-right font-medium text-gray-900">
+                                                    ${Number(f.total_con_impuestos).toFixed(2)}
+                                                </td>
+                                                <td className="px-5 py-3 text-center">
+                                                    <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                                                        f.estado === 'AUTORIZADO' ? 'bg-green-100 text-green-700' :
+                                                        f.es_interno ? 'bg-gray-100 text-gray-600' :
+                                                        'bg-yellow-100 text-yellow-700'
+                                                    }`}>
+                                                        {f.es_interno ? 'Interna' : f.estado}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {expandedId === f.id && (
+                                                <tr key={`detail-${f.id}`} className="bg-gray-50">
+                                                    <td colSpan={5} className="px-8 py-3">
+                                                        {!detallesCache[f.id] ? (
+                                                            <p className="text-xs text-gray-400">Cargando...</p>
+                                                        ) : detallesCache[f.id].length === 0 ? (
+                                                            <p className="text-xs text-gray-400">Sin productos</p>
+                                                        ) : (
+                                                            <table className="w-full text-xs">
+                                                                <thead>
+                                                                    <tr className="text-gray-500 border-b border-gray-200">
+                                                                        <th className="pb-1 text-left font-medium">Producto</th>
+                                                                        <th className="pb-1 text-right font-medium">Cant.</th>
+                                                                        <th className="pb-1 text-right font-medium">P. Unit.</th>
+                                                                        <th className="pb-1 text-right font-medium">Subtotal</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {detallesCache[f.id].map((d: any) => (
+                                                                        <tr key={d.id}>
+                                                                            <td className="py-1 text-gray-700">{d.producto_nombre}</td>
+                                                                            <td className="py-1 text-right text-gray-600">{d.cantidad}</td>
+                                                                            <td className="py-1 text-right text-gray-600">${Number(d.precio_unitario).toFixed(2)}</td>
+                                                                            <td className="py-1 text-right font-medium text-gray-800">${Number(d.subtotal).toFixed(2)}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </>
                                     ))}
                                 </tbody>
                             </table>
