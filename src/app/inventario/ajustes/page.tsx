@@ -1,248 +1,678 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeftRight, Save, Plus, Minus, Search, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDebounce } from '@/hooks/useDebounce';
+import DashboardLayout from '@/components/DashboardLayout';
+import {
+  Search,
+  ChevronRight,
+  ChevronLeft,
+  Package,
+  CheckCircle2,
+  AlertCircle,
+  SlidersHorizontal,
+  ArrowRight,
+} from 'lucide-react';
 
-import { Producto } from '@/lib/types/productos';
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface DesgloseItem {
+  id: number;
+  sucursal: number;
+  sucursal_nombre: string;
+  cantidad: number;
+}
+
+interface ProductoConStock {
+  id: number;
+  nombre: string;
+  codigo_producto: string;
+  stock_total_global: number;
+  desglose: DesgloseItem[];
+}
 
 interface Sucursal {
   id: number;
   nombre: string;
-  direccion: string;
 }
 
+interface AjusteReceipt {
+  productoNombre: string;
+  productoCodigo: string;
+  sucursalNombre: string;
+  stockAnterior: number;
+  stockNuevo: number;
+  diferencia: number;
+  tipo: 'ENTRADA' | 'SALIDA';
+  motivo: string;
+  usuario: string;
+  fecha: string;
+}
+
+type Step = 'search' | 'sucursal' | 'form' | 'confirm' | 'receipt';
+
+const STEP_LABELS: Record<Exclude<Step, 'receipt'>, string> = {
+  search: 'Buscar',
+  sucursal: 'Sucursal',
+  form: 'Cantidad',
+  confirm: 'Confirmar',
+};
+
+const STEP_ORDER: Exclude<Step, 'receipt'>[] = ['search', 'sucursal', 'form', 'confirm'];
+
+// ── Component ────────────────────────────────────────────────────────────────
+
 export default function AjustesInventarioPage() {
-  const { api } = useAuth();
+  const { api, user } = useAuth();
   const router = useRouter();
 
-  // Estado de carga inicial
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Data de catálogos
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
-
-  // Estado del formulario
-  const [formData, setFormData] = useState({
-    producto_id: '',
-    sucursal_id: '',
-    tipo: 'ENTRADA' as 'ENTRADA' | 'SALIDA',
-    cantidad: '',
-    motivo: ''
-  });
-
-  // Estado para feedback
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-
-  // Cargar datos iniciales
+  // Role guard — admin/staff only
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [prodsRes, sucsRes] = await Promise.all([
-          api.getProductos({ page_size: 100, activo: true }),
-          api.getSucursalesList({ page_size: 50 })
-        ]);
+    if (!user) return;
+    const isAdmin =
+      user.is_staff ||
+      user.is_superuser ||
+      (user.groups ?? []).includes('Administrador');
+    if (!isAdmin) router.replace('/inventario');
+  }, [user, router]);
 
-        setProductos(prodsRes.results || []);
-        setSucursales(sucsRes.results || []);
-      } catch (error) {
-        setMessage({ type: 'error', text: 'Error cargando datos iniciales.' });
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // ── Wizard state ──────────────────────────────────────────────────────────
+  const [step, setStep] = useState<Step>('search');
 
-    fetchData();
+  // Step 1 — search
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 400);
+  const [searchResults, setSearchResults] = useState<ProductoConStock[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  // Step 2 — sucursal
+  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<ProductoConStock | null>(null);
+
+  // Step 3 — form
+  const [selectedSucursal, setSelectedSucursal] = useState<{
+    id: number;
+    nombre: string;
+    currentStock: number;
+  } | null>(null);
+  const [targetQty, setTargetQty] = useState('');
+  const [motivo, setMotivo] = useState('');
+
+  // Shared
+  const [formError, setFormError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [receipt, setReceipt] = useState<AjusteReceipt | null>(null);
+
+  // ── Data loading ──────────────────────────────────────────────────────────
+
+  // Load sucursales once on mount
+  useEffect(() => {
+    api
+      .getSucursalesList({ page_size: 50 })
+      .then((res: any) => setSucursales(res.results ?? []))
+      .catch(() => {});
   }, [api]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setMessage(null);
-
-    // Validaciones básicas
-    if (!formData.producto_id || !formData.sucursal_id || !formData.cantidad || !formData.motivo) {
-      setMessage({ type: 'error', text: 'Todos los campos son obligatorios.' });
-      setSubmitting(false);
+  // Debounced product search
+  useEffect(() => {
+    if (debouncedSearch.trim().length < 2) {
+      setSearchResults([]);
       return;
     }
+    setSearching(true);
+    api
+      .getInventario({ search: debouncedSearch, agrupado: true })
+      .then((res: any) => setSearchResults((res.results ?? []) as ProductoConStock[]))
+      .catch(() => setSearchResults([]))
+      .finally(() => setSearching(false));
+  }, [debouncedSearch, api]);
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  function handleSelectProduct(producto: ProductoConStock) {
+    setSelectedProduct(producto);
+    setStep('sucursal');
+  }
+
+  function handleSelectSucursal(id: number, nombre: string, currentStock: number) {
+    setSelectedSucursal({ id, nombre, currentStock });
+    setTargetQty(currentStock.toString());
+    setFormError('');
+    setStep('form');
+  }
+
+  function handleReviewAjuste() {
+    const qty = parseFloat(targetQty);
+    if (isNaN(qty) || qty < 0) {
+      setFormError('Ingresa una cantidad válida (número mayor o igual a 0).');
+      return;
+    }
+    if (!motivo.trim()) {
+      setFormError('El motivo del ajuste es obligatorio.');
+      return;
+    }
+    if (qty === selectedSucursal!.currentStock) {
+      setFormError(
+        'La cantidad ingresada es igual al stock actual. No hay diferencia que ajustar.'
+      );
+      return;
+    }
+    setFormError('');
+    setStep('confirm');
+  }
+
+  async function handleSubmit() {
+    if (!selectedProduct || !selectedSucursal) return;
+
+    const targetQtyNum = parseFloat(targetQty);
+    const diff = targetQtyNum - selectedSucursal.currentStock;
+    const tipo: 'ENTRADA' | 'SALIDA' = diff > 0 ? 'ENTRADA' : 'SALIDA';
+    const cantidad = Math.abs(diff);
+
+    setSubmitting(true);
     try {
       await api.ajusteInventario({
-        producto_id: parseInt(formData.producto_id),
-        sucursal_id: parseInt(formData.sucursal_id),
-        tipo: formData.tipo,
-        cantidad: parseFloat(formData.cantidad),
-        motivo: formData.motivo
+        producto_id: selectedProduct.id,
+        sucursal_id: selectedSucursal.id,
+        tipo,
+        cantidad,
+        motivo: motivo.trim(),
       });
 
-      setMessage({ type: 'success', text: 'Ajuste realizado correctamente.' });
-
-      // Resetear algunos campos
-      setFormData(prev => ({ ...prev, cantidad: '', motivo: '' }));
-
-    } catch (error: any) {
-      setMessage({
-        type: 'error',
-        text: error.message || 'Error al procesar el ajuste.'
+      setReceipt({
+        productoNombre: selectedProduct.nombre,
+        productoCodigo: selectedProduct.codigo_producto,
+        sucursalNombre: selectedSucursal.nombre,
+        stockAnterior: selectedSucursal.currentStock,
+        stockNuevo: targetQtyNum,
+        diferencia: diff,
+        tipo,
+        motivo: motivo.trim(),
+        usuario: user?.username ?? user?.email ?? 'Sistema',
+        fecha: new Date().toLocaleString('es-EC', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }),
       });
+      setStep('receipt');
+    } catch (err: any) {
+      setFormError(err?.message ?? 'Error al procesar el ajuste. Intenta de nuevo.');
+      setStep('confirm');
     } finally {
       setSubmitting(false);
     }
-  };
+  }
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Cargando catálogo...</div>;
+  function handleNuevoAjuste() {
+    setStep('search');
+    setSearchTerm('');
+    setSearchResults([]);
+    setSelectedProduct(null);
+    setSelectedSucursal(null);
+    setTargetQty('');
+    setMotivo('');
+    setFormError('');
+    setReceipt(null);
+  }
+
+  // ── Derived values ────────────────────────────────────────────────────────
+
+  // Merge all sucursales with stock from selected product's desglose
+  const sucursalesConStock = sucursales.map((s) => {
+    const entry = selectedProduct?.desglose.find((d) => d.sucursal === s.id);
+    return { id: s.id, nombre: s.nombre, currentStock: entry?.cantidad ?? 0 };
+  });
+
+  const targetQtyNum = parseFloat(targetQty) || 0;
+  const diff = targetQtyNum - (selectedSucursal?.currentStock ?? 0);
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <ArrowLeftRight className="w-8 h-8 text-indigo-600" />
-          Ajustes de Inventario
-        </h1>
-        <p className="text-gray-500 mt-2">
-          Registra entradas o salidas manuales de mercadería para corregir diferencias de stock.
-        </p>
-      </div>
+    <DashboardLayout>
+      <div className="max-w-2xl mx-auto px-4 py-6 md:py-8">
 
-      {/* Alertas */}
-      {message && (
-        <div className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
-          }`}>
-          {message.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
-          <p>{message.text}</p>
+        {/* Page header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-1">
+            <SlidersHorizontal className="w-6 h-6 text-indigo-600 shrink-0" />
+            <h1 className="text-2xl font-bold text-gray-900">Ajuste de Inventario</h1>
+          </div>
+          <p className="text-sm text-gray-500 ml-9">
+            Solo administradores · Los cambios quedan registrados en el kardex
+          </p>
         </div>
-      )}
 
-      {/* Main Form Card */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-        <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-8">
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-            {/* Columna Izquierda: Ubicación y Producto */}
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Sucursal Afectada</label>
-                <select
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                  value={formData.sucursal_id}
-                  onChange={(e) => setFormData({ ...formData, sucursal_id: e.target.value })}
-                  required
-                >
-                  <option value="">Seleccione una sucursal...</option>
-                  {sucursales.map(s => (
-                    <option key={s.id} value={s.id}>{s.nombre}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Producto</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                  <select
-                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none"
-                    value={formData.producto_id}
-                    onChange={(e) => setFormData({ ...formData, producto_id: e.target.value })}
-                    required
+        {/* Step progress indicator */}
+        {step !== 'receipt' && (
+          <div className="flex items-center gap-2 mb-6 text-sm select-none">
+            {STEP_ORDER.map((s, i) => {
+              const currentIdx = STEP_ORDER.indexOf(step as Exclude<Step, 'receipt'>);
+              const isDone = i < currentIdx;
+              const isCurrent = s === step;
+              return (
+                <div key={s} className="flex items-center gap-2">
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${
+                      isDone
+                        ? 'bg-indigo-600 text-white'
+                        : isCurrent
+                        ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-600'
+                        : 'bg-gray-100 text-gray-400'
+                    }`}
                   >
-                    <option value="">Buscar producto por nombre o código...</option>
-                    {productos.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.codigo_producto} - {p.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    {isDone ? '✓' : i + 1}
+                  </span>
+                  <span
+                    className={`hidden sm:inline ${
+                      isCurrent ? 'text-indigo-700 font-medium' : 'text-gray-400'
+                    }`}
+                  >
+                    {STEP_LABELS[s]}
+                  </span>
+                  {i < STEP_ORDER.length - 1 && (
+                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                  )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Mostrando primeros 100 productos activos.</p>
-              </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── STEP 1: SEARCH ─────────────────────────────────────────────── */}
+        {step === 'search' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="font-semibold text-gray-900 mb-4">¿Qué producto deseas ajustar?</h2>
+
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              <input
+                type="search"
+                autoFocus
+                placeholder="Busca por nombre o código..."
+                className="w-full pl-10 pr-4 py-3 text-base rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
 
-            {/* Columna Derecha: Detalles del Movimiento */}
-            <div className="space-y-6 bg-gray-50 p-6 rounded-lg border border-gray-200">
+            {searching && (
+              <p className="text-center py-6 text-gray-400 text-sm">Buscando...</p>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Ajuste</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, tipo: 'ENTRADA' })}
-                    className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg border font-medium transition-all ${formData.tipo === 'ENTRADA'
-                      ? 'bg-green-100 border-green-500 text-green-700 ring-2 ring-green-500/20'
-                      : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
-                      }`}
-                  >
-                    <Plus className="w-4 h-4" /> Entrada (Sobra)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, tipo: 'SALIDA' })}
-                    className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg border font-medium transition-all ${formData.tipo === 'SALIDA'
-                      ? 'bg-red-100 border-red-500 text-red-700 ring-2 ring-red-500/20'
-                      : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
-                      }`}
-                  >
-                    <Minus className="w-4 h-4" /> Salida (Falta)
-                  </button>
-                </div>
-              </div>
+            {!searching && debouncedSearch.trim().length >= 2 && searchResults.length === 0 && (
+              <p className="text-center py-6 text-gray-400 text-sm">
+                Sin resultados para &quot;{debouncedSearch}&quot;
+              </p>
+            )}
 
+            {!searching && searchResults.length > 0 && (
+              <ul className="divide-y divide-gray-100 -mx-2">
+                {searchResults.map((p) => (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectProduct(p)}
+                      className="w-full flex items-center justify-between px-4 py-3 min-h-[56px] rounded-lg hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 text-left transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Package className="w-5 h-5 text-gray-400 shrink-0" />
+                        <div>
+                          <p className="font-medium text-gray-900 text-sm">{p.nombre}</p>
+                          <p className="text-xs text-gray-500">{p.codigo_producto}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        <span className="text-sm text-gray-600">
+                          {p.stock_total_global} uds
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {debouncedSearch.trim().length < 2 && (
+              <p className="text-sm text-gray-400 text-center py-4">
+                Escribe al menos 2 caracteres para buscar
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ── STEP 2: SUCURSAL ───────────────────────────────────────────── */}
+        {step === 'sucursal' && selectedProduct && (
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => { setStep('search'); setSelectedProduct(null); }}
+              className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 min-h-[44px] font-medium"
+            >
+              <ChevronLeft className="w-4 h-4" /> Cambiar producto
+            </button>
+
+            <ProductoBadge product={selectedProduct} />
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="font-semibold text-gray-900 mb-4">¿En qué sucursal vas a ajustar?</h2>
+              {sucursalesConStock.length === 0 ? (
+                <p className="text-sm text-gray-400 py-4 text-center">
+                  Cargando sucursales...
+                </p>
+              ) : (
+                <ul className="divide-y divide-gray-100 -mx-2">
+                  {sucursalesConStock.map((s) => (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectSucursal(s.id, s.nombre, s.currentStock)}
+                        className="w-full flex items-center justify-between px-4 py-3 min-h-[56px] rounded-lg hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 text-left transition-colors"
+                      >
+                        <span className="font-medium text-gray-900 text-sm">{s.nombre}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={`text-sm font-medium ${
+                              s.currentStock === 0 ? 'text-gray-400' : 'text-gray-700'
+                            }`}
+                          >
+                            {s.currentStock} uds
+                          </span>
+                          <ChevronRight className="w-4 h-4 text-gray-400" />
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 3: FORM ───────────────────────────────────────────────── */}
+        {step === 'form' && selectedProduct && selectedSucursal && (
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setStep('sucursal')}
+              className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 min-h-[44px] font-medium"
+            >
+              <ChevronLeft className="w-4 h-4" /> Cambiar sucursal
+            </button>
+
+            <ContextoBadge product={selectedProduct} sucursal={selectedSucursal} />
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
+              {/* Target quantity */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Cantidad</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cantidad correcta <span className="text-red-500">*</span>
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Ingresa cuántas unidades <strong>deben existir</strong> (no la diferencia).
+                </p>
                 <input
                   type="number"
                   step="0.01"
-                  min="0.01"
-                  placeholder="0.00"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  value={formData.cantidad}
-                  onChange={(e) => setFormData({ ...formData, cantidad: e.target.value })}
-                  required
+                  min="0"
+                  autoFocus
+                  placeholder={`Ej: ${selectedSucursal.currentStock}`}
+                  className="w-full px-4 py-3 text-lg rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  value={targetQty}
+                  onChange={(e) => { setTargetQty(e.target.value); setFormError(''); }}
                 />
+                {/* Live diff preview */}
+                {targetQty !== '' && !isNaN(parseFloat(targetQty)) && (
+                  <p
+                    className={`text-sm mt-2 font-medium ${
+                      diff > 0
+                        ? 'text-green-600'
+                        : diff < 0
+                        ? 'text-red-600'
+                        : 'text-gray-400'
+                    }`}
+                  >
+                    {diff > 0 && `▲ Entrada de ${diff.toFixed(2)} unidades`}
+                    {diff < 0 && `▼ Salida de ${Math.abs(diff).toFixed(2)} unidades`}
+                    {diff === 0 && '— Sin diferencia con el stock actual'}
+                  </p>
+                )}
               </div>
 
+              {/* Motivo */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Motivo / Justificación</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Motivo del ajuste <span className="text-red-500">*</span>
+                </label>
                 <textarea
-                  placeholder="Explique la razón del ajuste (ej: Conteo corregido, merma, rotura)"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none h-24 resize-none"
-                  value={formData.motivo}
-                  onChange={(e) => setFormData({ ...formData, motivo: e.target.value })}
-                  required
+                  placeholder="Ej: Conteo físico corregido, merma por vencimiento, rotura..."
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none h-24"
+                  value={motivo}
+                  maxLength={255}
+                  onChange={(e) => { setMotivo(e.target.value); setFormError(''); }}
                 />
+                <p className="text-xs text-gray-400 text-right">{motivo.length}/255</p>
               </div>
 
+              {formError && <ErrorBanner message={formError} />}
+
+              <button
+                type="button"
+                onClick={handleReviewAjuste}
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 transition-colors min-h-[48px]"
+              >
+                Revisar ajuste <ArrowRight className="w-5 h-5" />
+              </button>
             </div>
           </div>
+        )}
 
-          {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-4 pt-4 border-t border-gray-100">
+        {/* ── STEP 4: CONFIRM ────────────────────────────────────────────── */}
+        {step === 'confirm' && selectedProduct && selectedSucursal && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+                Confirma el ajuste
+              </h2>
+
+              <dl className="space-y-3 text-sm">
+                <SummaryRow label="Producto">
+                  {selectedProduct.nombre}{' '}
+                  <span className="text-gray-400">({selectedProduct.codigo_producto})</span>
+                </SummaryRow>
+                <SummaryRow label="Sucursal">{selectedSucursal.nombre}</SummaryRow>
+
+                <hr className="border-gray-100" />
+
+                <SummaryRow label="Stock actual">
+                  {selectedSucursal.currentStock} uds
+                </SummaryRow>
+                <SummaryRow label="Nuevo stock">
+                  <span className="font-bold">{targetQtyNum} uds</span>
+                </SummaryRow>
+
+                <div className="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2">
+                  <dt className="font-medium text-gray-600">Movimiento</dt>
+                  <dd
+                    className={`font-bold ${diff > 0 ? 'text-green-600' : 'text-red-600'}`}
+                  >
+                    {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)} uds (
+                    {diff > 0 ? 'ENTRADA' : 'SALIDA'})
+                  </dd>
+                </div>
+
+                <hr className="border-gray-100" />
+
+                <div className="flex flex-col gap-1">
+                  <dt className="text-gray-500">Motivo</dt>
+                  <dd className="text-gray-900 bg-gray-50 rounded-lg px-3 py-2 break-words">
+                    {motivo}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            {formError && <ErrorBanner message={formError} />}
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="button"
+                onClick={() => { setStep('form'); setFormError(''); }}
+                className="flex-1 flex items-center justify-center gap-1 py-3 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 min-h-[48px] transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" /> Editar
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 disabled:opacity-60 min-h-[48px] transition-colors"
+              >
+                {submitting ? 'Aplicando...' : 'Aplicar ajuste'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── STEP 5: RECEIPT ────────────────────────────────────────────── */}
+        {step === 'receipt' && receipt && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              {/* Receipt header */}
+              <div className="bg-green-50 border-b border-green-100 px-6 py-4 flex items-start gap-3">
+                <CheckCircle2 className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-green-800">Ajuste aplicado correctamente</p>
+                  <p className="text-xs text-green-600 mt-0.5">{receipt.fecha}</p>
+                </div>
+              </div>
+
+              {/* Receipt body */}
+              <div className="p-6">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                  Comprobante de Ajuste
+                </h3>
+                <dl className="space-y-3 text-sm">
+                  <SummaryRow label="Realizado por">{receipt.usuario}</SummaryRow>
+
+                  <hr className="border-gray-100" />
+
+                  <SummaryRow label="Producto">
+                    <span className="font-medium">{receipt.productoNombre}</span>
+                  </SummaryRow>
+                  <SummaryRow label="Código">{receipt.productoCodigo}</SummaryRow>
+                  <SummaryRow label="Sucursal">{receipt.sucursalNombre}</SummaryRow>
+
+                  <hr className="border-gray-100" />
+
+                  <SummaryRow label="Stock anterior">{receipt.stockAnterior} uds</SummaryRow>
+                  <SummaryRow label="Stock nuevo">
+                    <span className="font-bold">{receipt.stockNuevo} uds</span>
+                  </SummaryRow>
+
+                  <div className="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2">
+                    <dt className="font-medium text-gray-600">Movimiento</dt>
+                    <dd
+                      className={`font-bold ${
+                        receipt.tipo === 'ENTRADA' ? 'text-green-600' : 'text-red-600'
+                      }`}
+                    >
+                      {receipt.tipo === 'ENTRADA' ? '+' : ''}
+                      {receipt.diferencia.toFixed(2)} uds ({receipt.tipo})
+                    </dd>
+                  </div>
+
+                  <hr className="border-gray-100" />
+
+                  <div className="flex flex-col gap-1">
+                    <dt className="text-gray-500">Motivo</dt>
+                    <dd className="text-gray-900 bg-gray-50 rounded-lg px-3 py-2 break-words">
+                      {receipt.motivo}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+
             <button
               type="button"
-              className="px-6 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
-              onClick={() => router.back()}
+              onClick={handleNuevoAjuste}
+              className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 min-h-[48px] transition-colors"
             >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className={`flex items-center gap-2 bg-indigo-600 text-white px-8 py-2.5 rounded-lg shadow-sm hover:bg-indigo-700 transition-all font-medium ${submitting ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
-            >
-              <Save className="w-4 h-4" />
-              {submitting ? 'Guardando...' : 'Aplicar Ajuste'}
+              <SlidersHorizontal className="w-4 h-4" /> Nuevo ajuste
             </button>
           </div>
-
-        </form>
+        )}
       </div>
+    </DashboardLayout>
+  );
+}
+
+// ── Small helper components ───────────────────────────────────────────────────
+
+function ProductoBadge({ product }: { product: ProductoConStock }) {
+  return (
+    <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-3">
+      <p className="text-xs text-indigo-500 uppercase tracking-wide font-medium mb-0.5">
+        Producto
+      </p>
+      <p className="font-semibold text-indigo-900">{product.nombre}</p>
+      <p className="text-xs text-indigo-600 mt-0.5">
+        {product.codigo_producto} · Stock total: {product.stock_total_global} uds
+      </p>
+    </div>
+  );
+}
+
+function ContextoBadge({
+  product,
+  sucursal,
+}: {
+  product: ProductoConStock;
+  sucursal: { nombre: string; currentStock: number };
+}) {
+  return (
+    <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-3">
+      <p className="text-xs text-indigo-500 uppercase tracking-wide font-medium mb-0.5">
+        {sucursal.nombre}
+      </p>
+      <p className="font-semibold text-indigo-900">{product.nombre}</p>
+      <p className="text-sm text-indigo-700 mt-1">
+        Stock actual:{' '}
+        <span className="font-bold">{sucursal.currentStock} unidades</span>
+      </p>
+    </div>
+  );
+}
+
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+      <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+      <p>{message}</p>
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex justify-between items-start gap-3">
+      <dt className="text-gray-500 shrink-0">{label}</dt>
+      <dd className="text-gray-900 text-right">{children}</dd>
     </div>
   );
 }
