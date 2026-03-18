@@ -241,10 +241,18 @@ export default function POSPage() {
         return;
       }
 
-      // Siempre agregar directamente al carrito usando una presentación por defecto.
-      // Preferimos canal LOCAL si existe; en caso contrario, usamos la primera.
+      // Siempre agregar directamente al carrito usando la "presentación principal".
+      // Regla de prioridad (más común en POS):
+      // 1) LOCAL + "Unidad"
+      // 2) LOCAL + cantidad == 1
+      // 3) Cualquier LOCAL
+      // 4) Primera disponible (fallback)
+      const local = presentaciones.filter((p: Presentacion) => p.canal === 'LOCAL');
       const defaultPresentation =
-        presentaciones.find((p: Presentacion) => p.canal === 'LOCAL') || presentaciones[0];
+        local.find(p => p.nombre_presentacion?.toLowerCase() === 'unidad')
+        || local.find(p => Number(p.cantidad) === 1)
+        || local[0]
+        || presentaciones[0];
 
       addPresentationToCart(producto, defaultPresentation);
     } catch (e) {
