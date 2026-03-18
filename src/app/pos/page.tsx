@@ -47,6 +47,7 @@ export default function POSPage() {
   const [sucursales, setSucursales] = useState<SucursalSimple[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [selectedCategoria, setSelectedCategoria] = useState<number | null>(null);
+  const [showCategoryDrawer, setShowCategoryDrawer] = useState(false);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [client, setClient] = useState<ClientData>({
@@ -151,23 +152,15 @@ export default function POSPage() {
     try {
       const res = await apiClient.getCategorias();
       setCategorias(res.data ?? []);
-    } catch {
-      // non-critical — sidebar stays empty
-    }
+    } catch { /* non-critical */ }
   };
 
   const loadProductos = async (search = '', sucursalId?: number, categoriaId?: number | null) => {
     setLoadingProducts(true);
     try {
       const targetSucursal = sucursalId || turno?.sucursal;
-      const params: Record<string, unknown> = {
-        search,
-        page_size: 20,
-        activo: true,
-        sucursal: targetSucursal,
-      };
+      const params: Record<string, unknown> = { search, page_size: 20, activo: true, sucursal: targetSucursal };
       if (categoriaId) params.categoria = categoriaId;
-
       const res = await apiClient.getProductos(params as Parameters<typeof apiClient.getProductos>[0]);
       setProductos(res.results || res.data || []);
     } catch (error) {
@@ -633,65 +626,138 @@ export default function POSPage() {
             </div>
           ) : (
             <>
-              {/* Left Side: Category Sidebar + Product Grid */}
+              {/* Left Side: Product Grid */}
               <div className={`flex-1 flex flex-col p-4 bg-gray-50 md:flex ${activeTab === 'cart' ? 'hidden' : 'block'}`}>
-
-                {/* Search */}
-                <div className="mb-3">
+                {/* Search + category filter button (mobile/tablet only) */}
+                <div className="mb-4 flex gap-2">
                   <input
                     ref={searchInputRef}
                     type="text"
                     placeholder="Buscar producto (Código o Nombre) - F2"
-                    className="w-full p-3 border rounded-lg shadow-sm text-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="flex-1 p-3 border rounded-lg shadow-sm text-lg focus:ring-2 focus:ring-blue-500 outline-none"
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
                       loadProductos(e.target.value, undefined, selectedCategoria);
                     }}
                   />
-                </div>
-
-                {/* Mobile: horizontal category pill scroll (< sm) */}
-                {categorias.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto pb-2 mb-3 sm:hidden shrink-0 -mx-4 px-4 scrollbar-none">
+                  {/* Category button — hidden on lg+ (desktop keeps full catalog) */}
+                  {categorias.length > 0 && (
                     <button
-                      onClick={() => { setSelectedCategoria(null); loadProductos(searchTerm, undefined, null); }}
-                      className={`shrink-0 px-4 min-h-[44px] rounded-full text-sm font-medium whitespace-nowrap border transition-colors ${
-                        selectedCategoria === null
-                          ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#4F46E5]'
+                      type="button"
+                      onClick={() => setShowCategoryDrawer(true)}
+                      className={`lg:hidden shrink-0 flex flex-col items-center justify-center gap-0.5 px-3 min-h-[52px] rounded-lg border text-sm font-medium transition-colors ${
+                        selectedCategoria !== null
+                          ? 'bg-[#4F46E5] text-white border-[#4F46E5]'
                           : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
                       }`}
                     >
-                      Todos
+                      {/* Simple grid icon */}
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+                      </svg>
+                      <span className="text-xs leading-none">
+                        {selectedCategoria !== null
+                          ? (categorias.find(c => c.id === selectedCategoria)?.nombre ?? 'Cat.')
+                          : 'Cats.'}
+                      </span>
                     </button>
-                    {categorias.map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => { setSelectedCategoria(cat.id); loadProductos(searchTerm, undefined, cat.id); }}
-                        className={`shrink-0 px-4 min-h-[44px] rounded-full text-sm font-medium whitespace-nowrap border transition-colors ${
-                          selectedCategoria === cat.id
-                            ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#4F46E5]'
-                            : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                        }`}
+                  )}
+                </div>
+
+                <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 content-start pb-20">
+                  {loadingProducts ? (
+                    <div className="col-span-full text-center py-10">Cargando productos...</div>
+                  ) : productos.map(prod => {
+                    const stock = prod.stock ?? 0;
+                    const hasStock = stock > 0;
+
+                    return (
+                      <div
+                        key={prod.id}
+                        onClick={() => {
+                          if (hasStock) {
+                            addToCart(prod);
+                            setToast({ message: `Agregado: ${prod.nombre}`, visible: true });
+                            setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 2000);
+                          }
+                        }}
+                        className={`
+                          relative p-4 rounded-xl shadow-sm transition-all flex flex-col justify-between min-h-40 border
+                          active:scale-95 duration-75
+                          ${hasStock
+                            ? 'bg-white hover:shadow-md cursor-pointer border-transparent hover:border-blue-300'
+                            : 'bg-gray-100 cursor-not-allowed border-gray-200 opacity-70'}
+                        `}
                       >
-                        {cat.nombre}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                        {!hasStock && (
+                          <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full z-10">
+                            AGOTADO
+                          </div>
+                        )}
+                        {hasStock && stock <= 5 && (
+                          <div className="absolute top-2 right-2 bg-orange-100 text-orange-600 text-xs font-bold px-2 py-1 rounded-full z-10">
+                            {stock} left
+                          </div>
+                        )}
 
-                {/* Desktop: sidebar + grid */}
-                <div className="flex-1 flex overflow-hidden gap-0">
+                        <div>
+                          <div className="text-xs text-gray-500 mb-1">{prod.codigo_producto || 'S/C'}</div>
+                          <h3 className="font-semibold text-gray-800 leading-tight break-words">{prod.nombre}</h3>
+                        </div>
+                        <div className="mt-2 flex justify-between items-end">
+                          <div className="text-xs text-gray-500">
+                            Stock: <span className={hasStock ? 'text-gray-700' : 'text-red-500'}>{formatStock(stock)}</span>
+                          </div>
+                          <span className="text-lg font-bold text-blue-600 block">$ -</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-                  {/* Category sidebar (sm+) */}
-                  {categorias.length > 0 && (
-                    <div className="hidden sm:flex flex-col w-[110px] shrink-0 overflow-y-auto border-r border-gray-200 pr-0 mr-3 gap-0.5">
+              {/* Category Bottom Sheet — mobile/tablet only */}
+              {showCategoryDrawer && (
+                <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
+                  {/* Backdrop */}
+                  <div
+                    className="absolute inset-0 bg-black/50"
+                    onClick={() => setShowCategoryDrawer(false)}
+                  />
+                  {/* Sheet */}
+                  <div className="relative bg-white rounded-t-2xl shadow-2xl p-5 pb-8">
+                    {/* Handle */}
+                    <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-gray-900 text-base">Categorías</h3>
+                      {selectedCategoria !== null && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCategoria(null);
+                            loadProductos(searchTerm, undefined, null);
+                            setShowCategoryDrawer(false);
+                          }}
+                          className="text-sm text-[#4F46E5] font-medium"
+                        >
+                          Limpiar filtro
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {/* "Todos" pill */}
                       <button
-                        onClick={() => { setSelectedCategoria(null); loadProductos(searchTerm, undefined, null); }}
-                        className={`w-full text-left px-3 py-2 min-h-[44px] text-sm font-medium leading-tight transition-colors border-l-[3px] ${
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategoria(null);
+                          loadProductos(searchTerm, undefined, null);
+                          setShowCategoryDrawer(false);
+                        }}
+                        className={`px-4 min-h-[44px] rounded-full text-sm font-medium border transition-colors ${
                           selectedCategoria === null
-                            ? 'bg-[#EEF2FF] text-[#4F46E5] border-l-[#4F46E5]'
-                            : 'text-gray-600 hover:bg-gray-100 border-l-transparent'
+                            ? 'bg-[#4F46E5] text-white border-[#4F46E5]'
+                            : 'bg-gray-100 text-gray-700 border-transparent hover:bg-gray-200'
                         }`}
                       >
                         Todos
@@ -699,71 +765,25 @@ export default function POSPage() {
                       {categorias.map(cat => (
                         <button
                           key={cat.id}
-                          onClick={() => { setSelectedCategoria(cat.id); loadProductos(searchTerm, undefined, cat.id); }}
-                          className={`w-full text-left px-3 py-2 min-h-[44px] text-sm font-medium leading-tight transition-colors border-l-[3px] ${
+                          type="button"
+                          onClick={() => {
+                            setSelectedCategoria(cat.id);
+                            loadProductos(searchTerm, undefined, cat.id);
+                            setShowCategoryDrawer(false);
+                          }}
+                          className={`px-4 min-h-[44px] rounded-full text-sm font-medium border transition-colors ${
                             selectedCategoria === cat.id
-                              ? 'bg-[#EEF2FF] text-[#4F46E5] border-l-[#4F46E5]'
-                              : 'text-gray-600 hover:bg-gray-100 border-l-transparent'
+                              ? 'bg-[#4F46E5] text-white border-[#4F46E5]'
+                              : 'bg-gray-100 text-gray-700 border-transparent hover:bg-gray-200'
                           }`}
                         >
                           {cat.nombre}
                         </button>
                       ))}
                     </div>
-                  )}
-
-                  {/* Product grid */}
-                  <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 content-start pb-20">
-                    {loadingProducts ? (
-                      <div className="col-span-full text-center py-10">Cargando productos...</div>
-                    ) : productos.map(prod => {
-                      const stock = prod.stock ?? 0;
-                      const hasStock = stock > 0;
-
-                      return (
-                        <div
-                          key={prod.id}
-                          onClick={() => {
-                            if (hasStock) {
-                              addToCart(prod);
-                              setToast({ message: `Agregado: ${prod.nombre}`, visible: true });
-                              setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 2000);
-                            }
-                          }}
-                          className={`
-                            relative p-4 rounded-xl shadow-sm transition-all flex flex-col justify-between min-h-40 border
-                            active:scale-95 duration-75
-                            ${hasStock
-                              ? 'bg-white hover:shadow-md cursor-pointer border-transparent hover:border-blue-300'
-                              : 'bg-gray-100 cursor-not-allowed border-gray-200 opacity-70'}
-                          `}
-                        >
-                          {!hasStock && (
-                            <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full z-10">
-                              AGOTADO
-                            </div>
-                          )}
-                          {hasStock && stock <= 5 && (
-                            <div className="absolute top-2 right-2 bg-orange-100 text-orange-600 text-xs font-bold px-2 py-1 rounded-full z-10">
-                              {stock} left
-                            </div>
-                          )}
-                          <div>
-                            <div className="text-xs text-gray-500 mb-1">{prod.codigo_producto || 'S/C'}</div>
-                            <h3 className="font-semibold text-gray-800 leading-tight break-words">{prod.nombre}</h3>
-                          </div>
-                          <div className="mt-2 flex justify-between items-end">
-                            <div className="text-xs text-gray-500">
-                              Stock: <span className={hasStock ? 'text-gray-700' : 'text-red-500'}>{formatStock(stock)}</span>
-                            </div>
-                            <span className="text-lg font-bold text-blue-600 block">$ -</span>
-                          </div>
-                        </div>
-                      );
-                    })}
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Right Side: Cart */}
               <div className={`w-full md:w-[400px] flex flex-col bg-white shadow-xl md:flex ${activeTab === 'catalog' ? 'hidden' : 'block'}`}>
