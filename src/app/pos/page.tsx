@@ -17,6 +17,35 @@ interface CartItem {
   subtotal: number;
   impuesto: number;
   total: number;
+  // Combo (opcionales)
+  isCombo?: boolean;
+  comboId?: number;
+  comboNombre?: string;
+  slotSelections?: { slot_id: number; producto_id: number; producto_nombre: string }[];
+}
+
+interface ComboSlotInfo {
+  id: number;
+  nombre: string;
+  cantidad: number;
+  obligatorio: boolean;
+  orden: number;
+}
+
+interface ComboResult {
+  type: 'combo';
+  id: number;
+  nombre: string;
+  precio: number;
+  items: { producto_id: number; presentacion_id: number; cantidad: number }[];
+  slots: ComboSlotInfo[];
+}
+
+interface SlotOpcion {
+  id: number;
+  nombre: string;
+  codigo: string;
+  stock: number;
 }
 
 interface ClientData {
@@ -67,6 +96,15 @@ export default function POSPage() {
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
   const [showClosingModal, setShowClosingModal] = useState(false);
   const [esInterno, setEsInterno] = useState(true);
+
+  // Combo / Slot Modal State
+  const [combos, setCombos] = useState<ComboResult[]>([]);
+  const [showSlotModal, setShowSlotModal] = useState(false);
+  const [pendingCombo, setPendingCombo] = useState<ComboResult | null>(null);
+  const [slotOpciones, setSlotOpciones] = useState<Record<number, SlotOpcion[]>>({});
+  const [slotSelections, setSlotSelections] = useState<Record<number, SlotOpcion>>({});
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [slotError, setSlotError] = useState('');
 
   // Client Modal State
   const [showClientModal, setShowClientModal] = useState(false);
@@ -345,6 +383,81 @@ export default function POSPage() {
     setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 2000);
   };
 
+  const addComboToCart = async (combo: ComboResult) => {
+    if (combo.slots.length === 0) {
+      commitComboToCart(combo, []);
+      return;
+    }
+    setPendingCombo(combo);
+    setSlotSelections({});
+    setSlotError('');
+    setLoadingSlots(true);
+    setShowSlotModal(true);
+    try {
+      const sucursalId = turno!.sucursal;
+      const results = await Promise.all(
+        combo.slots.map(slot =>
+          apiClient.getComboOpciones(combo.id, slot.id, sucursalId)
+            .then(opciones => ({ slotId: slot.id, opciones: Array.isArray(opciones) ? opciones : [] }))
+            .catch(() => ({ slotId: slot.id, opciones: [] as SlotOpcion[] }))
+        )
+      );
+      const opcionesMap: Record<number, SlotOpcion[]> = {};
+      results.forEach(({ slotId, opciones }) => { opcionesMap[slotId] = opciones; });
+      setSlotOpciones(opcionesMap);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  const commitComboToCart = (
+    combo: ComboResult,
+    selections: { slot_id: number; producto_id: number; producto_nombre: string }[]
+  ) => {
+    const virtualProducto = { id: combo.id, nombre: combo.nombre, stock: 99 } as unknown as Producto;
+    const virtualPresentacion = {
+      id: combo.id, precio: combo.precio, cantidad: 1, nombre_presentacion: 'Combo',
+    } as unknown as Presentacion;
+    const precio = combo.precio;
+    setCart(prev => [
+      ...prev,
+      {
+        producto: virtualProducto,
+        presentacion: virtualPresentacion,
+        cantidad: 1,
+        precio,
+        subtotal: precio,
+        impuesto: 0,  // combo tiene precio fijo, impuesto ya incluido
+        total: precio,
+        isCombo: true,
+        comboId: combo.id,
+        comboNombre: combo.nombre,
+        slotSelections: selections,
+      },
+    ]);
+    setToast({ message: `${combo.nombre} agregado`, visible: true });
+    setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 2000);
+  };
+
+  const handleConfirmSlots = () => {
+    if (!pendingCombo) return;
+    for (const slot of pendingCombo.slots) {
+      if (slot.obligatorio && !slotSelections[slot.id]) {
+        setSlotError(`Debes elegir una opción para "${slot.nombre}"`);
+        return;
+      }
+    }
+    const selections = Object.entries(slotSelections).map(([slotId, opcion]) => ({
+      slot_id: Number(slotId),
+      producto_id: opcion.id,
+      producto_nombre: opcion.nombre,
+    }));
+    commitComboToCart(pendingCombo, selections);
+    setShowSlotModal(false);
+    setPendingCombo(null);
+    setSlotSelections({});
+    setSlotOpciones({});
+  };
 
   const removeFromCart = (index: number) => {
     setCart(prev => prev.filter((_, i) => i !== index));
@@ -463,12 +576,25 @@ export default function POSPage() {
 
       const payload = {
         cliente: client,
-        items: cart.map(item => ({
-          id: item.producto.id,
-          presentacion_id: item.presentacion.id,
-          cantidad: item.cantidad,
-          precio: item.precio
-        })),
+        items: cart.map(item => {
+          if (item.isCombo) {
+            return {
+              type: 'combo',
+              combo_id: item.comboId,
+              cantidad: item.cantidad,
+              slot_selections: (item.slotSelections || []).map(s => ({
+                slot_id: s.slot_id,
+                producto_id: s.producto_id,
+              })),
+            };
+          }
+          return {
+            id: item.producto.id,
+            presentacion_id: item.presentacion.id,
+            cantidad: item.cantidad,
+            precio: item.precio,
+          };
+        }),
         pagos: payments,
         es_interno: esInterno
       };
@@ -639,6 +765,11 @@ export default function POSPage() {
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
                       loadProductos(e.target.value, undefined, selectedCategoria);
+                      if (turno) {
+                        apiClient.buscarCombos(e.target.value, turno.sucursal)
+                          .then(res => setCombos(Array.isArray(res) ? res : []))
+                          .catch(() => setCombos([]));
+                      }
                     }}
                   />
                   {/* Category button — hidden on lg+ (desktop keeps full catalog) */}
@@ -664,6 +795,27 @@ export default function POSPage() {
                     </button>
                   )}
                 </div>
+
+                {combos.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold text-gray-400 uppercase mb-2 px-1">Combos</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {combos.map(combo => (
+                        <button
+                          key={`combo-${combo.id}`}
+                          onClick={() => addComboToCart(combo)}
+                          className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3 text-left hover:border-amber-400 transition-colors"
+                        >
+                          <p className="text-sm font-semibold text-gray-900 truncate">{combo.nombre}</p>
+                          <p className="text-xs text-amber-700 font-bold mt-1">${combo.precio.toFixed(2)}</p>
+                          {combo.slots.length > 0 && (
+                            <p className="text-xs text-gray-400 mt-0.5">{combo.slots.length} opción(es)</p>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 content-start pb-20">
                   {loadingProducts ? (
@@ -821,8 +973,17 @@ export default function POSPage() {
                         onClick={() => handleCartItemClick(idx, item)}
                         title="Toca para cambiar presentación"
                       >
-                        <div className="font-medium text-gray-800 truncate">{item.producto.nombre}</div>
-                        <div className="text-xs text-gray-500">{item.presentacion.nombre_presentacion}</div>
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {item.isCombo ? item.comboNombre : item.producto.nombre}
+                        </p>
+                        {item.isCombo && item.slotSelections && item.slotSelections.length > 0 && (
+                          <p className="text-xs text-gray-400 truncate">
+                            {item.slotSelections.map(s => s.producto_nombre).join(', ')}
+                          </p>
+                        )}
+                        {!item.isCombo && (
+                          <div className="text-xs text-gray-500">{item.presentacion.nombre_presentacion}</div>
+                        )}
                         <div className="text-xs text-gray-400">${item.precio.toFixed(2)} c/u</div>
                       </div>
 
@@ -1274,6 +1435,84 @@ export default function POSPage() {
         onClose={() => setShowClosingModal(false)}
         onConfirm={handleConfirmCloseTurno}
       />
+
+      {showSlotModal && pendingCombo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+            <div className="p-5 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900">{pendingCombo.nombre}</h3>
+              <p className="text-sm text-gray-500">Personaliza tu combo</p>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              {loadingSlots ? (
+                <div className="text-center py-8 text-gray-400">Cargando opciones...</div>
+              ) : (
+                pendingCombo.slots.map(slot => {
+                  const opciones = slotOpciones[slot.id] || [];
+                  const selected = slotSelections[slot.id];
+                  return (
+                    <div key={slot.id}>
+                      <p className="text-sm font-semibold text-gray-700 mb-2">
+                        {slot.nombre}
+                        {slot.obligatorio
+                          ? <span className="ml-1 text-red-500 text-xs">*obligatorio</span>
+                          : <span className="ml-1 text-gray-400 text-xs">(opcional)</span>}
+                      </p>
+                      {opciones.length === 0 ? (
+                        <p className="text-xs text-red-500 bg-red-50 p-2 rounded">
+                          Sin productos disponibles con stock para este slot.
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {opciones.map(op => (
+                            <button
+                              key={op.id}
+                              type="button"
+                              onClick={() =>
+                                setSlotSelections(prev => ({ ...prev, [slot.id]: op }))
+                              }
+                              className={`px-3 py-2 rounded-lg border text-sm font-medium min-h-[40px] transition-colors ${
+                                selected?.id === op.id
+                                  ? 'bg-green-600 text-white border-green-600'
+                                  : 'bg-white text-gray-700 border-gray-300 hover:border-green-400'
+                              }`}
+                            >
+                              {op.nombre}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+              {slotError && (
+                <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{slotError}</p>
+              )}
+            </div>
+            <div className="p-5 border-t border-gray-100 flex gap-3">
+              <button
+                onClick={() => { setShowSlotModal(false); setPendingCombo(null); }}
+                className="flex-1 py-3 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-50 font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmSlots}
+                disabled={
+                  loadingSlots ||
+                  pendingCombo.slots.some(
+                    s => s.obligatorio && (slotOpciones[s.id] || []).length === 0
+                  )
+                }
+                className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 disabled:opacity-50"
+              >
+                Agregar al carrito
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </DashboardLayout>
   );

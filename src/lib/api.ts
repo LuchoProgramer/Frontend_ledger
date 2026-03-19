@@ -888,6 +888,31 @@ export class ApiClient {
     });
   }
 
+  async buscarCombos(q: string, sucursalId: number) {
+    const params = new URLSearchParams({ q, sucursal_id: String(sucursalId) });
+    return this.request<Array<{
+      type: 'combo';
+      id: number;
+      nombre: string;
+      precio: number;
+      items: { producto_id: number; presentacion_id: number; cantidad: number }[];
+      slots: { id: number; nombre: string; cantidad: number; obligatorio: boolean; orden: number }[];
+    }>>(`/api/combos/buscar/?${params}`);
+  }
+
+  async getComboOpciones(comboId: number, slotId: number, sucursalId: number) {
+    const params = new URLSearchParams({
+      slot_id: String(slotId),
+      sucursal_id: String(sucursalId),
+    });
+    return this.request<Array<{
+      id: number;
+      nombre: string;
+      codigo: string;
+      stock: number;
+    }>>(`/api/combos/${comboId}/opciones_slot/?${params}`);
+  }
+
   async uploadInventario(file: File, sucursalId: number) {
     const formData = new FormData();
     formData.append('file', file);
