@@ -383,6 +383,17 @@ export default function POSPage() {
     setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 2000);
   };
 
+  // Búsqueda de combos con debounce 400ms (CLAUDE.md pattern)
+  useEffect(() => {
+    if (!turno) return;
+    const timer = setTimeout(() => {
+      apiClient.buscarCombos(searchTerm, turno.sucursal)
+        .then(res => setCombos(Array.isArray(res) ? res : []))
+        .catch(() => setCombos([]));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm, turno]);
+
   const addComboToCart = async (combo: ComboResult) => {
     if (combo.slots.length === 0) {
       commitComboToCart(combo, []);
@@ -457,6 +468,7 @@ export default function POSPage() {
     setPendingCombo(null);
     setSlotSelections({});
     setSlotOpciones({});
+    setSlotError('');
   };
 
   const removeFromCart = (index: number) => {
@@ -765,11 +777,6 @@ export default function POSPage() {
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
                       loadProductos(e.target.value, undefined, selectedCategoria);
-                      if (turno) {
-                        apiClient.buscarCombos(e.target.value, turno.sucursal)
-                          .then(res => setCombos(Array.isArray(res) ? res : []))
-                          .catch(() => setCombos([]));
-                      }
                     }}
                   />
                   {/* Category button — hidden on lg+ (desktop keeps full catalog) */}
