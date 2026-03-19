@@ -199,13 +199,27 @@ export default function GuiasRemisionPage() {
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">
-                                            <div className="text-sm text-gray-900">
-                                                {/* Assuming first destinatario info is available or aggregated */}
-                                                {guia.destinatarios?.[0]?.razon_social || 'Varios Destinatarios'}
-                                            </div>
-                                            <div className="text-xs text-gray-500">
-                                                {guia.destinatarios?.[0]?.direccion_destinatario}
-                                            </div>
+                                            {guia.tipo_guia === 'TRASLADO' ? (
+                                                <>
+                                                    <div className="text-sm text-gray-900">
+                                                        {guia.destinatarios?.[0]?.direccion_destinatario || '—'}
+                                                    </div>
+                                                    {guia.destinatarios?.[0]?.codigo_establecimiento_destino && (
+                                                        <div className="text-xs text-gray-500">
+                                                            Est. {guia.destinatarios[0].codigo_establecimiento_destino}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="text-sm text-gray-900">
+                                                        {guia.destinatarios?.[0]?.razon_social || 'Varios Destinatarios'}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">
+                                                        {guia.destinatarios?.[0]?.direccion_destinatario}
+                                                    </div>
+                                                </>
+                                            )}
                                         </td>
                                         <td className="px-4 py-4">
                                             <div className="text-sm text-gray-900">
@@ -296,7 +310,10 @@ export default function GuiasRemisionPage() {
                                 {getEstadoBadge(guia.estado_sri)}
                             </div>
                             <div className="text-xs text-gray-500 mb-2">
-                                Destino: {guia.destinatarios?.[0]?.razon_social}
+                                {guia.tipo_guia === 'TRASLADO'
+                                    ? `Destino: ${guia.destinatarios?.[0]?.direccion_destinatario || '—'}`
+                                    : `Cliente: ${guia.destinatarios?.[0]?.razon_social || '—'}`
+                                }
                             </div>
                             <div className="flex gap-2 mt-3">
                                 <button className="flex-1 py-2 bg-indigo-50 text-indigo-700 text-xs rounded font-medium" onClick={() => apiClient.descargarGuiaPDF(guia.id)}>

@@ -22,6 +22,9 @@ export default function ReportesPage() {
     const [topProductos, setTopProductos] = useState<any[]>([]);
     const [resumen, setResumen] = useState<any>({ total_ventas: 0, transacciones: 0, ticket_promedio: 0 });
     const [loading, setLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => { setMounted(true); }, []);
 
     const apiClient = getApiClient();
 
@@ -121,25 +124,27 @@ export default function ReportesPage() {
                     <div className="bg-white p-6 rounded-lg shadow-sm">
                         <h2 className="text-lg font-bold text-gray-700 mb-4">Evolución de Ventas</h2>
                         <div className="h-80 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={ventasData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-                                    <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
-                                    <Tooltip
-                                        formatter={(value: number) => [`$${value.toFixed(2)}`, 'Ventas']}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                                    />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="venta"
-                                        stroke="#6366f1"
-                                        strokeWidth={3}
-                                        dot={{ fill: '#6366f1', strokeWidth: 2 }}
-                                        activeDot={{ r: 8 }}
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
+                            {mounted && (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={ventasData}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+                                        <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                                        <Tooltip
+                                            formatter={(value: number) => [`$${value.toFixed(2)}`, 'Ventas']}
+                                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="venta"
+                                            stroke="#6366f1"
+                                            strokeWidth={3}
+                                            dot={{ fill: '#6366f1', strokeWidth: 2 }}
+                                            activeDot={{ r: 8 }}
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
                     </div>
 
@@ -147,25 +152,27 @@ export default function ReportesPage() {
                     <div className="bg-white p-6 rounded-lg shadow-sm">
                         <h2 className="text-lg font-bold text-gray-700 mb-4">Top 10 Productos Vendidos</h2>
                         <div className="h-80 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={topProductos} layout="vertical" margin={{ left: 40 }}>
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                                    <XAxis type="number" hide />
-                                    <YAxis
-                                        type="category"
-                                        dataKey="name"
-                                        width={150}
-                                        fontSize={11}
-                                        tickLine={false}
-                                        axisLine={false}
-                                    />
-                                    <Tooltip
-                                        cursor={{ fill: 'transparent' }}
-                                        contentStyle={{ borderRadius: '8px' }}
-                                    />
-                                    <Bar dataKey="total" fill="#10b981" radius={[0, 4, 4, 0]} barSize={20} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                            {mounted && (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={topProductos} layout="vertical" margin={{ left: 40 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                                        <XAxis type="number" hide />
+                                        <YAxis
+                                            type="category"
+                                            dataKey="name"
+                                            width={150}
+                                            fontSize={11}
+                                            tickLine={false}
+                                            axisLine={false}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'transparent' }}
+                                            contentStyle={{ borderRadius: '8px' }}
+                                        />
+                                        <Bar dataKey="total" fill="#10b981" radius={[0, 4, 4, 0]} barSize={20} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
                     </div>
 
