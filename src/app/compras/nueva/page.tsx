@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
@@ -38,6 +38,7 @@ export default function NuevaCompraPage() {
     const [impuestos, setImpuestos] = useState<Impuesto[]>([]);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const savingRef = useRef(false);
 
     // Search
     const [searchTerm, setSearchTerm] = useState('');
@@ -152,6 +153,8 @@ export default function NuevaCompraPage() {
             return;
         }
 
+        if (savingRef.current) return;
+        savingRef.current = true;
         setSaving(true);
         try {
             const total = items.reduce((sum, i) => sum + i.subtotal, 0);
@@ -180,6 +183,7 @@ export default function NuevaCompraPage() {
         } catch (e: any) {
             alert(e.message || 'Error al guardar compra');
         } finally {
+            savingRef.current = false;
             setSaving(false);
         }
     };

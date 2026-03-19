@@ -39,6 +39,7 @@ export default function CombosPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
@@ -92,6 +93,7 @@ export default function CombosPage() {
         }
         if (!confirm(`¿Está seguro de eliminar el combo "${nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
         try {
+            setDeletingId(id);
             const api = getApiClient();
             await api.eliminarCombo(id);
             setSuccess('Combo eliminado exitosamente');
@@ -99,6 +101,8 @@ export default function CombosPage() {
             cargarCombos();
         } catch (err: any) {
             alert(err.message || 'Error al eliminar el combo');
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -301,7 +305,8 @@ export default function CombosPage() {
                                                             {isAdmin && (
                                                                 <button
                                                                     onClick={() => handleEliminar(combo.id, combo.nombre)}
-                                                                    className="text-red-600 hover:text-red-900"
+                                                                    disabled={deletingId === combo.id}
+                                                                    className="text-red-600 hover:text-red-900 disabled:opacity-50"
                                                                     title="Eliminar"
                                                                 >
                                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -352,9 +357,10 @@ export default function CombosPage() {
                                                 {isAdmin && (
                                                     <button
                                                         onClick={() => handleEliminar(combo.id, combo.nombre)}
-                                                        className="px-3 py-1.5 bg-red-50 text-red-700 text-sm font-medium rounded hover:bg-red-100"
+                                                        disabled={deletingId === combo.id}
+                                                        className="px-3 py-1.5 bg-red-50 text-red-700 text-sm font-medium rounded hover:bg-red-100 disabled:opacity-50"
                                                     >
-                                                        Eliminar
+                                                        {deletingId === combo.id ? 'Eliminando...' : 'Eliminar'}
                                                     </button>
                                                 )}
                                             </div>

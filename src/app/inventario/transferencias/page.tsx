@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Truck, Save, Search, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -20,6 +20,7 @@ export default function TransferenciasInventarioPage() {
     // Estado de carga
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const submittingRef = useRef(false);
 
     // Catálogos
     const [productos, setProductos] = useState<Producto[]>([]);
@@ -60,23 +61,24 @@ export default function TransferenciasInventarioPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setSubmitting(true);
-        setMessage(null);
+        if (submittingRef.current) return;
 
         // Validaciones
         if (formData.origen_id === formData.destino_id) {
             setMessage({ type: 'error', text: 'La sucursal de origen y destino no pueden ser la misma.' });
-            setSubmitting(false);
             return;
         }
 
         if (formData.generar_guia) {
             if (!formData.transportista_ruc || !formData.transportista_razon_social) {
                 setMessage({ type: 'error', text: 'Para generar guía, complete RUC y Razón Social del transportista.' });
-                setSubmitting(false);
                 return;
             }
         }
+
+        submittingRef.current = true;
+        setSubmitting(true);
+        setMessage(null);
 
         try {
             await api.transferenciaInventario({
@@ -107,6 +109,7 @@ export default function TransferenciasInventarioPage() {
                 text: error.message || 'Error al procesar transferencia.'
             });
         } finally {
+            submittingRef.current = false;
             setSubmitting(false);
         }
     };

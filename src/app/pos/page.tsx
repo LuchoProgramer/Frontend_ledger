@@ -90,6 +90,8 @@ export default function POSPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [procesando, setProcesando] = useState(false);
+  const [openingTurno, setOpeningTurno] = useState(false);
+  const [savingClient, setSavingClient] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('catalog');
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [selectedSucursal, setSelectedSucursal] = useState<number | null>(null);
@@ -212,6 +214,7 @@ export default function POSPage() {
   const handleOpenTurno = async () => {
     if (!selectedSucursal) return alert('Seleccione una sucursal');
     try {
+      setOpeningTurno(true);
       const res = await apiClient.abrirTurno(selectedSucursal);
       if (res.success) {
         setTurno(res.data);
@@ -221,6 +224,8 @@ export default function POSPage() {
       }
     } catch (e: any) {
       alert(e.message || 'Error al abrir turno');
+    } finally {
+      setOpeningTurno(false);
     }
   };
 
@@ -243,6 +248,7 @@ export default function POSPage() {
   };
 
   const allowedToClose = useRef(false); // Ref to prevent double invocation if using strict mode or weird events
+  const procesandoRef = useRef(false);
 
   // Cart Actions
   // Presentation Selection State
@@ -383,9 +389,12 @@ export default function POSPage() {
     setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 2000);
   };
 
-  // Búsqueda de combos con debounce 400ms (CLAUDE.md pattern)
+  // Búsqueda de combos: solo cuando hay término de búsqueda
   useEffect(() => {
-    if (!turno) return;
+    if (!turno || !searchTerm.trim()) {
+      setCombos([]);
+      return;
+    }
     const timer = setTimeout(() => {
       apiClient.buscarCombos(searchTerm, turno.sucursal)
         .then(res => setCombos(Array.isArray(res) ? res : []))
@@ -570,18 +579,21 @@ export default function POSPage() {
 
 
   const handleProcessSale = async () => {
+    if (procesandoRef.current) return;
+    procesandoRef.current = true;
     setProcesando(true);
     try {
       const totalPagado = payments.reduce((sum, p) => sum + p.total, 0);
 
       // Allow if total paid is equal or greater (change)
       // Note: Backend expects total matches, but practically we might want to record just the invoice total?
-      // For now, assume exact match or greater. If greater, maybe register change? 
-      // The backend creates Pago objects with the exact amount sent. 
+      // For now, assume exact match or greater. If greater, maybe register change?
+      // The backend creates Pago objects with the exact amount sent.
       // Usually, we should adjust the cash payment to match exactly if it exceeds.
 
       if (totalPagado < totals.total - 0.01) {
         alert(`Falta pagar $${(totals.total - totalPagado).toFixed(2)}`);
+        procesandoRef.current = false;
         setProcesando(false);
         return;
       }
@@ -622,6 +634,7 @@ export default function POSPage() {
       const msg = error?.errorMessage || error?.message || 'Error al procesar venta';
       alert(msg);
     } finally {
+      procesandoRef.current = false;
       setProcesando(false);
     }
   };
@@ -679,6 +692,7 @@ export default function POSPage() {
     }
 
     try {
+      setSavingClient(true);
       const res = await apiClient.crearCliente(newClientData);
 
       // Determinar si la respuesta viene envuelta
@@ -690,6 +704,8 @@ export default function POSPage() {
       console.error('Error creating client:', e);
       const errorDetail = e.data ? JSON.stringify(e.data, null, 2) : e.message;
       alert(`Error al crear cliente (${e.status || 'N/A'}):\n${errorDetail}`);
+    } finally {
+      setSavingClient(false);
     }
   };
 
@@ -1262,10 +1278,10 @@ export default function POSPage() {
             <div className="flex justify-end pt-4">
               <button
                 onClick={handleOpenTurno}
-                disabled={!selectedSucursal}
+                disabled={!selectedSucursal || openingTurno}
                 className="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700 disabled:opacity-50"
               >
-                Abrir Turno
+                {openingTurno ? 'Abriendo...' : 'Abrir Turno'}
               </button>
             </div>
           </div>
@@ -1373,9 +1389,10 @@ export default function POSPage() {
                     </button>
                     <button
                       onClick={handleSaveNewClient}
-                      className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700"
+                      disabled={savingClient}
+                      className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                     >
-                      Guardar y Seleccionar
+                      {savingClient ? 'Guardando...' : 'Guardar y Seleccionar'}
                     </button>
                   </div>
                 </div>

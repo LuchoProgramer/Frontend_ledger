@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -103,6 +103,7 @@ export default function AjustesInventarioPage() {
   // Shared
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [receipt, setReceipt] = useState<AjusteReceipt | null>(null);
 
   // ── Data loading ──────────────────────────────────────────────────────────
@@ -165,6 +166,8 @@ export default function AjustesInventarioPage() {
 
   async function handleSubmit() {
     if (!selectedProduct || !selectedSucursal) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
 
     const targetQtyNum = parseFloat(targetQty);
     const diff = targetQtyNum - selectedSucursal.currentStock;
@@ -205,6 +208,7 @@ export default function AjustesInventarioPage() {
       setFormError(err?.message ?? 'Error al procesar el ajuste. Intenta de nuevo.');
       setStep('confirm');
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }

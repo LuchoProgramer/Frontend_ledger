@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
@@ -35,6 +35,7 @@ export default function NuevaGuiaPage() {
     // Transportista Form (Venta)
     const [transportista, setTransportista] = useState({ ruc: '', razon_social: '', placa: '' });
     const [submitting, setSubmitting] = useState(false);
+    const submittingRef = useRef(false);
     const [error, setError] = useState('');
 
     // Traslado State
@@ -48,6 +49,7 @@ export default function NuevaGuiaPage() {
     const [cartTraslado, setCartTraslado] = useState<CartItem[]>([]);
     const [transportistaTraslado, setTransportistaTraslado] = useState({ ruc: '', razon_social: '', placa: '' });
     const [submittingTraslado, setSubmittingTraslado] = useState(false);
+    const submittingTrasladoRef = useRef(false);
     const [guiaGenerada, setGuiaGenerada] = useState<string | null>(null);
 
     // Search Facturas (Venta)
@@ -124,6 +126,8 @@ export default function NuevaGuiaPage() {
 
     const handleSubmitTraslado = async () => {
         if (!origenId || !destinoId || cartTraslado.length === 0) return;
+        if (submittingTrasladoRef.current) return;
+        submittingTrasladoRef.current = true;
         setSubmittingTraslado(true);
         setError('');
         try {
@@ -143,6 +147,7 @@ export default function NuevaGuiaPage() {
         } catch (err: any) {
             setError(err.message || 'Error al procesar el traslado');
         } finally {
+            submittingTrasladoRef.current = false;
             setSubmittingTraslado(false);
         }
     };
@@ -155,6 +160,8 @@ export default function NuevaGuiaPage() {
             setError('Todos los datos del transportista son obligatorios.');
             return;
         }
+        if (submittingRef.current) return;
+        submittingRef.current = true;
         setSubmitting(true);
         try {
             const payload = {
@@ -168,6 +175,7 @@ export default function NuevaGuiaPage() {
         } catch (err: any) {
             setError(err.message || 'Error al crear la guía');
         } finally {
+            submittingRef.current = false;
             setSubmitting(false);
         }
     };

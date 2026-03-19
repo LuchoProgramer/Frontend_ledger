@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
@@ -22,6 +22,7 @@ export default function NuevaNotaCreditoPage() {
     // Status
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const savingRef = useRef(false);
 
     const searchFacturas = async (term: string) => {
         if (term.length < 3) return;
@@ -70,6 +71,8 @@ export default function NuevaNotaCreditoPage() {
 
         if (!confirm('¿Está seguro de generar esta Nota de Crédito? Esta acción enviará el documento al SRI.')) return;
 
+        if (savingRef.current) return;
+        savingRef.current = true;
         setSaving(true);
         try {
             await apiClient.crearNotaCredito({
@@ -82,6 +85,7 @@ export default function NuevaNotaCreditoPage() {
         } catch (error: any) {
             alert(error.error || 'Error al generar NC');
         } finally {
+            savingRef.current = false;
             setSaving(false);
         }
     };

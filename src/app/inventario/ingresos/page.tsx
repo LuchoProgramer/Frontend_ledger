@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -108,6 +108,7 @@ export default function IngresosInventarioPage() {
   // Shared
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const [receipt, setReceipt] = useState<IngresoReceipt | null>(null);
 
   // ── Data loading ──────────────────────────────────────────────────────────
@@ -167,6 +168,8 @@ export default function IngresosInventarioPage() {
 
   async function handleSubmit() {
     if (!selectedProduct || !selectedSucursal) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
 
     const cantidadNum = parseFloat(cantidad);
 
@@ -209,6 +212,7 @@ export default function IngresosInventarioPage() {
       setFormError(err?.message ?? 'Error al registrar el ingreso. Intenta de nuevo.');
       setStep('confirm');
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
