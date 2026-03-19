@@ -226,7 +226,7 @@ export default function AjustesInventarioPage() {
   // Merge all sucursales with stock from selected product's desglose
   const sucursalesConStock = sucursales.map((s) => {
     const entry = selectedProduct?.desglose.find((d) => d.sucursal === s.id);
-    return { id: s.id, nombre: s.nombre, currentStock: entry?.cantidad ?? 0 };
+    return { id: s.id, nombre: s.nombre, currentStock: Number(entry?.cantidad ?? 0) };
   });
 
   const targetQtyNum = parseFloat(targetQty) || 0;

@@ -230,7 +230,7 @@ export default function IngresosInventarioPage() {
 
   const sucursalesConStock = sucursales.map((s) => {
     const entry = selectedProduct?.desglose.find((d) => d.sucursal === s.id);
-    return { id: s.id, nombre: s.nombre, currentStock: entry?.cantidad ?? 0 };
+    return { id: s.id, nombre: s.nombre, currentStock: Number(entry?.cantidad ?? 0) };
   });
 
   const cantidadNum = parseFloat(cantidad) || 0;
