@@ -18,7 +18,7 @@ Cuando trabajes con Server Components, llamadas a la API, hooks de React Query o
 
 ---
 
-## ✅ Módulos Completados (estado al 2026-03-18)
+## ✅ Módulos Completados (estado al 2026-03-20)
 
 ### 🔧 Infraestructura
 
@@ -29,7 +29,7 @@ Cuando trabajes con Server Components, llamadas a la API, hooks de React Query o
 | Root layout | `src/app/layout.tsx` | Actualizado | `Viewport.themeColor`, `metadata.manifest`, `metadata.icons.apple` |
 | Tenant server util | `src/utils/tenant-server.ts` | Estable | `getTenantFromServer()` lee header `host`; úsalo en Server Components y Route Handlers |
 | Tenant client util | `src/lib/tenant.ts` | Estable | `getTenant()` lee `window.location.hostname`; úsalo en Client Components |
-| Dashboard layout | `src/components/DashboardLayout.tsx` | Actualizado | Menú lateral con roles; íconos importados: `SlidersHorizontal`, `PackagePlus`, `History`, `ShieldCheck` |
+| Dashboard layout | `src/components/DashboardLayout.tsx` | Actualizado | Menú lateral con roles; íconos importados: `SlidersHorizontal`, `PackagePlus`, `History`, `ShieldCheck`, `Gift` |
 
 ### 📦 Inventario
 
@@ -49,13 +49,50 @@ Cuando trabajes con Server Components, llamadas a la API, hooks de React Query o
 - Ajustes e ingresos: `api.ajusteInventario({ producto_id, sucursal_id, tipo, cantidad, motivo })`
 - Kardex: `api.getMovimientos({ page, sucursal, tipo, fecha_desde, fecha_hasta })`
 
+### 🎁 Combos
+
+| Ruta | Archivo | Estado | Descripción |
+|---|---|---|---|
+| `/combos` | `combos/page.tsx` | Completo | Lista paginada; columnas Nombre/Precio/Sucursal/Items fijos/Slots variables/Estado; filtros search+sucursal+activo; cards mobile |
+| `/combos/nuevo` | `combos/nuevo/page.tsx` | Completo | Guard admin + `ComboForm` vacío |
+| `/combos/[id]/editar` | `combos/[id]/editar/page.tsx` | Completo | Carga combo existente (incl. categorías de slots); rellena `ComboForm` |
+| — | `combos/ComboForm.tsx` | Completo | Formulario compartido: datos básicos · productos fijos (búsqueda debounce 400ms + presentaciones) · slots variables (categorías pill-toggle) |
+
+**Patrones del módulo de combos:**
+- Guard de permisos: `user.is_superuser || user.is_staff || user.groups?.includes('Administrador')`
+- `api.getCombos({ page, search, sucursal, activo, page_size })` → `GET /api/combos/`
+- `api.crearCombo(payload)` → `POST /api/combos/` con `items_write` y `slots_write`
+- `api.actualizarCombo(id, payload)` → `PATCH /api/combos/{id}/`
+- `api.eliminarCombo(id)` → `DELETE /api/combos/{id}/`
+- `api.getCombo(id)` → `GET /api/combos/{id}/` — devuelve `slots[].categorias` como lista de IDs
+- `sucursalFilter` cross-check: `opciones_slot` devuelve 404 si `sucursal_id` no pertenece al tenant
+
 ### 🛒 Ventas / POS
 
 | Ruta | Archivo | Estado | Descripción |
 |---|---|---|---|
-| `/pos` | `pos/page.tsx` | Estable | Punto de venta tablet-first; probado con cajeros reales el 2026-03-17 |
+| `/pos` | `pos/page.tsx` | Actualizado | Stepper `[-][qty][+]` en carrito; filtro categorías bottom sheet (mobile/tablet); `SlotSelectionModal` para combos con slots |
 | `/ventas` | `ventas/page.tsx` | Existente | Historial de ventas (solo Administrador) |
 | `/turnos` | `turnos/page.tsx` | Existente | Historial de cajas |
+
+**Patrones POS — combos con slots:**
+- `buscarCombos(q, sucursalId)` → `GET /api/combos/buscar/`
+- Si `combo.slots.length === 0` → agrega directo al carrito (retrocompatible)
+- Si `combo.slots.length > 0` → abre `SlotSelectionModal`; fetch paralelo de `getComboOpciones` por cada slot
+- Payload checkout: `{ type:'combo', combo_id, cantidad, slot_selections:[{slot_id, producto_id}] }`
+- Nombre en carrito: `"Combo Zhumir — Coca Cola"` (primer slot seleccionado)
+
+### 📋 Guías de Remisión
+
+| Ruta | Archivo | Estado | Descripción |
+|---|---|---|---|
+| `/guias/nueva` | `guias/nueva/page.tsx` | Actualizado | Modo VENTA: guía desde factura autorizada. Modo TRASLADO: wizard 4 pasos con carrito multi-producto |
+
+**Patrones del módulo de guías:**
+- TRASLADO: sucursales → carrito de productos (stepper `[-][qty][+]`, búsqueda debounce 400ms por sucursal origen) → transportista → confirmación → comprobante
+- `api.trasladoBulk({ origen_id, destino_id, productos, generar_guia, transportista })` → `POST /api/auth/inventario/transferencia/bulk/`
+- `enviar_sri=False` — guía queda en borrador; se envía al SRI manualmente desde `/guias` (firmado con `.p12` vía `FirmaGuiaRemisionService`)
+- Carrito verde (`border-green-200`, `bg-green-50`); comprobante muestra `guia_numero` o mensaje de fallback
 
 ### 📊 Reportes
 
@@ -75,8 +112,11 @@ Cuando trabajes con Server Components, llamadas a la API, hooks de React Query o
 
 - **CRÍTICO:** Antes de asumir qué devuelve cualquier endpoint, navega a `/LedgerXpertz` e inspecciona el serializer correspondiente.
 - Los combos aparecen en reportes con nombre formato `[COMBO] {nombre} #{id}` — considéralo al mostrar líneas de venta.
+- `GET /api/combos/` soporta `?search=`, `?activo=`, `?sucursal=` (DjangoFilterBackend + SearchFilter configurados en el ViewSet).
+- `ComboSlotReadSerializer` devuelve `categorias: [ids]` — úsalo para pre-poblar el formulario de edición.
 - Endpoint de ajuste de stock: `POST /api/inventario/ajuste/` — campos: `producto_id`, `sucursal_id`, `tipo` (`ENTRADA`|`SALIDA`), `cantidad`, `motivo`.
 - Kardex: `GET /api/inventario/movimientos/` — soporta `?fecha_desde=YYYY-MM-DD&fecha_hasta=YYYY-MM-DD&sucursal=id&tipo=TIPO`.
+- Traslado bulk: `POST /api/auth/inventario/transferencia/bulk/` — campos: `origen_id`, `destino_id`, `productos:[{producto_id, cantidad}]`, `generar_guia`, `transportista:{ruc, razon_social, placa?}`. Registrado bajo namespace `auth_api`.
 
 ## 📱 Estrategia de Responsive
 
