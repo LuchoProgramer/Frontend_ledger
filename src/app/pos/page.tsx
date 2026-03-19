@@ -1445,7 +1445,9 @@ export default function POSPage() {
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
               {loadingSlots ? (
-                <div className="text-center py-8 text-gray-400">Cargando opciones...</div>
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-8 h-8 border-4 border-gray-200 border-t-green-600 rounded-full animate-spin" />
+                </div>
               ) : (
                 pendingCombo.slots.map(slot => {
                   const opciones = slotOpciones[slot.id] || [];
