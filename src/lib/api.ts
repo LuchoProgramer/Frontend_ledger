@@ -866,6 +866,28 @@ export class ApiClient {
     });
   }
 
+  async trasladoBulk(data: {
+    origen_id: number;
+    destino_id: number;
+    productos: { producto_id: number; cantidad: number }[];
+    generar_guia: boolean;
+    transportista?: {
+      ruc: string;
+      razon_social: string;
+      placa?: string;
+    };
+  }) {
+    return this.request<{
+      message: string;
+      guia_numero: string | null;
+      transferencias: number;
+      advertencia?: string;
+    }>('/api/auth/inventario/transferencia/bulk/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async uploadInventario(file: File, sucursalId: number) {
     const formData = new FormData();
     formData.append('file', file);
