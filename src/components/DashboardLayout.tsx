@@ -31,6 +31,7 @@ import {
     FileSpreadsheet,
     SlidersHorizontal,
     PackagePlus,
+    Gift,
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -94,6 +95,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 { name: 'Listar Productos', href: '/productos', icon: <ClipboardList className="w-4 h-4" /> },
                 { name: 'Agregar Producto', href: '/productos/nuevo', icon: <Plus className="w-4 h-4" /> },
                 { name: 'Categorías', href: '/categorias', icon: <Tag className="w-4 h-4" /> },
+                { name: 'Combos', href: '/combos', icon: <Gift className="w-4 h-4" /> },
             ]
         },
         {
