@@ -44,7 +44,7 @@ export default function EditarComboPage() {
                 items: data.items,
                 slots: data.slots.map(sl => ({
                     ...sl,
-                    categorias: [], // No expuesto en read serializer; se re-configura al editar
+                    categorias: (sl as any).categorias ?? [],
                 })),
             });
         } catch (err: any) {
@@ -85,9 +85,6 @@ export default function EditarComboPage() {
                 <div className="mb-8">
                     <h1 className="text-2xl font-bold text-gray-900">Editar Combo</h1>
                     <p className="mt-1 text-sm text-gray-500">{initialData.nombre}</p>
-                    <p className="mt-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-                        Nota: Los slots variables se guardan sin sus categorías previas. Vuelve a seleccionar las categorías para cada slot antes de guardar.
-                    </p>
                 </div>
                 <ComboForm initialData={initialData} comboId={comboId} />
             </div>
