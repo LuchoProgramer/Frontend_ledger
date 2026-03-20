@@ -260,7 +260,7 @@ export default function POSPage() {
   const handleCartItemClick = async (index: number, item: CartItem) => {
     // Similar to addToCart but sets targetCartIndex
     try {
-      const presRes = await apiClient.getPresentaciones(item.producto.id);
+      const presRes = await apiClient.getPresentaciones(item.producto.id, turno?.sucursal);
       const presentaciones = presRes.data || [];
       if (presentaciones.length > 0) {
         setProductToSelect(item.producto);
@@ -284,7 +284,7 @@ export default function POSPage() {
     }
 
     try {
-      const presRes = await apiClient.getPresentaciones(producto.id);
+      const presRes = await apiClient.getPresentaciones(producto.id, turno?.sucursal);
       const presentaciones = presRes.data || [];
 
       if (presentaciones.length === 0) {
@@ -884,7 +884,9 @@ export default function POSPage() {
                           <div className="text-xs text-gray-500">
                             Stock: <span className={hasStock ? 'text-gray-700' : 'text-red-500'}>{formatStock(stock)}</span>
                           </div>
-                          <span className="text-lg font-bold text-blue-600 block">$ -</span>
+                          <span className="text-lg font-bold text-blue-600 block">
+                            {(prod as any).precio_default != null ? `$${Number((prod as any).precio_default).toFixed(2)}` : '$ -'}
+                          </span>
                         </div>
                       </div>
                     );

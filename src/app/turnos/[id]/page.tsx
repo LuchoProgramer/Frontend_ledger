@@ -255,19 +255,24 @@ export default function TurnoCierrePage() {
                                                                     <tr className="text-gray-500 border-b border-gray-200">
                                                                         <th className="pb-1 text-left font-medium">Producto</th>
                                                                         <th className="pb-1 text-right font-medium">Cant.</th>
-                                                                        <th className="pb-1 text-right font-medium">P. Unit.</th>
-                                                                        <th className="pb-1 text-right font-medium">Subtotal</th>
+                                                                        <th className="pb-1 text-right font-medium">P. Unit. (IVA)</th>
+                                                                        <th className="pb-1 text-right font-medium">Total (IVA)</th>
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    {detallesCache[f.id].map((d: any) => (
+                                                                    {detallesCache[f.id].map((d: any) => {
+                                                                        const totalConIva = Number(d.total);
+                                                                        const cant = Number(d.cantidad);
+                                                                        const precioUnitConIva = cant > 0 ? totalConIva / cant : 0;
+                                                                        return (
                                                                         <tr key={d.id}>
                                                                             <td className="py-1 text-gray-700">{d.producto_nombre}</td>
                                                                             <td className="py-1 text-right text-gray-600">{d.cantidad}</td>
-                                                                            <td className="py-1 text-right text-gray-600">${Number(d.precio_unitario).toFixed(2)}</td>
-                                                                            <td className="py-1 text-right font-medium text-gray-800">${Number(d.subtotal).toFixed(2)}</td>
+                                                                            <td className="py-1 text-right text-gray-600">${precioUnitConIva.toFixed(2)}</td>
+                                                                            <td className="py-1 text-right font-medium text-gray-800">${totalConIva.toFixed(2)}</td>
                                                                         </tr>
-                                                                    ))}
+                                                                        );
+                                                                    })}
                                                                 </tbody>
                                                             </table>
                                                         )}

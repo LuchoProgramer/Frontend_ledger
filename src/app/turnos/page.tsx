@@ -94,7 +94,7 @@ export default function TurnosPage() {
 
     useEffect(() => {
         apiClient.getSucursales().then((res: any) => {
-            setSucursales(res.results || res || []);
+            setSucursales(res.sucursales || []);
         }).catch(() => {});
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

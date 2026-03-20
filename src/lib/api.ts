@@ -769,8 +769,9 @@ export class ApiClient {
 
   // ========== PRESENTACIONES ==========
 
-  async getPresentaciones(productoId: number) {
-    return this.request<PresentacionesResponse>(`/api/auth/productos/${productoId}/presentaciones/`);
+  async getPresentaciones(productoId: number, sucursalId?: number) {
+    const query = sucursalId ? `?sucursal_id=${sucursalId}` : '';
+    return this.request<PresentacionesResponse>(`/api/auth/productos/${productoId}/presentaciones/${query}`);
   }
 
   async crearPresentacion(productoId: number, data: any) {

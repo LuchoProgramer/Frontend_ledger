@@ -5,6 +5,21 @@
 ## 🏢 Contexto del Proyecto
 Este es el panel de control (Dashboard) y App Shell del ERP LedgerXpertz. Consume la API de Django y maneja datos financieros y fiscales sensibles.
 
+## 🚨 DEPLOY — Flujo Obligatorio (IMPORTANTE)
+
+`npm run build` **solo** compila Next.js. Si no corres OpenNext después, Cloudflare sirve los chunks viejos aunque el código haya cambiado.
+
+**Siempre usar estos 3 pasos en orden:**
+```bash
+npm run build                        # 1. Compila Next.js → .next/
+npx opennextjs-cloudflare build      # 2. Empaqueta para Cloudflare → .open-next/
+npx wrangler deploy                  # 3. Sube assets + worker a Cloudflare
+```
+
+Síntoma de omitir el paso 2: el browser carga chunks viejos (mismo hash) aunque el deploy diga "success". Wrangler reporta "No updated asset files to upload" cuando `.open-next/` no fue regenerado.
+
+---
+
 ## 🛠️ Reglas de Desarrollo
 
 1.  **Renderizado Híbrido:** Respeta la estrategia actual: usa ISR (Incremental Static Regeneration) con tags de caché dinámicos para catálogos, y CSR (Client-Side Rendering) para datos volátiles (como stock real o dashboards financieros).
