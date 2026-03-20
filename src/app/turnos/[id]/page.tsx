@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -216,9 +216,8 @@ export default function TurnoCierrePage() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {facturas.map((f: any) => (
-                                        <>
+                                        <React.Fragment key={f.id}>
                                             <tr
-                                                key={f.id}
                                                 onClick={() => handleRowClick(f.id)}
                                                 className="hover:bg-gray-50 cursor-pointer select-none"
                                             >
@@ -244,7 +243,7 @@ export default function TurnoCierrePage() {
                                                 </td>
                                             </tr>
                                             {expandedId === f.id && (
-                                                <tr key={`detail-${f.id}`} className="bg-gray-50">
+                                                <tr className="bg-gray-50">
                                                     <td colSpan={5} className="px-8 py-3">
                                                         {!detallesCache[f.id] ? (
                                                             <p className="text-xs text-gray-400">Cargando...</p>
@@ -275,7 +274,7 @@ export default function TurnoCierrePage() {
                                                     </td>
                                                 </tr>
                                             )}
-                                        </>
+                                        </React.Fragment>
                                     ))}
                                 </tbody>
                             </table>
