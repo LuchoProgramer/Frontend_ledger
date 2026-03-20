@@ -199,7 +199,7 @@ export default function POSPage() {
     setLoadingProducts(true);
     try {
       const targetSucursal = sucursalId || turno?.sucursal;
-      const params: Record<string, unknown> = { search, page_size: 20, activo: true, sucursal: targetSucursal };
+      const params: Record<string, unknown> = { search, page_size: 50, activo: true, sucursal: targetSucursal };
       if (categoriaId) params.categoria = categoriaId;
       const res = await apiClient.getProductos(params as Parameters<typeof apiClient.getProductos>[0]);
       setProductos(res.results || res.data || []);
@@ -501,12 +501,17 @@ export default function POSPage() {
 
 
   const calculateTotals = () => {
-    return cart.reduce((acc, item) => {
+    const raw = cart.reduce((acc, item) => {
       acc.subtotal += item.subtotal;
       acc.total += item.total;
       acc.impuesto += item.impuesto;
       return acc;
     }, { subtotal: 0, total: 0, impuesto: 0 });
+    return {
+      subtotal: parseFloat(raw.subtotal.toFixed(2)),
+      total: parseFloat(raw.total.toFixed(2)),
+      impuesto: parseFloat(raw.impuesto.toFixed(2)),
+    };
   };
 
   // Local Types (add Payment)
