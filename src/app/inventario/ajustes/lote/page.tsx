@@ -63,6 +63,7 @@ export default function AjusteLotePage() {
   const [motivo, setMotivo] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [resultado, setResultado] = useState<ResultadoBulk | null>(null);
+  const [errorEnvio, setErrorEnvio] = useState('');
 
   // Buscador
   const [searchTerm, setSearchTerm] = useState('');
@@ -99,7 +100,7 @@ export default function AjusteLotePage() {
 
   function handleSelectProducto(p: ProductoConStock) {
     setProductoSeleccionado(p);
-    setSucursalSeleccionada(p.desglose[0]?.sucursal?.toString() ?? '');
+    setSucursalSeleccionada('');
     setCantidadNueva('');
     setErrorLinea('');
     setSearchTerm('');
@@ -135,6 +136,7 @@ export default function AjusteLotePage() {
   }
 
   async function handleConfirmar() {
+    setErrorEnvio('');
     if (lineas.length === 0 || !motivo.trim()) return;
     setSubmitting(true);
     try {
@@ -155,7 +157,7 @@ export default function AjusteLotePage() {
       setLineas([]);
       setMotivo('');
     } catch (e: any) {
-      alert(e.message || 'Error al procesar el ajuste');
+      setErrorEnvio(e.message || 'Error al procesar el ajuste');
     } finally {
       setSubmitting(false);
     }
@@ -213,13 +215,13 @@ export default function AjusteLotePage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setResultado(null)}
-                className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700"
+                className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 min-h-[48px]"
               >
                 Nuevo lote
               </button>
               <button
                 onClick={() => router.push('/inventario')}
-                className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50"
+                className="flex-1 py-3 border border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50 min-h-[48px]"
               >
                 Ir a inventario
               </button>
@@ -341,7 +343,7 @@ export default function AjusteLotePage() {
 
                 <button
                   onClick={handleAgregarLinea}
-                  className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 flex items-center justify-center gap-2 text-sm"
+                  className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 flex items-center justify-center gap-2 text-sm min-h-[44px]"
                 >
                   <Plus className="w-4 h-4" /> Agregar a la lista
                 </button>
@@ -431,6 +433,11 @@ export default function AjusteLotePage() {
 
             {/* Motivo global + confirmar (siempre visible) */}
             <div className="mt-5 border-t pt-4 space-y-3">
+              {errorEnvio && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  {errorEnvio}
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-bold text-gray-600 mb-1">
                   Motivo del ajuste <span className="text-red-500">*</span>
@@ -447,7 +454,7 @@ export default function AjusteLotePage() {
               <button
                 onClick={handleConfirmar}
                 disabled={!canConfirm || submitting}
-                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-sm min-h-[48px]"
               >
                 {submitting
                   ? 'Procesando...'
