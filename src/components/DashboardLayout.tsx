@@ -32,6 +32,7 @@ import {
     SlidersHorizontal,
     PackagePlus,
     Gift,
+    Layers,
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -44,10 +45,23 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const { user, logout, loading: authLoading } = useAuth();
     const [tenant, setTenant] = useState<string>('cargando...');
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobile Menu State
+    const [activeTurnoNombre, setActiveTurnoNombre] = useState<string | null>(null);
 
     // Close mobile menu on route change
     useEffect(() => {
         setIsMobileMenuOpen(false);
+    }, [pathname]);
+
+    // Leer turno activo desde localStorage (solo en /pos)
+    useEffect(() => {
+        if (pathname !== '/pos') return;
+        const read = () => {
+            const raw = localStorage.getItem('activeTurno');
+            setActiveTurnoNombre(raw ? JSON.parse(raw).sucursal_nombre : null);
+        };
+        read();
+        window.addEventListener('storage', read);
+        return () => window.removeEventListener('storage', read);
     }, [pathname]);
 
     // Detectar tenant
@@ -134,6 +148,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             items: [
                 { name: 'Gestión de Stock', href: '/inventario', icon: <Package className="w-4 h-4" />, allowedRoles: ['Administrador', 'Bodeguero'] },
                 { name: 'Ajuste de Stock', href: '/inventario/ajustes', icon: <SlidersHorizontal className="w-4 h-4" />, allowedRoles: ['Administrador'] },
+                { name: 'Ajuste por Lote', href: '/inventario/ajustes/lote', icon: <Layers className="w-4 h-4" />, allowedRoles: ['Administrador'] },
                 { name: 'Ingreso de Mercadería', href: '/inventario/ingresos', icon: <PackagePlus className="w-4 h-4" />, allowedRoles: ['Administrador'] },
                 { name: 'Movimientos', href: '/inventario/movimientos', icon: <History className="w-4 h-4" />, allowedRoles: ['Administrador'] },
                 { name: 'Auditoría', href: '/inventario/auditoria', icon: <ShieldCheck className="w-4 h-4" />, allowedRoles: ['Administrador', 'Bodeguero', 'Vendedor'] },
@@ -221,24 +236,44 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             </div>
                         </div>
 
-                        {/* Desktop Menu - could be expanded but sticking to dashboard links for now */}
-                        <div className="flex items-center space-x-4">
-                            <button
-                                onClick={() => router.push('/')}
-                                className="hidden md:block px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600"
-                            >
-                                Dashboard
-                            </button>
-                            <div id="user-profile-menu" className="text-right hidden sm:block">
-                                <p className="text-sm font-medium text-gray-900">{user?.first_name || user?.username}</p>
-                                <p className="text-xs text-gray-500">Administrador</p>
-                            </div>
-                            <button
-                                onClick={logout}
-                                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm"
-                            >
-                                Salir
-                            </button>
+                        {/* Desktop Menu */}
+                        <div className="flex items-center space-x-3">
+                            {pathname === '/pos' && activeTurnoNombre ? (
+                                <>
+                                    <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-lg">
+                                        <div className="w-2 h-2 bg-green-500 rounded-full shrink-0" />
+                                        <span className="text-sm font-semibold text-indigo-800 max-w-[140px] truncate">{activeTurnoNombre}</span>
+                                    </div>
+                                    <button
+                                        onClick={() => window.dispatchEvent(new Event('pos:close-turno'))}
+                                        className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-bold transition-colors"
+                                    >
+                                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                        </svg>
+                                        <span className="hidden sm:inline">Cerrar Turno</span>
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => router.push('/')}
+                                        className="hidden md:block px-3 py-2 text-sm font-medium text-gray-700 hover:text-indigo-600"
+                                    >
+                                        Dashboard
+                                    </button>
+                                    <div id="user-profile-menu" className="text-right hidden sm:block">
+                                        <p className="text-sm font-medium text-gray-900">{user?.first_name || user?.username}</p>
+                                        <p className="text-xs text-gray-500">Administrador</p>
+                                    </div>
+                                    <button
+                                        onClick={logout}
+                                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm"
+                                    >
+                                        Salir
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
