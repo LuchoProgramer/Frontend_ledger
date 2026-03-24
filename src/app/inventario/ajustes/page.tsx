@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -14,6 +15,7 @@ import {
   AlertCircle,
   SlidersHorizontal,
   ArrowRight,
+  Layers,
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -244,9 +246,18 @@ export default function AjustesInventarioPage() {
 
         {/* Page header */}
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-1">
-            <SlidersHorizontal className="w-6 h-6 text-indigo-600 shrink-0" />
-            <h1 className="text-2xl font-bold text-gray-900">Ajuste de Inventario</h1>
+          <div className="flex items-center justify-between gap-3 mb-1">
+            <div className="flex items-center gap-3">
+              <SlidersHorizontal className="w-6 h-6 text-indigo-600 shrink-0" />
+              <h1 className="text-2xl font-bold text-gray-900">Ajuste de Inventario</h1>
+            </div>
+            <Link
+              href="/inventario/ajustes/lote"
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors"
+            >
+              <Layers className="w-4 h-4" />
+              Ajuste por Lote
+            </Link>
           </div>
           <p className="text-sm text-gray-500 ml-9">
             Solo administradores · Los cambios quedan registrados en el kardex
