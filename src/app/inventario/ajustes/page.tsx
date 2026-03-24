@@ -253,7 +253,7 @@ export default function AjustesInventarioPage() {
             </div>
             <Link
               href="/inventario/ajustes/lote"
-              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 min-h-[44px]"
             >
               <Layers className="w-4 h-4" />
               Ajuste por Lote
