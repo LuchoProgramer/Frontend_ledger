@@ -292,7 +292,7 @@ export default function AjusteLotePage() {
                   <select
                     value={sucursalSeleccionada}
                     onChange={e => setSucursalSeleccionada(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 min-h-[44px]"
                   >
                     <option value="">Seleccionar...</option>
                     {sucursales.map(s => (
@@ -309,7 +309,7 @@ export default function AjusteLotePage() {
                       <button
                         key={t}
                         onClick={() => setTipoSeleccionado(t)}
-                        className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors ${
+                        className={`flex-1 py-3 rounded-lg text-sm font-bold border transition-colors min-h-[44px] ${
                           tipoSeleccionado === t
                             ? t === 'ENTRADA'
                               ? 'bg-green-600 text-white border-green-600'
@@ -333,7 +333,7 @@ export default function AjusteLotePage() {
                     placeholder="0"
                     value={cantidadNueva}
                     onChange={e => setCantidadNueva(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 min-h-[44px]"
                   />
                 </div>
 
@@ -397,7 +397,7 @@ export default function AjusteLotePage() {
                             {l.tipo === 'ENTRADA' ? '+' : '-'}{l.cantidad}
                           </td>
                           <td className="py-3 pl-2">
-                            <button onClick={() => handleEliminarLinea(l.key)} className="text-red-400 hover:text-red-600">
+                            <button onClick={() => handleEliminarLinea(l.key)} className="text-red-400 hover:text-red-600 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </td>
@@ -419,7 +419,7 @@ export default function AjusteLotePage() {
                         <span className={`font-bold text-sm ${l.tipo === 'ENTRADA' ? 'text-green-700' : 'text-red-600'}`}>
                           {l.tipo === 'ENTRADA' ? '+' : '-'}{l.cantidad}
                         </span>
-                        <button onClick={() => handleEliminarLinea(l.key)} className="text-red-400 hover:text-red-600">
+                        <button onClick={() => handleEliminarLinea(l.key)} className="text-red-400 hover:text-red-600 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
