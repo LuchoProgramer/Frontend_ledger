@@ -33,7 +33,7 @@ Cuando trabajes con Server Components, llamadas a la API, hooks de React Query o
 
 ---
 
-## ✅ Módulos Completados (estado al 2026-03-20)
+## ✅ Módulos Completados (estado al 2026-03-25)
 
 ### 🔧 Infraestructura
 
@@ -44,7 +44,7 @@ Cuando trabajes con Server Components, llamadas a la API, hooks de React Query o
 | Root layout | `src/app/layout.tsx` | Actualizado | `Viewport.themeColor`, `metadata.manifest`, `metadata.icons.apple` |
 | Tenant server util | `src/utils/tenant-server.ts` | Estable | `getTenantFromServer()` lee header `host`; úsalo en Server Components y Route Handlers |
 | Tenant client util | `src/lib/tenant.ts` | Estable | `getTenant()` lee `window.location.hostname`; úsalo en Client Components |
-| Dashboard layout | `src/components/DashboardLayout.tsx` | Actualizado | Menú lateral con roles; íconos importados: `SlidersHorizontal`, `PackagePlus`, `History`, `ShieldCheck`, `Gift` |
+| Dashboard layout | `src/components/DashboardLayout.tsx` | Actualizado | Menú lateral con roles; íconos importados: `SlidersHorizontal`, `PackagePlus`, `History`, `ShieldCheck`, `Gift`, `Layers` |
 
 ### 📦 Inventario
 
@@ -54,6 +54,7 @@ Cuando trabajes con Server Components, llamadas a la API, hooks de React Query o
 | `/inventario/ajustes` | `inventario/ajustes/page.tsx` | Completo | Wizard 5 pasos (indigo); cantidad = **stock objetivo** → calcula delta |
 | `/inventario/ingresos` | `inventario/ingresos/page.tsx` | Completo | Wizard 5 pasos (verde); cantidad = **delta directo**; campo origen; chips de motivo |
 | `/inventario/movimientos` | `inventario/movimientos/page.tsx` | Completo | Kardex global paginado; filtros sucursal/tipo/fecha_desde/fecha_hasta |
+| `/inventario/ajustes/lote` | `inventario/ajustes/lote/page.tsx` | Completo | Dos paneles (indigo); ENTRADA/SALIDA por línea; motivo global; reutiliza bulk endpoint |
 | `/inventario/auditoria` | `inventario/auditoria/page.tsx` | Existente | Sin cambios |
 
 **Patrones del módulo de inventario:**
@@ -156,3 +157,67 @@ Siempre visible o con `focus-visible:` también.
 - No implementar Service Worker ni caché offline por ahora — solo instalable.
 - El `favicon.ico` usa el formato ICO moderno con PNG embebido (32×32); compatible con todos los navegadores modernos.
 - Si se agregan nuevos tenants, el manifest se adapta automáticamente — no requiere cambios de código.
+
+---
+
+## 🖨️ Impresión Térmica POS — Diseño (pendiente de implementación)
+
+### Contexto
+Persepolis Grill & Burgers (tenant `persepolis`) usa una impresora térmica **Bematech LR2000** conectada por USB o Serial RS-232 a la laptop del cajero. Otros tenants no tienen impresora — la feature debe ser completamente opcional.
+
+**Impresora:** Bematech LR2000 · ESC/POS · 80mm · USB Tipo B + RS-232 · 24V 2.5A
+
+### Regla de oro
+**La impresión nunca bloquea la venta.** Si falla (impresora offline, papel agotado, puerto incorrecto), la venta ya está guardada en BD y el cajero ve un aviso claro — nunca un error silencioso ni el POS congelado.
+
+### Configuración por tenant/sucursal
+Campo `impresora_activa: bool` + `impresora_puerto: str` en `Sucursal` (backend).  
+Si `impresora_activa = false` o el campo no existe → el frontend **no intenta imprimir**, sin errores.
+
+### Flujo post-venta
+```
+Venta guardada en BD
+  └─ ¿sucursal.impresora_activa?
+       ├─ No  → fin (flujo normal)
+       └─ Sí  → intentar imprimir ticket ESC/POS
+                  ├─ Éxito → ticket impreso, toast verde
+                  └─ Falla → toast amarillo "No se pudo imprimir — venta guardada"
+```
+
+### Estrategia de integración (probar en orden)
+
+**Opción A — Web Serial API** *(preferida, sin instalación)*
+- Chrome/Edge 89+ soportan `navigator.serial` nativo
+- El browser solicita permiso al usuario una vez (queda recordado)
+- Funciona si el USB de la Bematech aparece como puerto COM en Windows, o directo por RS-232
+- Sin software adicional en la laptop del cajero
+
+**Opción B — QZ Tray** *(fallback robusto)*
+- App Java que corre en background en la laptop del cajero
+- El browser se conecta vía WebSocket a `localhost:8181`
+- Soporta USB, Serial y red — agnóstico al tipo de impresora
+- Requiere instalar Java + QZ Tray en cada máquina cajero
+
+### Ticket ESC/POS — contenido mínimo
+```
+[Nombre del negocio]
+[Dirección · Teléfono]
+--------------------------------
+# Pedido: {numero}    {hora}
+--------------------------------
+{item}  x{cant}    ${precio}
+...
+--------------------------------
+TOTAL:             ${total}
+Pago: {metodo}
+================================
+      Gracias por su compra
+```
+
+### Estado actual
+- [ ] Verificar que USB Bematech aparece como COM en Windows (prueba remota pendiente con Jalil)
+- [ ] Elegir Opción A o B según resultado de prueba
+- [ ] Agregar campos `impresora_activa` + `impresora_puerto` a modelo `Sucursal` (backend)
+- [ ] Implementar `useThermalPrinter` hook en frontend
+- [ ] Integrar en POS post-checkout
+- [ ] Solo activar para tenant `persepolis` sucursal Matriz inicialmente

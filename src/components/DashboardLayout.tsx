@@ -33,6 +33,8 @@ import {
     PackagePlus,
     Gift,
     Layers,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -44,8 +46,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const pathname = usePathname();
     const { user, logout, loading: authLoading } = useAuth();
     const [tenant, setTenant] = useState<string>('cargando...');
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobile Menu State
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [activeTurnoNombre, setActiveTurnoNombre] = useState<string | null>(null);
+
+    useEffect(() => {
+        const stored = localStorage.getItem('sidebarCollapsed');
+        if (stored !== null) setIsSidebarCollapsed(stored === 'true');
+    }, []);
+
+    const toggleSidebar = () => {
+        const next = !isSidebarCollapsed;
+        setIsSidebarCollapsed(next);
+        localStorage.setItem('sidebarCollapsed', String(next));
+    };
 
     // Close mobile menu on route change
     useEffect(() => {
@@ -213,16 +227,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center space-x-4">
-                            {/* Hamburger Button (Mobile Only) */}
+                            {/* Hamburger — mobile */}
                             <button
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                                 className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
                             >
                                 <span className="sr-only">Open menu</span>
-                                {/* Icon menu */}
                                 <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
+                            </button>
+
+                            {/* Collapse toggle — desktop */}
+                            <button
+                                onClick={toggleSidebar}
+                                title={isSidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
+                                className="hidden lg:flex p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                            >
+                                {isSidebarCollapsed
+                                    ? <ChevronRight className="h-5 w-5" />
+                                    : <ChevronLeft className="h-5 w-5" />
+                                }
                             </button>
 
                             <div className="flex items-center space-x-4 cursor-pointer" onClick={() => router.push('/')}>
@@ -344,14 +369,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             )}
 
             <div className="flex flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 gap-6">
-                {/* Desktop Sidebar (hidden on mobile) */}
-                <aside className="hidden lg:block w-64 flex-shrink-0">
+                {/* Desktop Sidebar */}
+                <aside className={`hidden lg:block flex-shrink-0 transition-all duration-200 ${isSidebarCollapsed ? 'w-14' : 'w-64'}`}>
                     <nav className="space-y-6">
                         {filteredMenuItems.map((section) => (
                             <div key={section.title}>
-                                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center">
-                                    <span className="mr-2">{section.icon}</span> {section.title}
-                                </h3>
+                                {/* Section header — hidden when collapsed */}
+                                {!isSidebarCollapsed && (
+                                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center">
+                                        <span className="mr-2">{section.icon}</span> {section.title}
+                                    </h3>
+                                )}
+                                {isSidebarCollapsed && (
+                                    <div className="border-t border-gray-200 mb-2" />
+                                )}
                                 <div className="space-y-1">
                                     {section.items.map((item) => {
                                         const isActive = pathname === item.href;
@@ -359,13 +390,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                             <button
                                                 key={item.name}
                                                 onClick={() => router.push(item.href)}
-                                                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${isActive
-                                                    ? 'bg-indigo-50 text-indigo-700'
-                                                    : 'text-gray-700 hover:bg-gray-100'
-                                                    }`}
+                                                title={isSidebarCollapsed ? item.name : undefined}
+                                                className={`w-full text-left rounded-md text-sm font-medium transition-colors flex items-center ${
+                                                    isSidebarCollapsed ? 'justify-center p-2' : 'px-3 py-2'
+                                                } ${isActive ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'}`}
                                             >
-                                                <span className="mr-2 opacity-75">{item.icon}</span>
-                                                {item.name}
+                                                <span className={isSidebarCollapsed ? '' : 'mr-2 opacity-75'}>
+                                                    {item.icon}
+                                                </span>
+                                                {!isSidebarCollapsed && item.name}
                                             </button>
                                         );
                                     })}

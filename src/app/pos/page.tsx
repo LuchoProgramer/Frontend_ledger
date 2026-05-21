@@ -129,6 +129,10 @@ export default function POSPage() {
   // Initial Load
   useEffect(() => {
     checkTurno();
+    // Escuchar evento del header para cerrar turno
+    const handleHeaderClose = () => handleCloseTurno();
+    window.addEventListener('pos:close-turno', handleHeaderClose);
+    return () => window.removeEventListener('pos:close-turno', handleHeaderClose);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -159,11 +163,13 @@ export default function POSPage() {
       const res = await apiClient.verificarTurno();
       if (res.success && res.activo && res.data) {
         setTurno(res.data);
+        localStorage.setItem('activeTurno', JSON.stringify({ sucursal_nombre: res.data.sucursal_nombre }));
         // Important: Pass sucursal ID explicitly because state update is async
         loadProductos('', res.data.sucursal);
         loadCategorias();
       } else {
         setTurno(null);
+        localStorage.removeItem('activeTurno');
         await loadSucursales();
         setShowShiftModal(true);
       }
@@ -218,6 +224,8 @@ export default function POSPage() {
       const res = await apiClient.abrirTurno(selectedSucursal);
       if (res.success) {
         setTurno(res.data);
+        localStorage.setItem('activeTurno', JSON.stringify({ sucursal_nombre: res.data.sucursal_nombre }));
+        window.dispatchEvent(new Event('storage'));
         setShowShiftModal(false);
         loadProductos('', selectedSucursal);
         loadCategorias();
@@ -237,6 +245,8 @@ export default function POSPage() {
     try {
       await apiClient.cerrarTurno(data);
       setTurno(null);
+      localStorage.removeItem('activeTurno');
+      window.dispatchEvent(new Event('storage'));
       setCart([]);
       setClient({ identificacion: '9999999999', razon_social: 'CONSUMIDOR FINAL', email: '', direccion: '' });
       await loadSucursales();
@@ -718,24 +728,6 @@ export default function POSPage() {
     <DashboardLayout>
       <div className="flex flex-col h-[calc(100vh-64px)] overflow-hidden bg-gray-100">
 
-        {/* Info Bar / Shift Status */}
-        {turno && (
-          <div className="bg-indigo-900 text-white px-4 py-2 flex justify-between items-center text-sm shadow-md z-10 shrink-0">
-            <div className="flex gap-4">
-              <span><strong>Sucursal:</strong> {turno.sucursal_nombre}</span>
-              <span className="hidden md:inline">|</span>
-              <span className="hidden md:inline"><strong>Inicio:</strong> {new Date(turno.inicio_turno).toLocaleString()}</span>
-            </div>
-            <div>
-              <button
-                onClick={handleCloseTurno}
-                className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-xs font-bold transition-colors"
-              >
-                Cerrar Turno / Cambiar Sucursal
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Mobile Tab Navigation */}
         <div className="md:hidden flex bg-white border-b shrink-0">
@@ -845,12 +837,15 @@ export default function POSPage() {
                   </div>
                 )}
 
-                <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 content-start pb-20">
+                <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 content-start pb-20">
                   {loadingProducts ? (
                     <div className="col-span-full text-center py-10">Cargando productos...</div>
                   ) : productos.map(prod => {
                     const stock = prod.stock ?? 0;
                     const hasStock = stock > 0;
+                    const precio = (prod as any).precio_default != null
+                      ? `$${Number((prod as any).precio_default).toFixed(2)}`
+                      : '$ -';
 
                     return (
                       <div
@@ -863,34 +858,28 @@ export default function POSPage() {
                           }
                         }}
                         className={`
-                          relative p-4 rounded-xl shadow-sm transition-all flex flex-col justify-between min-h-40 border
-                          active:scale-95 duration-75
+                          relative rounded-xl shadow-sm transition-all flex flex-col justify-between border
+                          active:scale-95 duration-75 min-h-[100px] p-3
                           ${hasStock
-                            ? 'bg-white hover:shadow-md cursor-pointer border-transparent hover:border-blue-300'
-                            : 'bg-gray-100 cursor-not-allowed border-gray-200 opacity-70'}
+                            ? 'bg-white hover:shadow-md cursor-pointer border-gray-100 hover:border-blue-300 hover:bg-blue-50'
+                            : 'bg-gray-100 cursor-not-allowed border-gray-200 opacity-60'}
                         `}
                       >
                         {!hasStock && (
-                          <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded-full z-10">
+                          <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full z-10">
                             AGOTADO
                           </div>
                         )}
-                        {hasStock && stock <= 5 && (
-                          <div className="absolute top-2 right-2 bg-orange-100 text-orange-600 text-xs font-bold px-2 py-1 rounded-full z-10">
-                            {stock} left
-                          </div>
-                        )}
 
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">{prod.codigo_producto || 'S/C'}</div>
-                          <h3 className="font-semibold text-gray-800 leading-tight break-words">{prod.nombre}</h3>
-                        </div>
-                        <div className="mt-2 flex justify-between items-end">
-                          <div className="text-xs text-gray-500">
-                            Stock: <span className={hasStock ? 'text-gray-700' : 'text-red-500'}>{formatStock(stock)}</span>
-                          </div>
-                          <span className="text-lg font-bold text-blue-600 block">
-                            {(prod as any).precio_default != null ? `$${Number((prod as any).precio_default).toFixed(2)}` : '$ -'}
+                        {/* Nombre del producto — protagonista */}
+                        <h3 className="font-semibold text-gray-900 text-sm leading-snug break-words line-clamp-3">
+                          {prod.nombre}
+                        </h3>
+
+                        {/* Precio abajo a la derecha */}
+                        <div className="mt-2 flex items-end justify-end">
+                          <span className="text-base font-bold text-blue-600">
+                            {precio}
                           </span>
                         </div>
                       </div>
