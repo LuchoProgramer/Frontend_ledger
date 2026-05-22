@@ -38,6 +38,16 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Cloudflare / Wrangler state
+.wrangler/
+__BUILD_ID
+
+# Claude Code session state
+.claude/
+
+# Superpowers AI tooling artifacts
+docs/superpowers/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
