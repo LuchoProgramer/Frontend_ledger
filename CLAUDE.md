@@ -20,6 +20,76 @@ Síntoma de omitir el paso 2: el browser carga chunks viejos (mismo hash) aunque
 
 ---
 
+## 📐 Reglas de Arquitectura — Responsabilidad Única (OBLIGATORIO)
+
+Estas reglas aplican a todo archivo nuevo o modificado. No son negociables.
+
+### Límites de tamaño
+
+| Tipo de archivo | Objetivo | Señal de alarma |
+|-----------------|----------|-----------------|
+| `page.tsx` | ~150 líneas | Solo composición: imports + hooks + JSX mínimo |
+| Componente UI (`*.tsx`) | ~250 líneas | Si tiene más de 1 modal o más de 3 `useState`, dividir |
+| Custom hook (`use*.ts`) | ~150 líneas | Si hace más de una cosa, dividir |
+| Utilidad pura (`*.ts`) | ~100 líneas | Funciones puras sin estado ni efectos |
+
+> **Estos límites son guías, no reglas absolutas.** Pasarse 10-20 líneas está bien si el código es cohesivo. Si algo depende estrechamente de otra cosa y separarlos rompería la lógica o haría el código más confuso, déjalo junto. El objetivo es claridad, no cumplir un número.
+>
+> **Regla de oro:** Si necesitas scrollear para ver todo el código de un archivo, ya es demasiado grande.
+
+### Una responsabilidad por archivo
+
+Cada archivo debe poder describirse en una frase sin usar "y":
+
+- ✅ `usePOSCart.ts` — maneja el estado y operaciones del carrito
+- ✅ `POSClientModal.tsx` — UI del modal de búsqueda/creación de cliente
+- ❌ `pos/page.tsx` — maneja el carrito, los clientes, los combos, la impresión y el turno ← esto es un god file
+
+### Cómo dividir un page component grande
+
+Cuando un `page.tsx` supera 150 líneas, usar esta estructura:
+
+```
+app/[feature]/
+  page.tsx               ← solo imports + hooks + JSX de alto nivel (<150 líneas)
+  hooks/
+    use[Feature][Concern].ts   ← un hook por dominio de estado
+  components/
+    [Feature][Part].tsx        ← un componente por sección de UI
+```
+
+**Ejemplo para el POS:**
+```
+app/pos/
+  page.tsx                  ← orquesta hooks, renderiza layout
+  hooks/
+    usePOSTurno.ts           ← estado del turno, abrir/cerrar
+    usePOSCart.ts            ← carrito, agregar/quitar/calcular
+    usePOSClient.ts          ← búsqueda y creación de cliente
+    usePOSProducts.ts        ← catálogo, categorías, búsqueda
+  components/
+    POSCart.tsx              ← UI del carrito con stepper
+    POSClientModal.tsx       ← modal buscar/crear cliente
+    POSProductGrid.tsx       ← grilla de productos y categorías
+    POSSlotModal.tsx         ← selector de slots de combos
+```
+
+### Señales de que hay que refactorizar YA
+
+- Un componente tiene más de 5 `useState`
+- Un `useEffect` supera 15 líneas
+- Hay que buscar con Ctrl+F dentro de un solo archivo
+- Un bug requiere leer más de 200 líneas para entenderse
+- Hay más de un modal definido en el mismo archivo
+
+### Lo que NO hacer
+
+- No crear abstracciones genéricas antes de necesitarlas (YAGNI)
+- No unificar hooks solo porque "parecen relacionados" — que cada uno haga una cosa
+- No mover lógica a un hook si solo la usa un componente y tiene < 20 líneas
+
+---
+
 ## 🛠️ Reglas de Desarrollo
 
 1.  **Renderizado Híbrido:** Respeta la estrategia actual: usa ISR (Incremental Static Regeneration) con tags de caché dinámicos para catálogos, y CSR (Client-Side Rendering) para datos volátiles (como stock real o dashboards financieros).
@@ -33,7 +103,7 @@ Cuando trabajes con Server Components, llamadas a la API, hooks de React Query o
 
 ---
 
-## ✅ Módulos Completados (estado al 2026-03-25)
+## ✅ Módulos Completados (estado al 2026-05-22)
 
 ### 🔧 Infraestructura
 
@@ -87,9 +157,30 @@ Cuando trabajes con Server Components, llamadas a la API, hooks de React Query o
 
 | Ruta | Archivo | Estado | Descripción |
 |---|---|---|---|
-| `/pos` | `pos/page.tsx` | Actualizado | Stepper `[-][qty][+]` en carrito; filtro categorías bottom sheet (mobile/tablet); `SlotSelectionModal` para combos con slots |
+| `/pos` | `pos/page.tsx` | Actualizado | Usa `POSLayout` (NO `DashboardLayout`). Stepper `[-][qty][+]` en carrito; chips de categoría desktop; carrito responsivo `md:w-[320px] lg:w-[360px] xl:w-[400px]`; impresión térmica post-venta |
+| `/pos/recibo` | `pos/recibo/page.tsx` | Completo | Recibo térmico 72mm; todo `font-weight: bold`; auto-print; botón "Imprimir Comanda Cocina" visible en pantalla, oculto al imprimir |
+| `/pos/comanda` | `pos/comanda/page.tsx` | Completo | Comanda de cocina 72mm; solo ítems con cantidades en letra grande (26px/17px bold); auto-print |
 | `/ventas` | `ventas/page.tsx` | Existente | Historial de ventas (solo Administrador) |
 | `/turnos` | `turnos/page.tsx` | Existente | Historial de cajas |
+
+**Patrones POS — layout (CRÍTICO):**
+
+El POS usa `POSLayout` (`src/components/POSLayout.tsx`), NO `DashboardLayout`. Son layouts con contratos distintos:
+
+| Layout | Usado en | Estructura |
+|---|---|---|
+| `DashboardLayout` | Todas las páginas admin/ERP | Header + sidebar `w-64` + `main` con `max-w-7xl py-8` |
+| `POSLayout` | `/pos` y futuras rutas kiosk | Header 64px + `flex-1 overflow-hidden` — control total del viewport |
+
+Por qué esta separación existe: el POS es una app kiosk full-screen. Meterla dentro de `DashboardLayout` obligaba a anular todos sus estilos con excepciones por ruta (`isPOS`). Sniffar el pathname en el layout para cambiar su propia estructura es un antipatrón — el layout no debería saber quién está adentro.
+
+**Regla:** Cualquier página que necesite `h-screen` y control total del viewport (kiosk, modo pantalla completa) debe tener su propio Layout, nunca usar excepciones dentro de `DashboardLayout`.
+
+**Sincronización de turno en POSLayout:**
+- Lee `localStorage.getItem('activeTurno')` al montar
+- Escucha `window.addEventListener('storage', ...)` para actualizaciones cross-tab
+- `usePOSTurno` dispara `window.dispatchEvent(new Event('storage'))` al abrir/cerrar turno — así el header del POSLayout se actualiza en la misma pestaña
+- El botón "Cerrar Turno" despacha `new CustomEvent('pos:close-turno')` → `pos/page.tsx` lo escucha y abre el modal de cierre
 
 **Patrones POS — combos con slots:**
 - `buscarCombos(q, sucursalId)` → `GET /api/combos/buscar/`
@@ -97,6 +188,23 @@ Cuando trabajes con Server Components, llamadas a la API, hooks de React Query o
 - Si `combo.slots.length > 0` → abre `SlotSelectionModal`; fetch paralelo de `getComboOpciones` por cada slot
 - Payload checkout: `{ type:'combo', combo_id, cantidad, slot_selections:[{slot_id, producto_id}] }`
 - Nombre en carrito: `"Combo Zhumir — Coca Cola"` (primer slot seleccionado)
+
+**Patrones POS — impresión térmica:**
+- `handleProcessSale` abre `window.open('about:blank', '_blank')` ANTES del `await` (evita popup blocker de Chrome)
+- Después del `await`: guarda `posRecibo` y `posComanda` en `localStorage`, navega la ventana pre-abierta a `/pos/recibo`
+- `/pos/recibo` auto-imprime el recibo; muestra botón naranja "Imprimir Comanda Cocina" (solo en pantalla)
+- Al tocar el botón → `window.open('/pos/comanda', '_blank')` (click directo → Chrome lo permite)
+- `/pos/comanda` auto-imprime la comanda de cocina
+- Guard de tenant: `TENANTS_CON_IMPRESORA = ['persepolis']` — solo abre ventanas para tenants con impresora
+
+**Patrones POS — categorías desktop:**
+- Chips horizontales scrolleables (`overflow-x-auto`) con `min-h-[48px]` para touch-first en 14"
+- Visibles solo en `lg+` (`hidden lg:flex`); mobile/tablet sigue usando el drawer bottom sheet
+- Chip "Todos" al inicio para limpiar filtro
+
+**Bug fix — logout redirige al dashboard:**
+- `AuthContext.logout()`: agrega `sessionStorage.setItem('loggedOut', '1')` antes de `window.location.href = '/login'`
+- `checkSession()`: si existe el flag, lo borra y retorna sin llamar `getCurrentUser()` — evita que la cookie de sesión aún válida re-autentique al usuario
 
 ### 📋 Guías de Remisión
 
@@ -215,9 +323,44 @@ Pago: {metodo}
 ```
 
 ### Estado actual
-- [ ] Verificar que USB Bematech aparece como COM en Windows (prueba remota pendiente con Jalil)
-- [ ] Elegir Opción A o B según resultado de prueba
-- [ ] Agregar campos `impresora_activa` + `impresora_puerto` a modelo `Sucursal` (backend)
-- [ ] Implementar `useThermalPrinter` hook en frontend
-- [ ] Integrar en POS post-checkout
-- [ ] Solo activar para tenant `persepolis` sucursal Matriz inicialmente
+- [x] Verificar USB Bematech — **USB Printer Class** (VID_0FE6), NO aparece como COM. Web Serial API no aplica.
+- [x] Elegir estrategia — **`window.print()` desde Chrome** (impresora LR2000 configurada en Windows como predeterminada; papel 72mm, sin márgenes). Sin QZ Tray, sin instalación extra.
+- [x] Integrar en POS post-checkout — `handleProcessSale` guarda datos en `localStorage['posRecibo']` y abre `/pos/recibo` en nueva ventana.
+- [x] Página `/pos/recibo/page.tsx` — HTML monospace 72mm, auto-llama `window.print()` al cargar. Muestra: negocio, sucursal, fecha, items, IVA, total, pagos, cambio, número autorización.
+- [x] Lógica condicional en `handleProcessSale` — lista `TENANTS_CON_IMPRESORA` en el frontend (hardcoded). Solo abre ventana de recibo si el tenant está en la lista. Solución temporal hasta que el backend exponga el flag.
+- [ ] **Migración backend pendiente** (cuando haya un segundo tenant con impresora): ver sección "Plan de migración impresora → backend" más abajo.
+
+**Notas de implementación:**
+- El nombre del negocio se mapea en `/pos/recibo/page.tsx` desde el subdominio (objeto `names`). Agregar nuevos tenants ahí si necesitan impresora.
+- El recibo NUNCA bloquea la venta: se guarda en BD primero, la ventana se abre después. Si el usuario cierra sin imprimir, la venta ya está registrada.
+- Chrome en el POS de Persepolis: impresora LR2000 como predeterminada, papel 72mm configurado, sin márgenes.
+
+### Plan de migración impresora → backend (cuando haya un segundo tenant con impresora)
+
+**Problema que resuelve:** Hoy la lista `TENANTS_CON_IMPRESORA` está hardcoded en `pos/page.tsx`. Agregar un tenant nuevo requiere deploy de frontend. Con el flag en BD, basta con cambiar un campo en el admin de Django.
+
+**Pasos:**
+
+1. **Backend — modelo** (`core/models.py` o `empresas/models.py`):
+   ```python
+   # En modelo Sucursal:
+   impresora_activa = models.BooleanField(default=False)
+   impresora_puerto = models.CharField(max_length=50, blank=True)  # reservado, hoy no se usa
+   ```
+   Migración: `python manage.py makemigrations && python manage.py migrate_schemas --shared`
+
+2. **Backend — serializer** (`core/serializers.py`): exponer `impresora_activa` en el serializer de `Sucursal` (o en la respuesta del turno activo `getTurnoActivo`). Lo más práctico: añadirlo al payload de `turno-activo/` para que el POS lo tenga sin llamada extra.
+
+3. **Frontend — tipo Turno** (`pos/page.tsx`): agregar `impresora_activa?: boolean` a la interfaz `Turno`.
+
+4. **Frontend — reemplazar el check hardcoded**:
+   ```ts
+   // Antes:
+   const TENANTS_CON_IMPRESORA = ['persepolis'];
+   if (TENANTS_CON_IMPRESORA.includes(currentTenant)) { ... }
+
+   // Después:
+   if (turno?.impresora_activa) { ... }
+   ```
+
+5. **Activar por sucursal** desde el admin Django: `Sucursal → impresora_activa = True`.
