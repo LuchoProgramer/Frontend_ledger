@@ -13,9 +13,26 @@ const formatFecha = (val: string | null | undefined) => {
         + ' ' + d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
 };
 
+const TIPOS = [
+    {
+        tipo: 'INICIO_TURNO' as const,
+        titulo: 'Apertura de Turno',
+        descripcion: 'Auditoría completa al abrir el turno. Incluye todos los productos activos.',
+        color: 'indigo',
+    },
+    {
+        tipo: 'FIN_TURNO' as const,
+        titulo: 'Cierre de Turno',
+        descripcion: 'Auditoría completa al cerrar el turno. Compara el stock contra la apertura.',
+        color: 'green',
+    },
+];
+
 export default function AuditoriaListPage() {
     const [auditorias, setAuditorias] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [creando, setCreando] = useState(false);
     const router = useRouter();
     const apiClient = getApiClient();
 
@@ -36,13 +53,14 @@ export default function AuditoriaListPage() {
         }
     };
 
-    const handleNuevaAuditoria = async () => {
-        if (!confirm('¿Iniciar una nueva auditoría? Se tomará una foto del stock actual.')) return;
+    const handleSeleccionarTipo = async (tipo: 'INICIO_TURNO' | 'FIN_TURNO') => {
+        setCreando(true);
         try {
-            const res = await apiClient.createAuditoria({ tipo: 'ALEATORIO', aleatorio_cantidad: 20 });
+            const res = await apiClient.createAuditoria({ tipo });
             router.push(`/inventario/auditoria/${(res as any).id}`);
         } catch (error: any) {
             alert(error.message || 'Error al iniciar auditoría');
+            setCreando(false);
         }
     };
 
@@ -55,7 +73,7 @@ export default function AuditoriaListPage() {
                         <p className="text-gray-500 text-sm">Gestiona y verifica tu stock físico.</p>
                     </div>
                     <button
-                        onClick={handleNuevaAuditoria}
+                        onClick={() => setShowModal(true)}
                         className="w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 shadow-sm flex items-center justify-center gap-2"
                     >
                         <span>+</span> Nueva Auditoría
@@ -158,6 +176,48 @@ export default function AuditoriaListPage() {
                     ))}
                 </div>
             </div>
+
+            {/* Modal selección de tipo */}
+            {showModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+                        <h2 className="text-lg font-bold text-gray-900 mb-1">Nueva Auditoría</h2>
+                        <p className="text-sm text-gray-500 mb-5">Selecciona el tipo de auditoría a realizar.</p>
+
+                        <div className="space-y-3">
+                            {TIPOS.map(({ tipo, titulo, descripcion, color }) => (
+                                <button
+                                    key={tipo}
+                                    onClick={() => handleSeleccionarTipo(tipo)}
+                                    disabled={creando}
+                                    className={`w-full text-left p-4 rounded-xl border-2 transition-colors disabled:opacity-50
+                                        ${color === 'indigo'
+                                            ? 'border-indigo-200 hover:border-indigo-500 hover:bg-indigo-50'
+                                            : 'border-green-200 hover:border-green-500 hover:bg-green-50'
+                                        }`}
+                                >
+                                    <div className={`font-semibold text-sm ${color === 'indigo' ? 'text-indigo-800' : 'text-green-800'}`}>
+                                        {titulo}
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-0.5">{descripcion}</div>
+                                </button>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={() => setShowModal(false)}
+                            disabled={creando}
+                            className="mt-4 w-full py-2 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                        >
+                            Cancelar
+                        </button>
+
+                        {creando && (
+                            <p className="text-center text-xs text-gray-400 mt-2">Creando auditoría, espera un momento...</p>
+                        )}
+                    </div>
+                </div>
+            )}
         </DashboardLayout>
     );
 }
