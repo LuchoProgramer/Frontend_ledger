@@ -44,6 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const checkSession = async () => {
+    // Si el usuario acaba de cerrar sesión explícitamente, no reverificar contra el backend.
+    if (sessionStorage.getItem('loggedOut')) {
+      sessionStorage.removeItem('loggedOut')
+      setLoading(false)
+      return
+    }
+
     try {
       // Carga optimista: mostrar usuario cacheado mientras se verifica
       const savedUser = localStorage.getItem('user')
@@ -90,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null)
       localStorage.removeItem('user')
+      sessionStorage.setItem('loggedOut', '1')
       window.location.href = '/login'
     }
   }

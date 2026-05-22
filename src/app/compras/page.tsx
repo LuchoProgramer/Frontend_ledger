@@ -13,13 +13,14 @@ export default function PurchasesPage() {
     // Filters
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [sucursalFilter, setSucursalFilter] = useState('');
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
     // Upload Modal
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [sucursales, setSucursales] = useState<any[]>([]); // Need sucursales for upload
+    const [sucursales, setSucursales] = useState<any[]>([]);
 
     const apiClient = getApiClient();
 
@@ -27,7 +28,7 @@ export default function PurchasesPage() {
         setLoading(true);
         try {
             const [res, sucRes] = await Promise.all([
-                apiClient.getCompras({ page, start_date: startDate, end_date: endDate }),
+                apiClient.getCompras({ page, start_date: startDate, end_date: endDate, sucursal_id: sucursalFilter || undefined }),
                 apiClient.getSucursalesList({ page_size: 100 })
             ]);
             setCompras(res.results || []);
@@ -70,7 +71,7 @@ export default function PurchasesPage() {
     useEffect(() => {
         loadCompras();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, startDate, endDate]);
+    }, [page, startDate, endDate, sucursalFilter]);
 
     return (
         <DashboardLayout>
@@ -102,6 +103,19 @@ export default function PurchasesPage() {
                 {/* Filters */}
                 <div className="bg-white p-4 rounded-lg shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-end">
                     <div className="w-full md:w-auto">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal</label>
+                        <select
+                            value={sucursalFilter}
+                            onChange={(e) => { setSucursalFilter(e.target.value); setPage(1); }}
+                            className="w-full p-2 border rounded-md"
+                        >
+                            <option value="">Todas</option>
+                            {sucursales.map(s => (
+                                <option key={s.id} value={s.id}>{s.nombre}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="w-full md:w-auto">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
                         <input
                             type="date"
@@ -129,16 +143,17 @@ export default function PurchasesPage() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Factura</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proveedor</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sucursal</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {loading && (
-                                <tr><td colSpan={5} className="p-4 text-center">Cargando...</td></tr>
+                                <tr><td colSpan={6} className="p-4 text-center">Cargando...</td></tr>
                             )}
                             {!loading && compras.length === 0 && (
-                                <tr><td colSpan={5} className="p-4 text-center text-gray-500">No hay compras registradas</td></tr>
+                                <tr><td colSpan={6} className="p-4 text-center text-gray-500">No hay compras registradas</td></tr>
                             )}
                             {compras.map((compra) => (
                                 <tr key={compra.id} className="hover:bg-gray-50">
@@ -152,6 +167,9 @@ export default function PurchasesPage() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                         {compra.proveedor_nombre}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                        {(compra as any).sucursal_nombre || '-'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-bold">
                                         ${Number(compra.total_con_impuestos).toFixed(2)}
@@ -187,8 +205,11 @@ export default function PurchasesPage() {
                                 </span>
                             </div>
 
-                            <div className="text-sm text-gray-500">
-                                {new Date(compra.fecha_emision).toLocaleDateString()}
+                            <div className="flex items-center gap-3 text-sm text-gray-500">
+                                <span>{new Date(compra.fecha_emision).toLocaleDateString()}</span>
+                                {(compra as any).sucursal_nombre && (
+                                    <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">{(compra as any).sucursal_nombre}</span>
+                                )}
                             </div>
 
                             <div className="pt-2 border-t border-gray-100 flex justify-between items-center">

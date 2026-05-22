@@ -36,6 +36,8 @@ export default function NuevaCompraPage() {
     const [proveedores, setProveedores] = useState<Proveedor[]>([]);
     const [productos, setProductos] = useState<Producto[]>([]);
     const [impuestos, setImpuestos] = useState<Impuesto[]>([]);
+    const [sucursales, setSucursales] = useState<{ id: number; nombre: string }[]>([]);
+    const [sucursalId, setSucursalId] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const savingRef = useRef(false);
@@ -59,7 +61,19 @@ export default function NuevaCompraPage() {
         loadProveedores();
         loadProductos();
         loadImpuestos();
+        loadSucursales();
     }, []);
+
+    const loadSucursales = async () => {
+        try {
+            const res = await apiClient.getSucursales();
+            const lista = res.sucursales || [];
+            setSucursales(lista);
+            if (lista.length > 0) setSucursalId(lista[0].id);
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
     const loadImpuestos = async () => {
         const res = await apiClient.getImpuestos();
@@ -153,15 +167,15 @@ export default function NuevaCompraPage() {
             return;
         }
 
+        if (!sucursalId) {
+            alert('Seleccione una sucursal');
+            return;
+        }
+
         if (savingRef.current) return;
         savingRef.current = true;
         setSaving(true);
         try {
-            const total = items.reduce((sum, i) => sum + i.subtotal, 0);
-
-            const userRes: any = await apiClient.getCurrentUser().catch(() => ({ user: null }));
-            const sucursalId = userRes?.sucursales?.[0]?.id || 1;
-
             await apiClient.createCompra({
                 sucursal_id: sucursalId,
                 proveedor_id: proveedorId,
@@ -249,7 +263,20 @@ export default function NuevaCompraPage() {
                 <h1 className="text-2xl font-bold text-gray-800 mb-6">Registrar Nueva Compra</h1>
 
                 <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Sucursal *</label>
+                            <select
+                                className="w-full p-2 border rounded"
+                                value={sucursalId || ''}
+                                onChange={e => setSucursalId(Number(e.target.value))}
+                            >
+                                {sucursales.length === 0 && <option value="">Cargando...</option>}
+                                {sucursales.map(s => (
+                                    <option key={s.id} value={s.id}>{s.nombre}</option>
+                                ))}
+                            </select>
+                        </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Emisión</label>
                             <input
