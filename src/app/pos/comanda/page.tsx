@@ -11,6 +11,7 @@ interface ComandaData {
   numero: string;
   fecha: string;
   cliente?: string;
+  telefono_gerente?: string;
   items: ComandaItem[];
 }
 

@@ -11,6 +11,9 @@ const PAYMENT_METHODS: Record<string, string> = {
 };
 
 const TENANTS_CON_IMPRESORA = ['persepolis', 'pukadigital'];
+const TENANTS_TELEFONOS: Record<string, string> = {
+  persepolis: '0995128237',
+};
 
 interface UsePOSPaymentArgs {
   items: CartItem[];
@@ -91,6 +94,7 @@ export function usePOSPayment({ items, client, turno, totals, onSaleComplete }: 
 
       if (printWindow) {
         const negocio = ({ persepolis: 'Persepolis Grill & Burgers' } as Record<string, string>)[tenant] || tenant;
+        const telefonoGerente = TENANTS_TELEFONOS[tenant] || '';
         const totalPagadoFinal = payments.reduce((s, p) => s + p.total, 0);
         const numeroPedido = res.numero_autorizacion ? res.numero_autorizacion.slice(-6) : new Date().getTime().toString().slice(-6);
 
@@ -98,6 +102,7 @@ export function usePOSPayment({ items, client, turno, totals, onSaleComplete }: 
           negocio, sucursal: turno?.sucursal_nombre || '',
           fecha: new Date().toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
           numero_pedido: numeroPedido,
+          telefono_gerente: telefonoGerente,
           items: items.map(item => ({ nombre: item.isCombo ? (item.comboNombre || item.producto.nombre) : item.producto.nombre, cantidad: item.cantidad, precio: item.precio, subtotal: item.subtotal })),
           subtotal: totals.subtotal, iva: totals.impuesto, total: totals.total,
           pagos: payments.map(p => ({ descripcion: p.descripcion, total: p.total })),
@@ -108,6 +113,7 @@ export function usePOSPayment({ items, client, turno, totals, onSaleComplete }: 
           numero: numeroPedido,
           fecha: new Date().toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
           cliente: client.razon_social,
+          telefono_gerente: telefonoGerente,
           items: items.map(item => ({ nombre: item.isCombo ? (item.comboNombre || item.producto.nombre) : item.producto.nombre, cantidad: item.cantidad })),
         }));
         printWindow.location.href = `${window.location.origin}/pos/recibo`;

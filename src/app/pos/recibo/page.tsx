@@ -19,6 +19,7 @@ interface ReciboData {
   sucursal: string;
   fecha: string;
   numero_pedido?: string;
+  telefono_gerente?: string;
   items: ReciboItem[];
   subtotal: number;
   iva: number;
@@ -158,6 +159,7 @@ export default function ReciboPOS() {
         <div className="center">
           <div className="negocio">{data.negocio}</div>
           <div>{data.sucursal}</div>
+          {data.telefono_gerente && <div>Telf: {data.telefono_gerente}</div>}
           <div>{data.fecha}</div>
           {data.numero_pedido && <div style={{ fontSize: '13px', margin: '3px 0', fontWeight: 'bold' }}>PEDIDO: #{data.numero_pedido}</div>}
         </div>
