@@ -232,6 +232,33 @@ Por qué esta separación existe: el POS es una app kiosk full-screen. Meterla d
 
 ---
 
+## 📦 Estructura de API (`src/lib/api/`)
+
+`src/lib/api.ts` fue dividido en módulos por dominio (2026-05-23). El barrel `index.ts` re-exporta todo — los imports existentes `import { api } from '@/lib/api'` siguen funcionando sin cambios.
+
+```
+src/lib/api/
+├── _base.ts         — apiFetch, headers X-Tenant/Authorization, manejo de errores
+├── _auth.ts         — login, logout, getCurrentUser, botLogin
+├── _productos.ts    — getProductos, getProducto, crearProducto, categorías
+├── _inventario.ts   — getInventario, ajusteInventario, getMovimientos, transferencia
+├── _ventas.ts       — getPOS, procesarVenta, getVentas
+├── _combos.ts       — getCombos, crearCombo, actualizarCombo, opciones slots
+├── _compras.ts      — getCompras, crearCompra, proveedores
+├── _guias.ts        — getGuias, crearGuia, trasladoBulk, enviarSRI
+├── _terceros.ts     — getClientes, crearCliente, buscarCliente
+├── _sucursales.ts   — getSucursales, getTurnoActivo
+├── _turnos.ts       — getTurnos, abrirTurno, cerrarTurno
+├── _empresas.ts     — getEmpresa, actualizarEmpresa, uploadCertificado
+├── _reportes.ts     — getReportes, getCierreCaja, getVentasDia
+├── _contabilidad.ts — getAsientos, getPlanCuentas
+└── index.ts         — re-exporta todo (retrocompatible con api.ts)
+```
+
+**Regla:** Si agregas un endpoint nuevo, ponlo en el módulo de su dominio (`_inventario.ts` para inventario, etc.). No crear un nuevo archivo para un solo método.
+
+---
+
 ## 🔗 Contrato con el Backend
 
 - **CRÍTICO:** Antes de asumir qué devuelve cualquier endpoint, navega a `/LedgerXpertz` e inspecciona el serializer correspondiente.
