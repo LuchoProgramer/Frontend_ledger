@@ -10,6 +10,7 @@ interface ComandaItem {
 interface ComandaData {
   numero: string;
   fecha: string;
+  cliente?: string;
   items: ComandaItem[];
 }
 
@@ -106,6 +107,7 @@ export default function ComandaCocina() {
         <div className="center">
           <div className="titulo">— COCINA —</div>
           <div className="numero">#{data.numero}</div>
+          {data.cliente && <div style={{ fontSize: '15px', fontWeight: 'bold', margin: '2px 0' }}>CLIENTE: {data.cliente}</div>}
           <div className="hora">{data.fecha}</div>
         </div>
 
