@@ -31,21 +31,31 @@ interface ReciboData {
 export default function ReciboPOS() {
   const [data, setData] = useState<ReciboData | null>(null);
   const [printed, setPrinted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setIsLoading(params.get('loading') === 'true');
+
     const raw = localStorage.getItem('posRecibo');
-    if (raw) setData(JSON.parse(raw));
+    if (raw) {
+      try {
+        setData(JSON.parse(raw));
+      } catch (e) {
+        console.error('Error parsing posRecibo:', e);
+      }
+    }
   }, []);
 
   useEffect(() => {
-    if (data) {
+    if (data && !isLoading) {
       const t = setTimeout(() => {
         window.print();
         setPrinted(true);
       }, 300);
       return () => clearTimeout(t);
     }
-  }, [data]);
+  }, [data, isLoading]);
 
   // Also mark as printed when print dialog closes
   useEffect(() => {
@@ -54,15 +64,53 @@ export default function ReciboPOS() {
     return () => window.removeEventListener('afterprint', handler);
   }, []);
 
+  if (isLoading) {
+    return (
+      <div style={{
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        padding: '32px 16px',
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '200px',
+        color: '#4f46e5',
+        background: 'white'
+      }}>
+        <div style={{
+          border: '4px solid #f3f3f3',
+          borderTop: '4px solid #4f46e5',
+          borderRadius: '50%',
+          width: '36px',
+          height: '36px',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '16px'
+        }} />
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+        <div style={{ fontWeight: 'bold', fontSize: '16px' }}>Procesando Venta...</div>
+        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>Por favor, espere. El recibo se generará automáticamente.</div>
+      </div>
+    );
+  }
+
   if (!data) {
     return (
-      <div style={{ fontFamily: 'monospace', padding: '16px', textAlign: 'center' }}>
+      <div style={{ fontFamily: 'monospace', padding: '16px', textAlign: 'center', background: 'white' }}>
         Sin datos de recibo.
       </div>
     );
   }
 
-  const fmt = (n: number) => n.toFixed(2);
+  const fmt = (n: any) => {
+    const val = parseFloat(n);
+    return isNaN(val) ? '0.00' : val.toFixed(2);
+  };
 
   return (
     <>
@@ -118,7 +166,7 @@ export default function ReciboPOS() {
 
         <table>
           <tbody>
-            {data.items.map((item, i) => (
+            {(data.items || []).map((item, i) => (
               <tr key={i}>
                 <td>{item.cantidad}x {item.nombre}</td>
                 <td className="right">${fmt(item.subtotal)}</td>
@@ -150,7 +198,7 @@ export default function ReciboPOS() {
 
         <table>
           <tbody>
-            {data.pagos.map((p, i) => (
+            {(data.pagos || []).map((p, i) => (
               <tr key={i}>
                 <td>{p.descripcion}</td>
                 <td className="right">${fmt(p.total)}</td>

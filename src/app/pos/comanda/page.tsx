@@ -15,22 +15,67 @@ interface ComandaData {
 
 export default function ComandaCocina() {
   const [data, setData] = useState<ComandaData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setIsLoading(params.get('loading') === 'true');
+
     const raw = localStorage.getItem('posComanda');
-    if (raw) setData(JSON.parse(raw));
+    if (raw) {
+      try {
+        setData(JSON.parse(raw));
+      } catch (e) {
+        console.error('Error parsing posComanda:', e);
+      }
+    }
   }, []);
 
   useEffect(() => {
-    if (data) {
+    if (data && !isLoading) {
       const t = setTimeout(() => window.print(), 300);
       return () => clearTimeout(t);
     }
-  }, [data]);
+  }, [data, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div style={{
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        padding: '32px 16px',
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '200px',
+        color: '#ea580c',
+        background: 'white'
+      }}>
+        <div style={{
+          border: '4px solid #f3f3f3',
+          borderTop: '4px solid #ea580c',
+          borderRadius: '50%',
+          width: '36px',
+          height: '36px',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '16px'
+        }} />
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+        <div style={{ fontWeight: 'bold', fontSize: '16px' }}>Procesando Comanda...</div>
+        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>Enviando pedido a cocina...</div>
+      </div>
+    );
+  }
 
   if (!data) {
     return (
-      <div style={{ fontFamily: 'monospace', padding: 16, textAlign: 'center' }}>
+      <div style={{ fontFamily: 'monospace', padding: 16, textAlign: 'center', background: 'white' }}>
         Sin datos de comanda.
       </div>
     );
@@ -66,7 +111,7 @@ export default function ComandaCocina() {
 
         <div className="divider" />
 
-        {data.items.map((item, i) => (
+        {(data.items || []).map((item, i) => (
           <div key={i} className="item">
             <span className="qty">{item.cantidad}x</span>
             <span className="nombre">{item.nombre}</span>

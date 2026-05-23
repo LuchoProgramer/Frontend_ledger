@@ -10,7 +10,7 @@ const PAYMENT_METHODS: Record<string, string> = {
   '18': 'Tarjeta Prepago', '15': 'Compensación de Deudas', '21': 'Endoso de Títulos',
 };
 
-const TENANTS_CON_IMPRESORA = ['persepolis'];
+const TENANTS_CON_IMPRESORA = ['persepolis', 'pukadigital'];
 
 interface UsePOSPaymentArgs {
   items: CartItem[];
@@ -65,6 +65,7 @@ export function usePOSPayment({ items, client, turno, totals, onSaleComplete }: 
     if (procesandoRef.current) return;
     procesandoRef.current = true;
     setProcesando(true);
+    let printWindow: Window | null = null;
     try {
       const totalPagado = payments.reduce((s, p) => s + p.total, 0);
       if (totalPagado < totals.total - 0.01) {
@@ -72,7 +73,9 @@ export function usePOSPayment({ items, client, turno, totals, onSaleComplete }: 
         return;
       }
       const tenant = window.location.hostname.split('.')[0];
-      const printWindow = TENANTS_CON_IMPRESORA.includes(tenant) ? window.open('about:blank', '_blank') : null;
+      printWindow = TENANTS_CON_IMPRESORA.includes(tenant) 
+        ? window.open(`${window.location.origin}/pos/recibo?loading=true`, '_blank') 
+        : null;
 
       const payload = {
         cliente: client,
@@ -103,12 +106,19 @@ export function usePOSPayment({ items, client, turno, totals, onSaleComplete }: 
           fecha: new Date().toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
           items: items.map(item => ({ nombre: item.isCombo ? (item.comboNombre || item.producto.nombre) : item.producto.nombre, cantidad: item.cantidad })),
         }));
-        printWindow.location.href = '/pos/recibo';
+        printWindow.location.href = `${window.location.origin}/pos/recibo`;
       }
 
       setShowModal(false);
       onSaleComplete();
     } catch (error: any) {
+      if (printWindow) {
+        try {
+          printWindow.close();
+        } catch (e) {
+          console.error('Error closing print window:', e);
+        }
+      }
       alert(error?.errorMessage || error?.message || 'Error al procesar venta');
     } finally {
       procesandoRef.current = false;
