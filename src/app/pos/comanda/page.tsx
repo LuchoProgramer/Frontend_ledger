@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 interface ComandaItem {
   nombre: string;
   cantidad: number;
+  precio?: number;
 }
 
 interface ComandaData {
@@ -12,6 +13,7 @@ interface ComandaData {
   fecha: string;
   cliente?: string;
   telefono_gerente?: string;
+  total?: number;
   items: ComandaItem[];
 }
 
@@ -117,11 +119,25 @@ export default function ComandaCocina() {
         {(data.items || []).map((item, i) => (
           <div key={i} className="item">
             <span className="qty">{item.cantidad}x</span>
-            <span className="nombre">{item.nombre}</span>
+            <span className="nombre">
+              {item.nombre}
+              {item.precio !== undefined && item.precio > 0 && (
+                <span style={{ fontSize: '13px', fontStyle: 'italic', fontWeight: 'normal', color: '#333', marginLeft: '6px' }}>
+                  (${item.precio.toFixed(2)})
+                </span>
+              )}
+            </span>
           </div>
         ))}
 
         <div className="divider" />
+
+        {data.total !== undefined && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '17px', fontWeight: 'bold', marginTop: '6px', paddingRight: '2mm' }}>
+            <span>VALOR TOTAL:</span>
+            <span>${data.total.toFixed(2)}</span>
+          </div>
+        )}
       </div>
     </>
   );

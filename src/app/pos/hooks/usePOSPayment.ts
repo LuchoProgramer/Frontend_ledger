@@ -114,7 +114,12 @@ export function usePOSPayment({ items, client, turno, totals, onSaleComplete }: 
           fecha: new Date().toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
           cliente: client.razon_social,
           telefono_gerente: telefonoGerente,
-          items: items.map(item => ({ nombre: item.isCombo ? (item.comboNombre || item.producto.nombre) : item.producto.nombre, cantidad: item.cantidad })),
+          total: totals.total,
+          items: items.map(item => ({
+            nombre: item.isCombo ? (item.comboNombre || item.producto.nombre) : item.producto.nombre,
+            cantidad: item.cantidad,
+            precio: item.precio,
+          })),
         }));
         printWindow.location.href = `${window.location.origin}/pos/recibo`;
       }
