@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export const runtime = 'experimental-edge'; // Next.js 15.5+ requires experimental-edge for middleware
-
 /**
  * Middleware para detectar el tenant desde el subdominio
  * Ejemplo: yanett.localhost:3000 → tenant = yanett
@@ -18,8 +16,6 @@ export default function middleware(request: NextRequest) {
 
   console.log('[Proxy] ✅ Procesando ruta:', pathname);
 
-  const response = NextResponse.next();
-
   // Obtener el host (ejemplo: yanett.localhost:3000)
   const host = request.headers.get('host') || '';
 
@@ -34,8 +30,11 @@ export default function middleware(request: NextRequest) {
     tenant = parts[0];
   }
 
-  // Agregar el tenant a los headers para que esté disponible en las páginas
-  response.headers.set('x-tenant', tenant);
+  // Agregar el tenant a los headers del REQUEST forwarded — así los Server
+  // Components pueden leerlo vía `headers().get('x-tenant')`.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-tenant', tenant);
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
 
   // También lo guardamos en una cookie para acceso fácil desde el cliente
   if (!request.cookies.get('tenant')?.value) {

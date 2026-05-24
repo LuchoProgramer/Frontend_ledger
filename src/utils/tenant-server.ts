@@ -15,9 +15,13 @@ import { headers } from 'next/headers';
  */
 export async function getTenantFromServer(): Promise<string> {
   const headersList = await headers();
-  const host = headersList.get('host') || 'localhost';
 
-  // Extraer el hostname sin el puerto
+  // Preferir el header x-tenant inyectado por el middleware (única fuente de verdad).
+  const xTenant = headersList.get('x-tenant');
+  if (xTenant) return xTenant;
+
+  // Fallback: parsear host (caso: el middleware no se ejecutó por alguna razón).
+  const host = headersList.get('host') || 'localhost';
   const hostname = host.split(':')[0];
   const parts = hostname.split('.');
 

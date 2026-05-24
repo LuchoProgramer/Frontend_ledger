@@ -57,11 +57,7 @@ describe('Bug 1 — React.Fragment con key en lista de facturas', () => {
         // Busca <> como primer tag después de return o =>
         if (/=>\s*\(\s*$|return\s*\(/.test(linea)) {
           const siguienteLinea = lineas[i + 1]?.trim()
-          expect(siguienteLinea).not.toBe(
-            '<>',
-            'El .map() de facturas retorna <> sin key prop. ' +
-            'Debe usar <React.Fragment key={f.id}>.'
-          )
+          expect(siguienteLinea).not.toBe('<>')
         }
         if (profundidad <= 0 && linea.includes(')')) dentroMapFacturas = false
       }
