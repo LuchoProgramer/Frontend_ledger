@@ -19,15 +19,16 @@ export function TurnosMixin<TBase extends Ctor>(Base: TBase) {
       return this.request<any>(`/api/turnos/?${q.toString()}`);
     }
 
-    async abrirTurno(sucursalId: number) {
+    async abrirTurno(sucursalId: number, montoInicial: number = 0) {
       return this.request<any>('/api/turnos/abrir/', {
-        method: 'POST', body: JSON.stringify({ sucursal_id: sucursalId }),
+        method: 'POST', body: JSON.stringify({ sucursal_id: sucursalId, monto_inicial: montoInicial }),
       });
     }
 
     async cerrarTurno(datos: {
       efectivo_total: number; tarjeta_total: number;
       transferencia_total: number; salidas_caja: number;
+      efectivo_a_dejar?: number;
     }) {
       return this.request<any>('/api/turnos/cerrar/', { method: 'POST', body: JSON.stringify(datos) });
     }

@@ -14,6 +14,7 @@ export function usePOSTurno(onTurnoOpened: (sucursalId: number) => void) {
   const [opening, setOpening] = useState(false);
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [showClosingModal, setShowClosingModal] = useState(false);
+  const [efectivoSugerido, setEfectivoSugerido] = useState<number>(35.00);
 
   const apiClient = getApiClient();
 
@@ -40,6 +41,12 @@ export function usePOSTurno(onTurnoOpened: (sucursalId: number) => void) {
       } else {
         setTurno(null);
         localStorage.removeItem('activeTurno');
+        if (res.efectivo_sugerido !== undefined && res.efectivo_sugerido !== null) {
+          const parsed = parseFloat(res.efectivo_sugerido);
+          setEfectivoSugerido(isNaN(parsed) ? 35.00 : parsed);
+        } else {
+          setEfectivoSugerido(35.00);
+        }
         await loadSucursales();
         setShowShiftModal(true);
       }
@@ -50,11 +57,11 @@ export function usePOSTurno(onTurnoOpened: (sucursalId: number) => void) {
     }
   };
 
-  const handleOpenTurno = async () => {
+  const handleOpenTurno = async (montoInicial: number = 0) => {
     if (!selectedSucursal) return alert('Seleccione una sucursal');
     try {
       setOpening(true);
-      const res = await apiClient.abrirTurno(selectedSucursal);
+      const res = await apiClient.abrirTurno(selectedSucursal, montoInicial);
       if (res.success) {
         setTurno(res.data);
         localStorage.setItem('activeTurno', JSON.stringify({ sucursal_nombre: res.data.sucursal_nombre }));
@@ -76,8 +83,7 @@ export function usePOSTurno(onTurnoOpened: (sucursalId: number) => void) {
       localStorage.removeItem('activeTurno');
       window.dispatchEvent(new Event('storage'));
       onClosed();
-      await loadSucursales();
-      setShowShiftModal(true);
+      await checkTurno();
     } catch (e: any) {
       alert(e.message || 'Error al cerrar turno');
       throw e;
@@ -95,6 +101,7 @@ export function usePOSTurno(onTurnoOpened: (sucursalId: number) => void) {
     setShowShiftModal,
     showClosingModal,
     setShowClosingModal,
+    efectivoSugerido,
     checkTurno,
     handleOpenTurno,
     handleConfirmCloseTurno,

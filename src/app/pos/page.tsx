@@ -21,6 +21,10 @@ export default function POSPage() {
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const tenant = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : '';
+  const hasCashControl = ['persepolis'].includes(tenant);
+  const [montoInicialInput, setMontoInicialInput] = useState<string>('35.00');
+
   const showToast = (message: string) => {
     setToast({ message, visible: true });
     setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 2000);
@@ -32,6 +36,12 @@ export default function POSPage() {
     catalog.loadProductos('', sucursalId);
     catalog.loadCategorias();
   });
+
+  useEffect(() => {
+    if (turno.showShiftModal) {
+      setMontoInicialInput(turno.efectivoSugerido.toFixed(2));
+    }
+  }, [turno.showShiftModal, turno.efectivoSugerido]);
 
   const cart = usePOSCart(turno.turno?.sucursal, showToast);
   const client = usePOSClient();
@@ -246,8 +256,29 @@ export default function POSPage() {
                 {turno.sucursales.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
               </select>
             </div>
+            {hasCashControl && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monto Inicial de Caja ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full p-2 border rounded font-bold text-gray-900"
+                  value={montoInicialInput}
+                  onChange={e => setMontoInicialInput(e.target.value)}
+                  placeholder="35.00"
+                />
+                <p className="text-xs text-gray-500 mt-1">Efectivo sugerido en base al cierre anterior.</p>
+              </div>
+            )}
             <div className="flex justify-end pt-4">
-              <button onClick={turno.handleOpenTurno} disabled={!turno.selectedSucursal || turno.opening} className="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700 disabled:opacity-50">
+              <button
+                onClick={() => {
+                  const monto = hasCashControl ? parseFloat(montoInicialInput) || 0 : 0;
+                  turno.handleOpenTurno(monto);
+                }}
+                disabled={!turno.selectedSucursal || turno.opening}
+                className="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700 disabled:opacity-50"
+              >
                 {turno.opening ? 'Abriendo...' : 'Abrir Turno'}
               </button>
             </div>

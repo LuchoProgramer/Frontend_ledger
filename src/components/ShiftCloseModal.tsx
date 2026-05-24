@@ -20,15 +20,20 @@ export interface ShiftCloseData {
     transferencia_total: number;
     salidas_caja: number;
     observaciones: string;
+    efectivo_a_dejar?: number;
 }
 
 export default function ShiftCloseModal({ isOpen, onClose, onConfirm, systemTotals }: ShiftCloseModalProps) {
+    const tenant = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : '';
+    const hasCashControl = ['persepolis'].includes(tenant);
+
     const [data, setData] = useState<ShiftCloseData>({
         efectivo_total: 0,
         tarjeta_total: 0,
         transferencia_total: 0,
         salidas_caja: 0,
-        observaciones: ''
+        observaciones: '',
+        efectivo_a_dejar: hasCashControl ? 35.00 : 0
     });
     const [loading, setLoading] = useState(false);
 
@@ -64,7 +69,7 @@ export default function ShiftCloseModal({ isOpen, onClose, onConfirm, systemTota
             <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 max-w-lg w-full rounded-lg shadow-xl">
                 <div className="mb-6 border-b pb-4">
                     <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                        🔒 Cerrar Turno de Caja
+                         Cerrar Turno de Caja
                     </h3>
                     <p className="text-sm text-gray-500 mt-1">
                         Por favor, ingrese los valores finales del arqueo físico.
@@ -90,6 +95,27 @@ export default function ShiftCloseModal({ isOpen, onClose, onConfirm, systemTota
                             />
                         </div>
                     </div>
+
+                    {/* Efectivo a Dejar en Caja */}
+                    {hasCashControl && (
+                        <div className="flex items-center justify-between bg-indigo-50/50 p-2 rounded-md border border-indigo-100">
+                            <label className="block text-sm font-semibold text-indigo-900 w-1/3">
+                                Dejar en Caja ($)
+                            </label>
+                            <div className="w-2/3 relative">
+                                <span className="absolute left-3 top-2 text-indigo-600 font-bold">$</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className="pl-8 block w-full rounded-md border-indigo-300 text-indigo-900 font-bold focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                                    placeholder="35.00"
+                                    value={data.efectivo_a_dejar || ''}
+                                    onChange={(e) => handleChange('efectivo_a_dejar', e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Tarjetas */}
                     <div className="flex items-center justify-between">
