@@ -112,8 +112,9 @@ Cuando trabajes con Server Components, llamadas a la API, hooks de React Query o
 | PWA manifest dinámico | `src/app/manifest.json/route.ts` | Completo | `force-dynamic`; genera `name`/`short_name` según subdominio del tenant |
 | Íconos PWA | `public/icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `favicon.ico` | Completo | Generados desde SVG con sharp |
 | Root layout | `src/app/layout.tsx` | Actualizado | `Viewport.themeColor`, `metadata.manifest`, `metadata.icons.apple` |
-| Tenant server util | `src/utils/tenant-server.ts` | Estable | `getTenantFromServer()` lee header `host`; úsalo en Server Components y Route Handlers |
+| Tenant server util | `src/utils/tenant-server.ts` | Actualizado 2026-05-24 | `getTenantFromServer()` lee header `x-tenant` (inyectado por middleware); cae a parseo de `host` solo como fallback defensivo. Úsalo en Server Components y Route Handlers. |
 | Tenant client util | `src/lib/tenant.ts` | Estable | `getTenant()` lee `window.location.hostname`; úsalo en Client Components |
+| Middleware tenant | `src/middleware.ts` | Actualizado 2026-05-24 | Inyecta `x-tenant` en los headers del **request forwarded** (`NextResponse.next({ request: { headers } })`), no en la respuesta. Server Components pueden leerlo con `headers().get('x-tenant')` directo. Antes del fix el header iba al response y los SC no lo veían. |
 | Dashboard layout | `src/components/DashboardLayout.tsx` | Actualizado | Menú lateral con roles; íconos importados: `SlidersHorizontal`, `PackagePlus`, `History`, `ShieldCheck`, `Gift`, `Layers` |
 
 ### 📦 Inventario
