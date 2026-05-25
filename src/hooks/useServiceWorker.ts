@@ -25,7 +25,7 @@ export function useServiceWorker(): UseServiceWorkerReturn {
           }
         });
       });
-    });
+    }).catch(console.error);
 
     const handleControllerChange = () => {
       if (isUpdating.current) window.location.reload();
