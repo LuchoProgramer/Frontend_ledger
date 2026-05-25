@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { getApiClient } from '@/lib/api';
 import { Producto, Presentacion } from '@/lib/types/productos';
 import { CartItem, ComboResult, SlotOpcion } from '../types';
+import { sriCalculator, CartItemInput } from '@/lib/wasm/calculator';
 
 export function usePOSCart(sucursalId: number | undefined, showToast: (msg: string) => void) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -153,14 +154,16 @@ export function usePOSCart(sucursalId: number | undefined, showToast: (msg: stri
   };
 
   const calculateTotals = () => {
-    const raw = items.reduce((acc, item) => {
-      acc.subtotal += item.subtotal; acc.total += item.total; acc.impuesto += item.impuesto;
-      return acc;
-    }, { subtotal: 0, total: 0, impuesto: 0 });
+    const inputs: CartItemInput[] = items.map(item => ({
+      precio_pvp: String(item.precio),
+      cantidad: item.cantidad,
+      tasa_iva: String(item.producto.impuesto_porcentaje ?? 15),
+    }));
+    const result = sriCalculator.calcularCarrito(inputs);
     return {
-      subtotal: parseFloat(raw.subtotal.toFixed(2)),
-      total: parseFloat(raw.total.toFixed(2)),
-      impuesto: parseFloat(raw.impuesto.toFixed(2)),
+      subtotal: parseFloat(result.subtotal_sin_iva),
+      total:    parseFloat(result.total_con_iva),
+      impuesto: parseFloat(result.total_iva),
     };
   };
 

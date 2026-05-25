@@ -83,7 +83,7 @@ class SriCalculator {
       try {
         // Dynamic import del glue generado por wasm-pack
         const mod = await import('./calculos_sri_wasm.js') as {
-          default: (wasmPath: string) => Promise<void>;
+          default: (wasmPath: string) => Promise<any>;
           calcular_carrito: (json: string) => string;
         };
         await mod.default('/calculos_sri_wasm_bg.wasm');
