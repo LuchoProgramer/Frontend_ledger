@@ -6,7 +6,10 @@ import { SucursalSimple } from '@/lib/types/usuarios';
 import { Turno, CONSUMIDOR_FINAL } from '../types';
 import { ShiftCloseData } from '@/components/ShiftCloseModal';
 
-export function usePOSTurno(onTurnoOpened: (sucursalId: number) => void) {
+export function usePOSTurno(
+  onTurnoOpened: (sucursalId: number) => void,
+  pendingCount: number = 0
+) {
   const [turno, setTurno] = useState<Turno | null>(null);
   const [loading, setLoading] = useState(true);
   const [sucursales, setSucursales] = useState<SucursalSimple[]>([]);
@@ -77,6 +80,10 @@ export function usePOSTurno(onTurnoOpened: (sucursalId: number) => void) {
   };
 
   const handleConfirmCloseTurno = async (data: ShiftCloseData, onClosed: () => void) => {
+    if (pendingCount > 0) {
+      alert(`Hay ${pendingCount} venta${pendingCount > 1 ? 's' : ''} pendiente${pendingCount > 1 ? 's' : ''} de sincronizar. Espera a que se sincronicen antes de cerrar el turno.`);
+      return;
+    }
     try {
       await apiClient.cerrarTurno(data);
       setTurno(null);

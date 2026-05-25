@@ -71,7 +71,7 @@ export async function preloadCatalogFn(
         );
         await posDB.combos.bulkPut(combosConOpciones);
       }
-      if (!comboRes.next) break;
+      if (rawCombos.length < 100) break;
       comboPage++;
     }
   } catch {

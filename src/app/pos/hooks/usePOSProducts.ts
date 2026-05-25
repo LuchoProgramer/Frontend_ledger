@@ -5,7 +5,12 @@ import { getApiClient } from '@/lib/api';
 import { Producto, Categoria } from '@/lib/types/productos';
 import { ComboResult } from '../types';
 
-export function usePOSProducts(sucursalId: number | undefined) {
+type OfflineSearchFn = (term: string, categoriaId: number | null, sucursalId: number) => Promise<Producto[]>;
+
+export function usePOSProducts(
+  sucursalId: number | undefined,
+  offlineSearch?: OfflineSearchFn
+) {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [selectedCategoria, setSelectedCategoria] = useState<number | null>(null);
@@ -13,6 +18,7 @@ export function usePOSProducts(sucursalId: number | undefined) {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [combos, setCombos] = useState<ComboResult[]>([]);
+  const [isOffline, setIsOffline] = useState(false);
 
   const apiClient = getApiClient();
 
@@ -24,8 +30,17 @@ export function usePOSProducts(sucursalId: number | undefined) {
       if (categoriaId) params.categoria = categoriaId;
       const res = await apiClient.getProductos(params as Parameters<typeof apiClient.getProductos>[0]);
       setProductos(res.results || res.data || []);
-    } catch (error) {
-      console.error('Error loading products', error);
+      setIsOffline(false);
+    } catch (error: any) {
+      const isNetworkError = error?.status === 0;
+      if (isNetworkError && offlineSearch && (sucursalId || sid)) {
+        const targetSucursal = sid ?? sucursalId!;
+        const offline = await offlineSearch(search, categoriaId ?? null, targetSucursal);
+        setProductos(offline);
+        setIsOffline(true);
+      } else {
+        console.error('Error loading products', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -49,7 +64,6 @@ export function usePOSProducts(sucursalId: number | undefined) {
     setShowCategoryDrawer(false);
   };
 
-  // Búsqueda de combos con debounce
   useEffect(() => {
     if (!sucursalId || !searchTerm.trim()) { setCombos([]); return; }
     const timer = setTimeout(() => {
@@ -61,17 +75,10 @@ export function usePOSProducts(sucursalId: number | undefined) {
   }, [searchTerm, sucursalId]);
 
   return {
-    productos,
-    categorias,
-    selectedCategoria,
-    showCategoryDrawer,
-    setShowCategoryDrawer,
-    searchTerm,
-    loading,
-    combos,
-    loadProductos,
-    loadCategorias,
-    handleSearch,
-    handleSelectCategoria,
+    productos, categorias, selectedCategoria,
+    showCategoryDrawer, setShowCategoryDrawer,
+    searchTerm, loading, combos, isOffline,
+    loadProductos, loadCategorias,
+    handleSearch, handleSelectCategoria,
   };
 }
