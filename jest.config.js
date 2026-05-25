@@ -10,10 +10,11 @@ module.exports = {
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: { jsx: 'react' } }],
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(fake-indexeddb)/)',
+  ],
   moduleNameMapper: {
-    // Resuelve alias @/ definido en tsconfig.json
     '^@/(.*)$': '<rootDir>/src/$1',
-    // El glue generado por wasm-pack no existe en test env — se mockea
     './calculos_sri_wasm\\.js$': '<rootDir>/src/__tests__/wasm/__mocks__/calculos_sri_wasm.js',
   },
 };
