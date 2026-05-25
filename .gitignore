@@ -51,3 +51,8 @@ docs/superpowers/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# WASM generado — reconstruir con npm run build:wasm
+/public/calculos_sri_wasm_bg.wasm
+/src/lib/wasm/calculos_sri_wasm.js
+/src/lib/wasm/calculos_sri_wasm.d.ts
