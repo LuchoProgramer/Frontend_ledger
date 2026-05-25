@@ -36,13 +36,13 @@ export default function POSPage() {
   const offlineCatalog = useOfflineCatalog();
   const offlineQueue = useOfflineQueue();
 
-  const catalog = usePOSProducts(undefined, offlineCatalog.searchOffline);
-
   const turno = usePOSTurno((sucursalId) => {
     catalog.loadProductos('', sucursalId);
     catalog.loadCategorias();
     offlineCatalog.preloadCatalog(sucursalId);
   }, offlineQueue.pendingCount);
+
+  const catalog = usePOSProducts(turno.turno?.sucursal, offlineCatalog.searchOffline);
 
   // Carga el motor WASM una sola vez al montar el POS
   useEffect(() => {
