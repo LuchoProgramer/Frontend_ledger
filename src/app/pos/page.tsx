@@ -11,6 +11,8 @@ import { usePOSCart } from './hooks/usePOSCart';
 import { usePOSClient } from './hooks/usePOSClient';
 import { usePOSPayment } from './hooks/usePOSPayment';
 import { sriCalculator } from '@/lib/wasm/calculator';
+import { useOfflineCatalog } from './hooks/useOfflineCatalog';
+import { useOfflineQueue } from './hooks/useOfflineQueue';
 import POSProductGrid from './components/POSProductGrid';
 import POSCart from './components/POSCart';
 import POSClientModal from './components/POSClientModal';
@@ -31,12 +33,16 @@ export default function POSPage() {
     setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 2000);
   };
 
-  const catalog = usePOSProducts(undefined);
+  const offlineCatalog = useOfflineCatalog();
+  const offlineQueue = useOfflineQueue();
+
+  const catalog = usePOSProducts(undefined, offlineCatalog.searchOffline);
 
   const turno = usePOSTurno((sucursalId) => {
     catalog.loadProductos('', sucursalId);
     catalog.loadCategorias();
-  });
+    offlineCatalog.preloadCatalog(sucursalId);
+  }, offlineQueue.pendingCount);
 
   // Carga el motor WASM una sola vez al montar el POS
   useEffect(() => {
@@ -49,7 +55,7 @@ export default function POSPage() {
     }
   }, [turno.showShiftModal, turno.efectivoSugerido]);
 
-  const cart = usePOSCart(turno.turno?.sucursal, showToast);
+  const cart = usePOSCart(turno.turno?.sucursal, showToast, offlineCatalog.getComboOpciones);
   const client = usePOSClient();
   const totals = cart.calculateTotals();
 
@@ -64,6 +70,7 @@ export default function POSPage() {
       catalog.loadProductos(catalog.searchTerm, undefined, catalog.selectedCategoria);
     },
     showToast,
+    enqueueSale: offlineQueue.enqueueSale,
   });
 
   // Keyboard shortcuts
@@ -87,7 +94,7 @@ export default function POSPage() {
 
   if (turno.loading) {
     return (
-      <POSLayout>
+      <POSLayout pendingCount={offlineQueue.pendingCount} errorCount={offlineQueue.errorCount}>
         <div className="flex items-center justify-center h-full">
           <p className="text-gray-500">Verificando turno...</p>
         </div>
@@ -96,7 +103,7 @@ export default function POSPage() {
   }
 
   return (
-    <POSLayout>
+    <POSLayout pendingCount={offlineQueue.pendingCount} errorCount={offlineQueue.errorCount}>
       <div className="flex flex-col h-full overflow-hidden bg-gray-100">
 
         {/* Mobile tab navigation */}
@@ -147,6 +154,7 @@ export default function POSPage() {
                   onAddToCart={cart.addToCart}
                   onAddCombo={cart.addComboToCart}
                   showToast={showToast}
+                  isOffline={catalog.isOffline}
                 />
               </div>
               <div className={`md:flex ${activeTab === 'catalog' ? 'hidden' : 'flex-1'}`}>
