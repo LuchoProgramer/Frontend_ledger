@@ -2,10 +2,18 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  // Solo busca tests en src/__tests__ — no en .next/ ni .open-next/
-  testMatch: ['<rootDir>/src/__tests__/**/*.test.ts', '<rootDir>/src/__tests__/**/*.test.tsx'],
+  testMatch: [
+    '<rootDir>/src/__tests__/**/*.test.ts',
+    '<rootDir>/src/__tests__/**/*.test.tsx',
+  ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: { jsx: 'react' } }],
   },
-}
+  moduleNameMapper: {
+    // Resuelve alias @/ definido en tsconfig.json
+    '^@/(.*)$': '<rootDir>/src/$1',
+    // El glue generado por wasm-pack no existe en test env — se mockea
+    './calculos_sri_wasm\\.js$': '<rootDir>/src/__tests__/wasm/__mocks__/calculos_sri_wasm.js',
+  },
+};
