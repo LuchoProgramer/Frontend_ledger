@@ -40,11 +40,13 @@ export default function POSProductGrid({
           <span className="text-yellow-600 text-sm font-semibold">⚠ Sin conexión — mostrando catálogo local</span>
         </div>
       )}
-      {needsRefresh && (
+      {needsRefresh && updateSW && (
         <div className="bg-indigo-600 text-white text-sm px-4 py-2 flex items-center justify-between shrink-0 mb-2 rounded-lg">
           <span>Nueva versión disponible</span>
           <button
+            type="button"
             onClick={updateSW}
+            aria-label="Cargar nueva versión de la aplicación"
             className="font-bold underline ml-4 hover:text-indigo-200 transition-colors"
           >
             Actualizar
