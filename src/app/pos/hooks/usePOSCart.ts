@@ -6,7 +6,11 @@ import { Producto, Presentacion } from '@/lib/types/productos';
 import { CartItem, ComboResult, SlotOpcion } from '../types';
 import { sriCalculator, CartItemInput } from '@/lib/wasm/calculator';
 
-export function usePOSCart(sucursalId: number | undefined, showToast: (msg: string) => void) {
+export function usePOSCart(
+  sucursalId: number | undefined,
+  showToast: (msg: string) => void,
+  getOfflineComboOpciones?: (comboId: number) => Promise<import('@/lib/db/posDB').ComboDB | undefined>
+) {
   const [items, setItems] = useState<CartItem[]>([]);
 
   // Presentation selection modal
@@ -98,16 +102,26 @@ export function usePOSCart(sucursalId: number | undefined, showToast: (msg: stri
     setLoadingSlots(true);
     setShowSlotModal(true);
     try {
-      const results = await Promise.all(
-        combo.slots.map(slot =>
-          apiClient.getComboOpciones(combo.id, slot.id, sucursalId!)
-            .then(opciones => ({ slotId: slot.id, opciones: Array.isArray(opciones) ? opciones : [] }))
-            .catch(() => ({ slotId: slot.id, opciones: [] as SlotOpcion[] }))
-        )
-      );
-      const map: Record<number, SlotOpcion[]> = {};
-      results.forEach(({ slotId, opciones }) => { map[slotId] = opciones; });
-      setSlotOpciones(map);
+      if (!navigator.onLine && getOfflineComboOpciones) {
+        // Usar opciones desde Dexie
+        const cachedCombo = await getOfflineComboOpciones(combo.id);
+        const map: Record<number, SlotOpcion[]> = {};
+        if (cachedCombo) {
+          cachedCombo.slots.forEach(slot => { map[slot.id] = slot.opciones; });
+        }
+        setSlotOpciones(map);
+      } else {
+        const results = await Promise.all(
+          combo.slots.map(slot =>
+            apiClient.getComboOpciones(combo.id, slot.id, sucursalId!)
+              .then(opciones => ({ slotId: slot.id, opciones: Array.isArray(opciones) ? opciones : [] }))
+              .catch(() => ({ slotId: slot.id, opciones: [] as SlotOpcion[] }))
+          )
+        );
+        const map: Record<number, SlotOpcion[]> = {};
+        results.forEach(({ slotId, opciones }) => { map[slotId] = opciones; });
+        setSlotOpciones(map);
+      }
     } finally { setLoadingSlots(false); }
   };
 

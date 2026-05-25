@@ -22,9 +22,18 @@ interface UsePOSPaymentArgs {
   totals: { subtotal: number; total: number; impuesto: number };
   onSaleComplete: () => void;
   showToast: (msg: string) => void;
+  enqueueSale?: (payload: object, receiptData: object, turnoId: number, sucursalId: number) => Promise<void>;
 }
 
-export function usePOSPayment({ items, client, turno, totals, onSaleComplete }: UsePOSPaymentArgs) {
+export function usePOSPayment({
+  items,
+  client,
+  turno,
+  totals,
+  onSaleComplete,
+  showToast,
+  enqueueSale,
+}: UsePOSPaymentArgs) {
   const [showModal, setShowModal] = useState(false);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('01');
@@ -76,9 +85,16 @@ export function usePOSPayment({ items, client, turno, totals, onSaleComplete }: 
         return;
       }
       const tenant = window.location.hostname.split('.')[0];
-      printWindow = TENANTS_CON_IMPRESORA.includes(tenant) 
-        ? window.open(`${window.location.origin}/pos/recibo?loading=true`, '_blank') 
+      printWindow = TENANTS_CON_IMPRESORA.includes(tenant)
+        ? window.open(`${window.location.origin}/pos/recibo?loading=true`, '_blank')
         : null;
+
+      let pendiente = totals.total;
+      const pagosNormalizados = payments.map(p => {
+        const asignado = parseFloat(Math.min(p.total, pendiente).toFixed(2));
+        pendiente = parseFloat(Math.max(0, pendiente - asignado).toFixed(2));
+        return { ...p, total: asignado };
+      });
 
       const payload = {
         cliente: client,
@@ -86,55 +102,98 @@ export function usePOSPayment({ items, client, turno, totals, onSaleComplete }: 
           ? { type: 'combo', combo_id: item.comboId, cantidad: item.cantidad, slot_selections: (item.slotSelections || []).map(s => ({ slot_id: s.slot_id, producto_id: s.producto_id })) }
           : { id: item.producto.id, presentacion_id: item.presentacion.id, cantidad: item.cantidad, precio: item.precio }
         ),
-        pagos: payments,
+        pagos: pagosNormalizados,
         es_interno: esInterno,
       };
 
-      const res = await apiClient.crearFacturaPOS(payload);
+      const numeroPedido = new Date().getTime().toString().slice(-6);
+      const negocio = ({ persepolis: 'Persepolis Grill & Burgers' } as Record<string, string>)[tenant] || tenant;
+      const telefonoGerente = TENANTS_TELEFONOS[tenant] || '';
+      const totalPagadoFinal = payments.reduce((s, p) => s + p.total, 0);
 
-      if (printWindow) {
-        const negocio = ({ persepolis: 'Persepolis Grill & Burgers' } as Record<string, string>)[tenant] || tenant;
-        const telefonoGerente = TENANTS_TELEFONOS[tenant] || '';
-        const totalPagadoFinal = payments.reduce((s, p) => s + p.total, 0);
-        const numeroPedido = res.numero_autorizacion ? res.numero_autorizacion.slice(-6) : new Date().getTime().toString().slice(-6);
+      const receiptData = {
+        negocio, sucursal: turno?.sucursal_nombre || '',
+        fecha: new Date().toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
+        numero_pedido: numeroPedido,
+        telefono_gerente: telefonoGerente,
+        items: items.map(item => ({ nombre: item.isCombo ? (item.comboNombre || item.producto.nombre) : item.producto.nombre, cantidad: item.cantidad, precio: item.precio, subtotal: item.subtotal })),
+        subtotal: totals.subtotal, iva: totals.impuesto, total: totals.total,
+        pagos: payments.map(p => ({ descripcion: p.descripcion, total: p.total })),
+        cambio: Math.max(0, totalPagadoFinal - totals.total),
+        numero_autorizacion: '',
+        cliente: client.razon_social,
+      };
 
-        localStorage.setItem('posRecibo', JSON.stringify({
-          negocio, sucursal: turno?.sucursal_nombre || '',
-          fecha: new Date().toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
-          numero_pedido: numeroPedido,
-          telefono_gerente: telefonoGerente,
-          items: items.map(item => ({ nombre: item.isCombo ? (item.comboNombre || item.producto.nombre) : item.producto.nombre, cantidad: item.cantidad, precio: item.precio, subtotal: item.subtotal })),
-          subtotal: totals.subtotal, iva: totals.impuesto, total: totals.total,
-          pagos: payments.map(p => ({ descripcion: p.descripcion, total: p.total })),
-          cambio: Math.max(0, totalPagadoFinal - totals.total),
-          numero_autorizacion: res.numero_autorizacion || '', cliente: client.razon_social,
-        }));
+      // ── Flujo offline ──────────────────────────────────────────────────────
+      if (!navigator.onLine && enqueueSale && turno) {
+        receiptData.numero_autorizacion = 'PENDIENTE';
+        await enqueueSale(payload, receiptData, turno.id, turno.sucursal);
+        localStorage.setItem('posRecibo', JSON.stringify(receiptData));
         localStorage.setItem('posComanda', JSON.stringify({
-          numero: numeroPedido,
-          fecha: new Date().toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
-          cliente: client.razon_social,
-          telefono_gerente: telefonoGerente,
+          numero: numeroPedido, fecha: receiptData.fecha,
+          cliente: client.razon_social, telefono_gerente: telefonoGerente,
           total: totals.total,
-          items: items.map(item => ({
-            nombre: item.isCombo ? (item.comboNombre || item.producto.nombre) : item.producto.nombre,
-            cantidad: item.cantidad,
-            precio: item.precio,
-          })),
+          items: items.map(i => ({ nombre: i.isCombo ? (i.comboNombre || i.producto.nombre) : i.producto.nombre, cantidad: i.cantidad, precio: i.precio })),
         }));
-        printWindow.location.href = `${window.location.origin}/pos/recibo`;
+        if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo`;
+        setShowModal(false);
+        onSaleComplete();
+        return;
       }
 
+      // ── Flujo online ───────────────────────────────────────────────────────
+      const res = await apiClient.crearFacturaPOS(payload);
+      receiptData.numero_autorizacion = res.numero_autorizacion || '';
+      receiptData.numero_pedido = res.numero_autorizacion ? res.numero_autorizacion.slice(-6) : numeroPedido;
+
+      localStorage.setItem('posRecibo', JSON.stringify(receiptData));
+      localStorage.setItem('posComanda', JSON.stringify({
+        numero: receiptData.numero_pedido, fecha: receiptData.fecha,
+        cliente: client.razon_social, telefono_gerente: telefonoGerente,
+        total: totals.total,
+        items: items.map(i => ({ nombre: i.isCombo ? (i.comboNombre || i.producto.nombre) : i.producto.nombre, cantidad: i.cantidad, precio: i.precio })),
+      }));
+      if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo`;
       setShowModal(false);
       onSaleComplete();
+
     } catch (error: any) {
-      if (printWindow) {
-        try {
-          printWindow.close();
-        } catch (e) {
-          console.error('Error closing print window:', e);
-        }
+      // Si error de red en intento online, encolar como offline
+      if (error?.status === 0 && enqueueSale && turno) {
+        const pendiente2 = totals.total;
+        const pagosNorm2 = payments.map(p => {
+          const asignado = parseFloat(Math.min(p.total, pendiente2).toFixed(2));
+          return { ...p, total: asignado };
+        });
+        const fallbackPayload = {
+          cliente: client,
+          items: items.map(item => item.isCombo
+            ? { type: 'combo', combo_id: item.comboId, cantidad: item.cantidad, slot_selections: (item.slotSelections || []).map(s => ({ slot_id: s.slot_id, producto_id: s.producto_id })) }
+            : { id: item.producto.id, presentacion_id: item.presentacion.id, cantidad: item.cantidad, precio: item.precio }
+          ),
+          pagos: pagosNorm2, es_interno: esInterno,
+        };
+        const tenant2 = window.location.hostname.split('.')[0];
+        const negocio2 = ({ persepolis: 'Persepolis Grill & Burgers' } as Record<string, string>)[tenant2] || tenant2;
+        const numeroPedido2 = new Date().getTime().toString().slice(-6);
+        const fallbackReceipt = {
+          negocio: negocio2, sucursal: turno.sucursal_nombre,
+          fecha: new Date().toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
+          numero_pedido: numeroPedido2, telefono_gerente: TENANTS_TELEFONOS[tenant2] || '',
+          items: items.map(i => ({ nombre: i.isCombo ? (i.comboNombre || i.producto.nombre) : i.producto.nombre, cantidad: i.cantidad, precio: i.precio, subtotal: i.subtotal })),
+          subtotal: totals.subtotal, iva: totals.impuesto, total: totals.total,
+          pagos: payments.map(p => ({ descripcion: p.descripcion, total: p.total })),
+          cambio: 0, numero_autorizacion: 'PENDIENTE', cliente: client.razon_social,
+        };
+        await enqueueSale(fallbackPayload, fallbackReceipt, turno.id, turno.sucursal);
+        localStorage.setItem('posRecibo', JSON.stringify(fallbackReceipt));
+        if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo`;
+        setShowModal(false);
+        onSaleComplete();
+      } else {
+        if (printWindow) { try { printWindow.close(); } catch { /* ignore */ } }
+        alert(error?.errorMessage || error?.message || 'Error al procesar venta');
       }
-      alert(error?.errorMessage || error?.message || 'Error al procesar venta');
     } finally {
       procesandoRef.current = false;
       setProcesando(false);
