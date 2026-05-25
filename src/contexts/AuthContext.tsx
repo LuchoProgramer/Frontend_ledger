@@ -74,11 +74,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
         localStorage.removeItem('user')
       }
-    } catch {
+    } catch (err: any) {
       // El interceptor ya manejó el caso de token expirado.
       // Aquí solo llegan errores de red o servidor no disponible.
-      setUser(null)
-      localStorage.removeItem('user')
+      const isNetworkError = err?.status === 0 || err?.message === 'Failed to fetch';
+      const savedUser = localStorage.getItem('user');
+      if (isNetworkError && savedUser) {
+        console.warn('Network error during checkSession, keeping cached user session for offline mode.');
+      } else {
+        setUser(null);
+        localStorage.removeItem('user');
+      }
     } finally {
       setLoading(false)
     }

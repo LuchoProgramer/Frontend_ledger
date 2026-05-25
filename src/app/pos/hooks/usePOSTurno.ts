@@ -40,10 +40,12 @@ export function usePOSTurno(
       if (res.success && res.activo && res.data) {
         setTurno(res.data);
         localStorage.setItem('activeTurno', JSON.stringify({ sucursal_nombre: res.data.sucursal_nombre }));
+        localStorage.setItem('pos_turno_cache', JSON.stringify(res.data));
         onTurnoOpened(res.data.sucursal);
       } else {
         setTurno(null);
         localStorage.removeItem('activeTurno');
+        localStorage.removeItem('pos_turno_cache');
         if (res.efectivo_sugerido !== undefined && res.efectivo_sugerido !== null) {
           const parsed = parseFloat(res.efectivo_sugerido);
           setEfectivoSugerido(isNaN(parsed) ? 35.00 : parsed);
@@ -53,8 +55,20 @@ export function usePOSTurno(
         await loadSucursales();
         setShowShiftModal(true);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error checking turno:', e);
+      const isNetworkError = e?.status === 0 || e?.message === 'Failed to fetch';
+      if (isNetworkError) {
+        const cached = localStorage.getItem('pos_turno_cache');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            setTurno(parsed);
+            onTurnoOpened(parsed.sucursal);
+            return;
+          } catch { /* ignore */ }
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -68,6 +82,7 @@ export function usePOSTurno(
       if (res.success) {
         setTurno(res.data);
         localStorage.setItem('activeTurno', JSON.stringify({ sucursal_nombre: res.data.sucursal_nombre }));
+        localStorage.setItem('pos_turno_cache', JSON.stringify(res.data));
         window.dispatchEvent(new Event('storage'));
         setShowShiftModal(false);
         onTurnoOpened(selectedSucursal);
@@ -88,6 +103,7 @@ export function usePOSTurno(
       await apiClient.cerrarTurno(data);
       setTurno(null);
       localStorage.removeItem('activeTurno');
+      localStorage.removeItem('pos_turno_cache');
       window.dispatchEvent(new Event('storage'));
       onClosed();
       await checkTurno();
