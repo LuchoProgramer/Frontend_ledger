@@ -7,6 +7,7 @@ import { useServiceWorker } from '../../hooks/useServiceWorker';
 const mockRegister = jest.fn();
 const mockPostMessage = jest.fn();
 const mockAddEventListener = jest.fn();
+const mockRemoveEventListener = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -15,6 +16,7 @@ beforeEach(() => {
     value: {
       register: mockRegister,
       addEventListener: mockAddEventListener,
+      removeEventListener: mockRemoveEventListener,
       controller: { state: 'activated' },
     },
     configurable: true,

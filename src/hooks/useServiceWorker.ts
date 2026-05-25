@@ -27,9 +27,15 @@ export function useServiceWorker(): UseServiceWorkerReturn {
       });
     });
 
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
+    const handleControllerChange = () => {
       if (isUpdating.current) window.location.reload();
-    });
+    };
+
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+    };
   }, []);
 
   const updateSW = () => {
