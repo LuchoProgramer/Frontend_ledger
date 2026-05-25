@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "build:wasm": "bash ../../calculos-sri-wasm/build.sh",
+    "prebuild": "npm run build:wasm",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "jest"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",

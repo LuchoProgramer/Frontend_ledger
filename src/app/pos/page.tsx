@@ -10,6 +10,7 @@ import { usePOSProducts } from './hooks/usePOSProducts';
 import { usePOSCart } from './hooks/usePOSCart';
 import { usePOSClient } from './hooks/usePOSClient';
 import { usePOSPayment } from './hooks/usePOSPayment';
+import { sriCalculator } from '@/lib/wasm/calculator';
 import POSProductGrid from './components/POSProductGrid';
 import POSCart from './components/POSCart';
 import POSClientModal from './components/POSClientModal';
@@ -36,6 +37,11 @@ export default function POSPage() {
     catalog.loadProductos('', sucursalId);
     catalog.loadCategorias();
   });
+
+  // Carga el motor WASM una sola vez al montar el POS
+  useEffect(() => {
+    sriCalculator.init();
+  }, []);
 
   useEffect(() => {
     if (turno.showShiftModal) {
