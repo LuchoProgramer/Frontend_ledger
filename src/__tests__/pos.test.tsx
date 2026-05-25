@@ -13,8 +13,8 @@ import fs from 'fs'
 import path from 'path'
 
 describe('Bug 8 — getPresentaciones pasa sucursal_id al API', () => {
-  const posFilePath = path.resolve(process.cwd(), 'src/app/pos/page.tsx')
-  const apiFilePath = path.resolve(process.cwd(), 'src/lib/api.ts')
+  const posFilePath = path.resolve(process.cwd(), 'src/app/pos/hooks/usePOSCart.ts')
+  const apiFilePath = path.resolve(process.cwd(), 'src/lib/api/_productos.ts')
 
   let posSource: string
   let apiSource: string
@@ -48,9 +48,9 @@ describe('Bug 8 — getPresentaciones pasa sucursal_id al API', () => {
      * Previene: llamar getPresentaciones(producto.id) sin el segundo argumento.
      * El POS debe pasar el ID de la sucursal del turno activo.
      * Regex busca getPresentaciones con dos argumentos donde el segundo
-     * está relacionado con 'turno'.
+     * es sucursalId.
      */
-    const patronConSucursal = /getPresentaciones\([^,)]+,\s*turno/g
+    const patronConSucursal = /getPresentaciones\([^,)]+,\s*sucursalId/g
     const matches = posSource.match(patronConSucursal)
 
     expect(matches).not.toBeNull()
