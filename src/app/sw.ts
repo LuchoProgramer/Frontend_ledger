@@ -25,7 +25,6 @@ const serwist = new Serwist({
       matcher: /calculos_sri_wasm_bg\.wasm$/i,
       handler: new CacheFirst({
         cacheName: 'lx-wasm-v1',
-        plugins: [new ExpirationPlugin({ maxEntries: 1 })],
       }),
     },
     {
