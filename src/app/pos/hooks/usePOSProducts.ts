@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getApiClient } from '@/lib/api';
 import { Producto, Categoria } from '@/lib/types/productos';
 import { ComboResult } from '../types';
@@ -22,29 +22,56 @@ export function usePOSProducts(
 
   const apiClient = getApiClient();
 
+  // Refs para que el listener `online` use siempre los últimos valores sin re-subscribirse
+  const latestRef = useRef({ isOffline, sucursalId, searchTerm, selectedCategoria });
+  latestRef.current = { isOffline, sucursalId, searchTerm, selectedCategoria };
+  const loadProductosRef = useRef<(search?: string, sid?: number, categoriaId?: number | null) => Promise<void>>(async () => {});
+
   const loadProductos = async (search = '', sid?: number, categoriaId?: number | null) => {
     setLoading(true);
+    const targetSucursalLog = sid ?? sucursalId;
+    console.log('[usePOSProducts] loadProductos iniciada:', { search, sid, sucursalId, targetSucursalLog, hasOfflineSearch: !!offlineSearch });
     try {
       const targetSucursal = sid ?? sucursalId;
       const params: Record<string, unknown> = { search, page_size: 50, activo: true, sucursal: targetSucursal };
       if (categoriaId) params.categoria = categoriaId;
       const res = await apiClient.getProductos(params as Parameters<typeof apiClient.getProductos>[0]);
+      console.log('[usePOSProducts] Productos cargados ONLINE con éxito:', res.results?.length || res.data?.length || 0);
       setProductos(res.results || res.data || []);
       setIsOffline(false);
     } catch (error: any) {
+      console.warn('[usePOSProducts] Error en petición online:', error);
       const isNetworkError = error?.status === 0 || !navigator.onLine || error?.message?.includes('fetch') || error?.message?.includes('Network') || error?.message?.includes('Load failed');
+      console.log('[usePOSProducts] ¿Es error de red?:', isNetworkError, '¿Hay offlineSearch?:', !!offlineSearch);
       if (isNetworkError && offlineSearch && (sucursalId || sid)) {
         const targetSucursal = sid ?? sucursalId!;
+        console.log('[usePOSProducts] Cargando productos OFFLINE para sucursal:', targetSucursal);
         const offline = await offlineSearch(search, categoriaId ?? null, targetSucursal);
+        console.log('[usePOSProducts] Productos OFFLINE encontrados:', offline.length, offline);
         setProductos(offline);
         setIsOffline(true);
       } else {
-        console.error('Error loading products', error);
+        console.error('[usePOSProducts] Error cargando productos y no se puede recuperar offline:', error);
       }
     } finally {
       setLoading(false);
     }
   };
+
+  loadProductosRef.current = loadProductos;
+
+  // Reactividad online — cuando vuelve la conexión y estamos en modo offline, recargar catálogo del backend
+  useEffect(() => {
+    const handleOnline = () => {
+      const { isOffline: off, sucursalId: sid, searchTerm: term, selectedCategoria: cat } = latestRef.current;
+      if (off && sid) {
+        console.log('[usePOSProducts] Reconexión detectada — recargando catálogo online para sucursal', sid);
+        loadProductosRef.current(term, sid, cat);
+      }
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
 
   const loadCategorias = async () => {
     try {
