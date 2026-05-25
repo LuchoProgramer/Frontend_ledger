@@ -19,6 +19,7 @@ interface Props {
   onAddToCart: (producto: Producto) => void;
   onAddCombo: (combo: ComboResult) => void;
   showToast: (msg: string) => void;
+  isOffline?: boolean;
 }
 
 export default function POSProductGrid({
@@ -26,9 +27,15 @@ export default function POSProductGrid({
   productos, loadingProducts,
   categorias, selectedCategoria, showCategoryDrawer, setShowCategoryDrawer, onSelectCategoria,
   combos, onAddToCart, onAddCombo, showToast,
+  isOffline = false,
 }: Props) {
   return (
     <div className="flex-1 flex flex-col p-4 bg-gray-50 overflow-hidden">
+      {isOffline && (
+        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 flex items-center gap-2 shrink-0 mb-4 rounded-lg">
+          <span className="text-yellow-600 text-sm font-semibold">⚠ Sin conexión — mostrando catálogo local</span>
+        </div>
+      )}
       {/* Search + category button (mobile/tablet) */}
       <div className="mb-4 flex gap-2">
         <input
