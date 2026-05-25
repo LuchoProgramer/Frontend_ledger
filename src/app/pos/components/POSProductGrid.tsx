@@ -20,6 +20,8 @@ interface Props {
   onAddCombo: (combo: ComboResult) => void;
   showToast: (msg: string) => void;
   isOffline?: boolean;
+  needsRefresh?: boolean;
+  updateSW?: () => void;
 }
 
 export default function POSProductGrid({
@@ -28,12 +30,25 @@ export default function POSProductGrid({
   categorias, selectedCategoria, showCategoryDrawer, setShowCategoryDrawer, onSelectCategoria,
   combos, onAddToCart, onAddCombo, showToast,
   isOffline = false,
+  needsRefresh = false,
+  updateSW,
 }: Props) {
   return (
     <div className="flex-1 flex flex-col p-4 bg-gray-50 overflow-hidden">
       {isOffline && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 flex items-center gap-2 shrink-0 mb-4 rounded-lg">
           <span className="text-yellow-600 text-sm font-semibold">⚠ Sin conexión — mostrando catálogo local</span>
+        </div>
+      )}
+      {needsRefresh && (
+        <div className="bg-indigo-600 text-white text-sm px-4 py-2 flex items-center justify-between shrink-0 mb-2 rounded-lg">
+          <span>Nueva versión disponible</span>
+          <button
+            onClick={updateSW}
+            className="font-bold underline ml-4 hover:text-indigo-200 transition-colors"
+          >
+            Actualizar
+          </button>
         </div>
       )}
       {/* Search + category button (mobile/tablet) */}

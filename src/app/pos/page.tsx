@@ -13,6 +13,7 @@ import { usePOSPayment } from './hooks/usePOSPayment';
 import { sriCalculator } from '@/lib/wasm/calculator';
 import { useOfflineCatalog } from './hooks/useOfflineCatalog';
 import { useOfflineQueue } from './hooks/useOfflineQueue';
+import { useServiceWorker } from '@/hooks/useServiceWorker';
 import POSProductGrid from './components/POSProductGrid';
 import POSCart from './components/POSCart';
 import POSClientModal from './components/POSClientModal';
@@ -35,6 +36,7 @@ export default function POSPage() {
 
   const offlineCatalog = useOfflineCatalog();
   const offlineQueue = useOfflineQueue();
+  const sw = useServiceWorker();
 
   const turno = usePOSTurno((sucursalId) => {
     catalog.loadProductos('', sucursalId);
@@ -155,6 +157,8 @@ export default function POSPage() {
                   onAddCombo={cart.addComboToCart}
                   showToast={showToast}
                   isOffline={catalog.isOffline}
+                  needsRefresh={sw.needsRefresh}
+                  updateSW={sw.updateSW}
                 />
               </div>
               <div className={`md:flex ${activeTab === 'catalog' ? 'hidden' : 'flex-1'}`}>
