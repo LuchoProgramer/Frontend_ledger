@@ -57,7 +57,7 @@ export function usePOSTurno(
       }
     } catch (e: any) {
       console.error('Error checking turno:', e);
-      const isNetworkError = e?.status === 0 || e?.message === 'Failed to fetch';
+      const isNetworkError = e?.status === 0 || !navigator.onLine || e?.message?.includes('fetch') || e?.message?.includes('Network') || e?.message?.includes('Load failed');
       if (isNetworkError) {
         const cached = localStorage.getItem('pos_turno_cache');
         if (cached) {

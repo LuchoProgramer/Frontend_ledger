@@ -32,7 +32,7 @@ export function usePOSProducts(
       setProductos(res.results || res.data || []);
       setIsOffline(false);
     } catch (error: any) {
-      const isNetworkError = error?.status === 0;
+      const isNetworkError = error?.status === 0 || !navigator.onLine || error?.message?.includes('fetch') || error?.message?.includes('Network') || error?.message?.includes('Load failed');
       if (isNetworkError && offlineSearch && (sucursalId || sid)) {
         const targetSucursal = sid ?? sucursalId!;
         const offline = await offlineSearch(search, categoriaId ?? null, targetSucursal);
