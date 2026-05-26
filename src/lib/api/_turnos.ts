@@ -49,7 +49,8 @@ export function TurnosMixin<TBase extends Ctor>(Base: TBase) {
           efectivo_declarado: string; tarjeta_declarada: string;
           transferencia_declarada: string; salidas_caja: string;
           efectivo_sistema: string; tarjeta_sistema: string;
-          transferencia_sistema: string; diferencia_total: string; fecha_cierre: string;
+          transferencia_sistema: string; diferencia_total: string;
+          monto_inicial: string; fecha_cierre: string;
         } | null;
         resumen: { total_transacciones: number; ticket_promedio: string; total_sistema: string };
         facturas: {

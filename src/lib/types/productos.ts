@@ -38,6 +38,7 @@ export interface Producto {
     presentaciones?: Presentacion[];
     sucursales_ids?: number[];
     stock?: number;
+    precio_default?: number;
 }
 
 export interface ProductosListResponse {

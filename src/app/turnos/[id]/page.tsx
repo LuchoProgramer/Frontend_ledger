@@ -80,8 +80,18 @@ export default function TurnoCierrePage() {
             }
         }
     };
-    const totalDeclarado = Number(turno.total_efectivo || 0) + Number(turno.otros_metodos_pago || 0);
+    const montoInicial = cierre ? Number(cierre.monto_inicial || 0) : Number(turno.monto_inicial || 0);
     const diff = cierre ? Number(cierre.diferencia_total) : 0;
+
+    // Totales del tfoot: suma exacta de cada columna para que siempre cuadre con las filas
+    const totalEsperado = cierre
+        ? (Number(cierre.efectivo_sistema) + montoInicial - Number(cierre.salidas_caja || 0))
+          + Number(cierre.tarjeta_sistema)
+          + Number(cierre.transferencia_sistema)
+        : 0;
+    const totalDeclarado = cierre
+        ? Number(cierre.efectivo_declarado) + Number(cierre.tarjeta_declarada) + Number(cierre.transferencia_declarada)
+        : 0;
 
     return (
         <DashboardLayout>
@@ -109,7 +119,7 @@ export default function TurnoCierrePage() {
                 </div>
 
                 {/* Resumen rápido */}
-                <div className="bg-white rounded-lg shadow-sm p-4 mb-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="bg-white rounded-lg shadow-sm p-4 mb-4 grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                     <div>
                         <div className="text-gray-500">Apertura</div>
                         <div className="font-medium">{new Date(turno.inicio_turno).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}</div>
@@ -119,6 +129,10 @@ export default function TurnoCierrePage() {
                         <div className="font-medium">
                             {turno.fin_turno ? new Date(turno.fin_turno).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }) : '—'}
                         </div>
+                    </div>
+                    <div>
+                        <div className="text-gray-500">Caja inicial</div>
+                        <div className="font-bold text-indigo-700">${montoInicial.toFixed(2)}</div>
                     </div>
                     <div>
                         <div className="text-gray-500">Transacciones</div>
@@ -141,21 +155,32 @@ export default function TurnoCierrePage() {
                                 <thead>
                                     <tr className="text-gray-500 text-left border-b border-gray-100">
                                         <th className="pb-2 font-medium">Método</th>
-                                        <th className="pb-2 text-right font-medium">Sistema</th>
+                                        <th className="pb-2 text-right font-medium">Esperado en caja</th>
                                         <th className="pb-2 text-right font-medium">Declarado</th>
                                         <th className="pb-2 text-right font-medium">Diferencia</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {[
-                                        { label: 'Efectivo', sis: cierre.efectivo_sistema, dec: cierre.efectivo_declarado },
+                                        {
+                                            label: 'Efectivo',
+                                            sis: (Number(cierre.efectivo_sistema) + montoInicial - Number(cierre.salidas_caja || 0)).toFixed(2),
+                                            dec: cierre.efectivo_declarado,
+                                            nota: [
+                                                montoInicial > 0 ? `ventas $${Number(cierre.efectivo_sistema).toFixed(2)} + inicial $${montoInicial.toFixed(2)}` : null,
+                                                Number(cierre.salidas_caja) > 0 ? `- salidas $${Number(cierre.salidas_caja).toFixed(2)}` : null,
+                                            ].filter(Boolean).join(' ') || undefined,
+                                        },
                                         { label: 'Tarjeta', sis: cierre.tarjeta_sistema, dec: cierre.tarjeta_declarada },
                                         { label: 'Transferencia', sis: cierre.transferencia_sistema, dec: cierre.transferencia_declarada },
-                                    ].map(({ label, sis, dec }) => {
+                                    ].map(({ label, sis, dec, nota }) => {
                                         const d = Number(dec) - Number(sis);
                                         return (
                                             <tr key={label}>
-                                                <td className="py-3 font-medium text-gray-800">{label}</td>
+                                                <td className="py-3 font-medium text-gray-800">
+                                                    {label}
+                                                    {nota && <div className="text-xs text-gray-400 font-normal">{nota}</div>}
+                                                </td>
                                                 <td className="py-3 text-right text-gray-600">${Number(sis).toFixed(2)}</td>
                                                 <td className="py-3 text-right font-medium text-gray-900">${Number(dec).toFixed(2)}</td>
                                                 <td className={`py-3 text-right font-semibold ${Math.abs(d) < 0.01 ? 'text-gray-400' : d > 0 ? 'text-blue-600' : 'text-red-600'}`}>
@@ -175,7 +200,7 @@ export default function TurnoCierrePage() {
                                 <tfoot className="border-t-2 border-gray-200">
                                     <tr>
                                         <td className="pt-3 font-bold text-gray-900">Total</td>
-                                        <td className="pt-3 text-right font-bold text-gray-900">${Number(resumen.total_sistema).toFixed(2)}</td>
+                                        <td className="pt-3 text-right font-bold text-gray-900">${totalEsperado.toFixed(2)}</td>
                                         <td className="pt-3 text-right font-bold text-gray-900">${totalDeclarado.toFixed(2)}</td>
                                         <td className="pt-3 text-right">
                                             <DiffBadge diff={diff} />

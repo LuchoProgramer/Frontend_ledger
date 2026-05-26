@@ -41,7 +41,7 @@ export function usePOSTurno(
         setTurno(res.data);
         localStorage.setItem('activeTurno', JSON.stringify({ sucursal_nombre: res.data.sucursal_nombre }));
         localStorage.setItem('pos_turno_cache', JSON.stringify(res.data));
-        onTurnoOpened(res.data.sucursal);
+        onTurnoOpened(Number(res.data.sucursal));
       } else {
         setTurno(null);
         localStorage.removeItem('activeTurno');
@@ -63,7 +63,7 @@ export function usePOSTurno(
           try {
             const parsed = JSON.parse(cached);
             setTurno(parsed);
-            onTurnoOpened(parsed.sucursal);
+            onTurnoOpened(Number(parsed.sucursal));
             return;
           } catch { /* ignore */ }
         }
@@ -85,7 +85,7 @@ export function usePOSTurno(
         localStorage.setItem('pos_turno_cache', JSON.stringify(res.data));
         window.dispatchEvent(new Event('storage'));
         setShowShiftModal(false);
-        onTurnoOpened(selectedSucursal);
+        onTurnoOpened(Number(selectedSucursal));
       }
     } catch (e: any) {
       alert(e.message || 'Error al abrir turno');

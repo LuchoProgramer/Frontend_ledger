@@ -31,32 +31,77 @@ export function usePOSCart(
 
   const handleCartItemClick = async (index: number, item: CartItem) => {
     try {
-      const presRes = await apiClient.getPresentaciones(item.producto.id, sucursalId);
-      const presentaciones = presRes.data || [];
+      let presentaciones = item.producto.presentaciones || [];
+      if (navigator.onLine) {
+        try {
+          const presRes = await apiClient.getPresentaciones(item.producto.id, sucursalId);
+          presentaciones = presRes.data || [];
+        } catch { /* fallback */ }
+      }
       if (presentaciones.length > 0) {
         setProductToSelect(item.producto);
         setAvailablePresentations(presentaciones);
         setTargetCartIndex(index);
         setShowPresModal(true);
+      } else {
+        // Fallback total
+        setProductToSelect(item.producto);
+        setAvailablePresentations([item.presentacion]);
+        setTargetCartIndex(index);
+        setShowPresModal(true);
       }
-    } catch (e) { console.error(e); }
+    } catch (e: any) {
+      console.warn('[usePOSCart] Error al obtener presentaciones del item:', e);
+      setProductToSelect(item.producto);
+      setAvailablePresentations([item.presentacion]);
+      setTargetCartIndex(index);
+      setShowPresModal(true);
+    }
   };
 
   const addToCart = async (producto: Producto) => {
     setTargetCartIndex(null);
     if ((producto.stock ?? 0) <= 0) { alert('Producto agotado'); return; }
     try {
-      const presRes = await apiClient.getPresentaciones(producto.id, sucursalId);
-      const presentaciones = presRes.data || [];
-      if (presentaciones.length === 0) { alert('Este producto no tiene presentaciones/precios definidos'); return; }
-      const local = presentaciones.filter((p: Presentacion) => p.canal === 'LOCAL');
-      const defaultPres =
-        local.find((p: Presentacion) => p.nombre_presentacion?.toLowerCase() === 'unidad')
-        || local.find((p: Presentacion) => Number(p.cantidad) === 1)
-        || local[0]
-        || presentaciones[0];
-      addPresentationToCart(producto, defaultPres);
-    } catch (e) { console.error(e); alert('Error obteniendo precios del producto'); }
+      let presentaciones = producto.presentaciones || [];
+      if (navigator.onLine) {
+        try {
+          const presRes = await apiClient.getPresentaciones(producto.id, sucursalId);
+          presentaciones = presRes.data || [];
+        } catch { /* fallback to local */ }
+      }
+      
+      if (presentaciones.length > 0) {
+        const local = presentaciones.filter((p: Presentacion) => p.canal === 'LOCAL');
+        const defaultPres =
+          local.find((p: Presentacion) => p.nombre_presentacion?.toLowerCase() === 'unidad')
+          || local.find((p: Presentacion) => Number(p.cantidad) === 1)
+          || local[0]
+          || presentaciones[0];
+        addPresentationToCart(producto, defaultPres);
+      } else {
+        // Si no hay presentaciones cargadas en IndexedDB (o estamos offline sin caché previa de presentacion),
+        // caemos en la presentación virtual con precio_default
+        const fallbackPres: Presentacion = {
+          id: -producto.id,
+          nombre_presentacion: producto.unidad_medida || 'UNIDAD',
+          cantidad: 1,
+          precio: String(producto.precio_default ?? 0),
+          canal: 'LOCAL',
+        };
+        addPresentationToCart(producto, fallbackPres);
+      }
+    } catch (e: any) {
+      console.warn('[usePOSCart] Error al obtener presentaciones al agregar al carrito:', e);
+      const fallbackPres: Presentacion = {
+        id: -producto.id,
+        nombre_presentacion: producto.unidad_medida || 'UNIDAD',
+        cantidad: 1,
+        precio: String(producto.precio_default ?? 0),
+        canal: 'LOCAL',
+      };
+      addPresentationToCart(producto, fallbackPres);
+    }
   };
 
   const addPresentationToCart = (producto: Producto, presentacion: Presentacion) => {

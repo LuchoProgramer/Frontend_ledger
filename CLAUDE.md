@@ -9,11 +9,47 @@ Panel de control ERP multi-tenant. Consume la API Django. Maneja datos financier
 
 `npm run build` **solo** compila Next.js. Sin el paso 2, Cloudflare sirve chunks viejos aunque el deploy diga "success".
 
+### Deploy normal (Rust sin cambios — lo habitual)
+
 ```bash
+npm run build                        # 1. Compila Next.js → .next/  (~30s)
+npx opennextjs-cloudflare build      # 2. Empaqueta para Cloudflare → .open-next/
+npx wrangler deploy                  # 3. Sube assets + worker a Cloudflare
+```
+
+### Deploy cuando cambia la lógica Rust/WASM
+
+Solo necesario si se modifica `calculos-sri-wasm/src/`. Los artefactos WASM ya están commiteados en el repo (`public/calculos_sri_wasm_bg.wasm`, `src/lib/wasm/`); en builds normales no se recompilan.
+
+```bash
+npm run build:wasm                   # 0. Compila Rust → WASM (~2min, requiere wasm-pack)
 npm run build                        # 1. Compila Next.js → .next/
 npx opennextjs-cloudflare build      # 2. Empaqueta para Cloudflare → .open-next/
 npx wrangler deploy                  # 3. Sube assets + worker a Cloudflare
 ```
+
+**Nota:** `npm run build:wasm` requiere Rust toolchain + `wasm-pack` instalados localmente. Después de correrlo, commitear los artefactos actualizados antes de continuar con el build.
+
+### 🚀 Deploy Pendiente — Fase 3 POS Offline (implementado 2026-05-25, no desplegado)
+
+> **REGLA:** No deployar con turno activo en persepolis — interrumpiría operaciones POS en curso.
+
+Subfases incluidas: 3.1 (calculadora fiscal WASM en POS), 3.2 (catálogo Dexie offline + cola FIFO de ventas con sync automático), 3.3 (Serwist Service Worker — app shell cacheado + banner "Nueva versión").
+
+```bash
+# Desde /Users/luisviteri/proyectos/Inventario/ledgerxpertz-frontend/
+npm run build                        # ~30s — compila Next.js
+npx opennextjs-cloudflare build      # empaqueta para Cloudflare
+npx wrangler deploy                  # sube a Cloudflare Workers
+```
+
+**Checklist post-deploy Chrome DevTools (OBLIGATORIO — los 4 criterios):**
+1. **Application → Service Workers:** `sw.js` aparece como `activated and running`
+2. **Application → Cache Storage:** existen los caches `lx-wasm-v1`, `next-static`, `pages`, `next-images`
+3. **Network → Throttling: Offline** → recargar POS → carga completamente (catálogo Dexie disponible)
+4. **Nuevo deploy posterior** → banner "Nueva versión disponible" aparece en POSProductGrid (sin auto-reload)
+
+Si algún criterio falla: revisar `src/app/sw.ts`, `next.config.ts` (`withSerwist()`), `src/hooks/useServiceWorker.ts`, `src/app/pos/page.tsx`.
 
 ---
 
