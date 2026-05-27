@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardLayout from '@/components/DashboardLayout';
 import { format } from 'date-fns';
@@ -12,6 +13,7 @@ import {
   ChevronRight,
   Filter,
   X,
+  ArrowLeft,
 } from 'lucide-react';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -74,6 +76,10 @@ function todayISO() {
 export default function MovimientosInventarioPage() {
   const { api, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const productoFiltro = searchParams.get('producto') ?? '';
+  const productoNombre = searchParams.get('nombre') ?? '';
 
   // Role guard
   useEffect(() => {
@@ -92,8 +98,8 @@ export default function MovimientosInventarioPage() {
   const [filters, setFilters] = useState<Filters>({
     sucursal: '',
     tipo: '',
-    fecha_desde: today,
-    fecha_hasta: today,
+    fecha_desde: productoFiltro ? '' : today,
+    fecha_hasta: productoFiltro ? '' : today,
   });
 
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
@@ -118,6 +124,7 @@ export default function MovimientosInventarioPage() {
     setError('');
     try {
       const params: Record<string, any> = { page };
+      if (productoFiltro) params.producto = parseInt(productoFiltro);
       if (filters.sucursal) params.sucursal = parseInt(filters.sucursal);
       if (filters.tipo) params.tipo = filters.tipo;
       if (filters.fecha_desde) params.fecha_desde = filters.fecha_desde;
@@ -132,7 +139,7 @@ export default function MovimientosInventarioPage() {
     } finally {
       setLoading(false);
     }
-  }, [api, filters, page]);
+  }, [api, filters, page, productoFiltro]);
 
   useEffect(() => {
     fetchMovimientos();
@@ -145,16 +152,20 @@ export default function MovimientosInventarioPage() {
     setPage(1);
   }
 
+  const defaultFechas = productoFiltro
+    ? { fecha_desde: '', fecha_hasta: '' }
+    : { fecha_desde: today, fecha_hasta: today };
+
   function handleResetFilters() {
-    setFilters({ sucursal: '', tipo: '', fecha_desde: today, fecha_hasta: today });
+    setFilters({ sucursal: '', tipo: '', ...defaultFechas });
     setPage(1);
   }
 
   const hasActiveFilters =
     filters.sucursal !== '' ||
     filters.tipo !== '' ||
-    filters.fecha_desde !== today ||
-    filters.fecha_hasta !== today;
+    filters.fecha_desde !== defaultFechas.fecha_desde ||
+    filters.fecha_hasta !== defaultFechas.fecha_hasta;
 
   // ── Render helpers ────────────────────────────────────────────────────────
 
@@ -178,12 +189,25 @@ export default function MovimientosInventarioPage() {
 
         {/* Header */}
         <div className="mb-6">
+          {productoFiltro && (
+            <Link
+              href={`/productos/${productoFiltro}/editar`}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-3 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Volver al producto
+            </Link>
+          )}
           <div className="flex items-center gap-3 mb-1">
             <History className="w-6 h-6 text-indigo-600 shrink-0" />
-            <h1 className="text-2xl font-bold text-gray-900">Kardex Global</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {productoNombre ? `Kardex — ${productoNombre}` : 'Kardex Global'}
+            </h1>
           </div>
           <p className="text-sm text-gray-500 ml-9">
-            Historial completo de movimientos de inventario
+            {productoNombre
+              ? 'Historial de movimientos de este producto'
+              : 'Historial completo de movimientos de inventario'}
           </p>
         </div>
 

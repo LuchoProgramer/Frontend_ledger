@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { getApiClient } from '@/lib/api';
 import ProductForm from '@/components/ProductForm';
 import PresentationsManager from '@/components/PresentationsManager';
 import type { Producto } from '@/lib/types/productos';
 import DashboardLayout from '@/components/DashboardLayout';
-import KardexViewer from '@/components/KardexViewer';
+import { History } from 'lucide-react';
 
 // En Next.js App Router, params se recibe como prop y debe ser usado con use() si es async,
 // pero en page components params es una promesa en versiones recientes o directo.
@@ -87,7 +88,15 @@ export default function EditarProductoPage({ params }: { params: Promise<{ id: s
                     <>
                         <ProductForm initialData={producto} />
                         <PresentationsManager productoId={producto.id} />
-                        <KardexViewer productoId={producto.id} />
+                        <div className="mt-6">
+                            <Link
+                                href={`/inventario/movimientos?producto=${producto.id}&nombre=${encodeURIComponent(producto.nombre)}`}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                                <History className="w-4 h-4 text-indigo-500" />
+                                Ver historial de movimientos
+                            </Link>
+                        </div>
                     </>
                 )}
             </div>
