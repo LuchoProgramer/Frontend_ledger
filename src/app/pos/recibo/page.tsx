@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { loadRecibo } from '../lib/printStore';
 
 interface ReciboItem {
   nombre: string;
@@ -38,14 +39,10 @@ export default function ReciboPOS() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setIsLoading(params.get('loading') === 'true');
-
-    const raw = localStorage.getItem('posRecibo');
-    if (raw) {
-      try {
-        setData(JSON.parse(raw));
-      } catch (e) {
-        console.error('Error parsing posRecibo:', e);
-      }
+    const id = params.get('id');
+    if (id) {
+      const d = loadRecibo<ReciboData>(id);
+      if (d) setData(d);
     }
   }, []);
 
@@ -231,7 +228,10 @@ export default function ReciboPOS() {
       {/* Botón visible solo en pantalla, oculto al imprimir */}
       <button
         className="btn-comanda"
-        onClick={() => window.open('/pos/comanda', '_blank')}
+        onClick={() => {
+          const id = new URLSearchParams(window.location.search).get('id');
+          window.open(`/pos/comanda?id=${id}`, 'pos_comanda');
+        }}
       >
         Imprimir Comanda Cocina
       </button>

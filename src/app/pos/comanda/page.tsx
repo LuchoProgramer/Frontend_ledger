@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { loadComanda } from '../lib/printStore';
 
 interface ComandaItem {
   nombre: string;
@@ -24,14 +25,10 @@ export default function ComandaCocina() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setIsLoading(params.get('loading') === 'true');
-
-    const raw = localStorage.getItem('posComanda');
-    if (raw) {
-      try {
-        setData(JSON.parse(raw));
-      } catch (e) {
-        console.error('Error parsing posComanda:', e);
-      }
+    const id = params.get('id');
+    if (id) {
+      const d = loadComanda<ComandaData>(id);
+      if (d) setData(d);
     }
   }, []);
 
