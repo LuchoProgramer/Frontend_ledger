@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { getApiClient } from '@/lib/api';
 import { CartItem, ClientData, Turno, Payment, CONSUMIDOR_FINAL } from '../types';
+import { savePrintData } from '../lib/printStore';
 
 const PAYMENT_METHODS: Record<string, string> = {
   '01': 'Efectivo', '19': 'Tarjeta de Crédito', '16': 'Tarjeta de Débito',
@@ -10,9 +11,10 @@ const PAYMENT_METHODS: Record<string, string> = {
   '18': 'Tarjeta Prepago', '15': 'Compensación de Deudas', '21': 'Endoso de Títulos',
 };
 
-const TENANTS_CON_IMPRESORA = ['persepolis', 'pukadigital'];
+const TENANTS_CON_IMPRESORA = ['persepolis', 'pukadigital', 'palaciodelasempanadas'];
 const TENANTS_TELEFONOS: Record<string, string> = {
   persepolis: '0995128237',
+  palaciodelasempanadas: '0998187906',
 };
 
 interface UsePOSPaymentArgs {
@@ -78,6 +80,7 @@ export function usePOSPayment({
     procesandoRef.current = true;
     setProcesando(true);
     let printWindow: Window | null = null;
+    const ventaId = crypto.randomUUID();
     try {
       const totalPagado = payments.reduce((s, p) => s + p.total, 0);
       if (totalPagado < totals.total - 0.01) {
@@ -86,7 +89,7 @@ export function usePOSPayment({
       }
       const tenant = window.location.hostname.split('.')[0];
       printWindow = TENANTS_CON_IMPRESORA.includes(tenant)
-        ? window.open(`${window.location.origin}/pos/recibo?loading=true`, '_blank')
+        ? window.open(`${window.location.origin}/pos/recibo?id=${ventaId}&loading=true`, 'pos_recibo')
         : null;
 
       let pendiente = totals.total;
@@ -104,6 +107,7 @@ export function usePOSPayment({
         ),
         pagos: pagosNormalizados,
         es_interno: esInterno,
+        venta_uuid: ventaId,
       };
 
       const numeroPedido = new Date().getTime().toString().slice(-6);
@@ -127,15 +131,15 @@ export function usePOSPayment({
       // ── Flujo offline ──────────────────────────────────────────────────────
       if (!navigator.onLine && enqueueSale && turno) {
         receiptData.numero_autorizacion = 'PENDIENTE';
-        await enqueueSale(payload, receiptData, turno.id, turno.sucursal);
-        localStorage.setItem('posRecibo', JSON.stringify(receiptData));
-        localStorage.setItem('posComanda', JSON.stringify({
+        const comandaData = {
           numero: numeroPedido, fecha: receiptData.fecha,
           cliente: client.razon_social, telefono_gerente: telefonoGerente,
           total: totals.total,
           items: items.map(i => ({ nombre: i.isCombo ? (i.comboNombre || i.producto.nombre) : i.producto.nombre, cantidad: i.cantidad, precio: i.precio })),
-        }));
-        if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo`;
+        };
+        await enqueueSale({ ...payload }, receiptData, turno.id, turno.sucursal);
+        savePrintData(ventaId, receiptData, comandaData);
+        if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo?id=${ventaId}`;
         setShowModal(false);
         onSaleComplete();
         return;
@@ -146,20 +150,21 @@ export function usePOSPayment({
       receiptData.numero_autorizacion = res.numero_autorizacion || '';
       receiptData.numero_pedido = res.numero_autorizacion ? res.numero_autorizacion.slice(-6) : numeroPedido;
 
-      localStorage.setItem('posRecibo', JSON.stringify(receiptData));
-      localStorage.setItem('posComanda', JSON.stringify({
+      const comandaData = {
         numero: receiptData.numero_pedido, fecha: receiptData.fecha,
         cliente: client.razon_social, telefono_gerente: telefonoGerente,
         total: totals.total,
         items: items.map(i => ({ nombre: i.isCombo ? (i.comboNombre || i.producto.nombre) : i.producto.nombre, cantidad: i.cantidad, precio: i.precio })),
-      }));
-      if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo`;
+      };
+      savePrintData(ventaId, receiptData, comandaData);
+      if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo?id=${ventaId}`;
       setShowModal(false);
       onSaleComplete();
 
     } catch (error: any) {
-      // Si error de red en intento online, encolar como offline
-      if (error?.status === 0 && enqueueSale && turno) {
+      // Si error de red (status 0) o backend temporalmente abajo (502/503/504, ej. restart de deploy),
+      // encolar como offline para no cortar la venta — el sweep la sincroniza al volver.
+      if ((error?.status === 0 || [502, 503, 504].includes(error?.status)) && enqueueSale && turno) {
         const pendiente2 = totals.total;
         const pagosNorm2 = payments.map(p => {
           const asignado = parseFloat(Math.min(p.total, pendiente2).toFixed(2));
@@ -171,7 +176,7 @@ export function usePOSPayment({
             ? { type: 'combo', combo_id: item.comboId, cantidad: item.cantidad, slot_selections: (item.slotSelections || []).map(s => ({ slot_id: s.slot_id, producto_id: s.producto_id })) }
             : { id: item.producto.id, presentacion_id: item.presentacion.id, cantidad: item.cantidad, precio: item.precio }
           ),
-          pagos: pagosNorm2, es_interno: esInterno,
+          pagos: pagosNorm2, es_interno: esInterno, venta_uuid: ventaId,
         };
         const tenant2 = window.location.hostname.split('.')[0];
         const negocio2 = ({ persepolis: 'Persepolis Grill & Burgers' } as Record<string, string>)[tenant2] || tenant2;
@@ -185,9 +190,15 @@ export function usePOSPayment({
           pagos: payments.map(p => ({ descripcion: p.descripcion, total: p.total })),
           cambio: 0, numero_autorizacion: 'PENDIENTE', cliente: client.razon_social,
         };
+        const fallbackComanda = {
+          numero: numeroPedido2, fecha: fallbackReceipt.fecha,
+          cliente: client.razon_social, telefono_gerente: TENANTS_TELEFONOS[tenant2] || '',
+          total: totals.total,
+          items: items.map(i => ({ nombre: i.isCombo ? (i.comboNombre || i.producto.nombre) : i.producto.nombre, cantidad: i.cantidad, precio: i.precio })),
+        };
         await enqueueSale(fallbackPayload, fallbackReceipt, turno.id, turno.sucursal);
-        localStorage.setItem('posRecibo', JSON.stringify(fallbackReceipt));
-        if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo`;
+        savePrintData(ventaId, fallbackReceipt, fallbackComanda);
+        if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo?id=${ventaId}`;
         setShowModal(false);
         onSaleComplete();
       } else {
