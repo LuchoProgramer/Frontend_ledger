@@ -43,6 +43,13 @@ export default function ReciboPOS() {
     if (id) {
       const d = loadRecibo<ReciboData>(id);
       if (d) setData(d);
+    } else {
+      const raw = localStorage.getItem('posRecibo');
+      if (raw) {
+        try {
+          setData(JSON.parse(raw));
+        } catch {}
+      }
     }
   }, []);
 

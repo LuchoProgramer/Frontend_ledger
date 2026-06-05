@@ -30,6 +30,13 @@ export default function ComandaCocina() {
     if (id) {
       const d = loadComanda<ComandaData>(id);
       if (d) setData(d);
+    } else {
+      const raw = localStorage.getItem('posComanda');
+      if (raw) {
+        try {
+          setData(JSON.parse(raw));
+        } catch {}
+      }
     }
   }, []);
 
