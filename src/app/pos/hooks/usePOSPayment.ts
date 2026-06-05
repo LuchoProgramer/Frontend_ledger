@@ -136,6 +136,7 @@ export function usePOSPayment({
           cliente: client.razon_social, telefono_gerente: telefonoGerente,
           total: totals.total,
           items: items.map(i => ({ nombre: i.isCombo ? (i.comboNombre || i.producto.nombre) : i.producto.nombre, cantidad: i.cantidad, precio: i.precio })),
+          metodo_pago: payments.map(p => p.descripcion).join(' + ') || 'Efectivo',
         };
         await enqueueSale({ ...payload }, receiptData, turno.id, turno.sucursal);
         savePrintData(ventaId, receiptData, comandaData);
@@ -155,6 +156,7 @@ export function usePOSPayment({
         cliente: client.razon_social, telefono_gerente: telefonoGerente,
         total: totals.total,
         items: items.map(i => ({ nombre: i.isCombo ? (i.comboNombre || i.producto.nombre) : i.producto.nombre, cantidad: i.cantidad, precio: i.precio })),
+        metodo_pago: payments.map(p => p.descripcion).join(' + ') || 'Efectivo',
       };
       savePrintData(ventaId, receiptData, comandaData);
       if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo?id=${ventaId}`;
@@ -195,6 +197,7 @@ export function usePOSPayment({
           cliente: client.razon_social, telefono_gerente: TENANTS_TELEFONOS[tenant2] || '',
           total: totals.total,
           items: items.map(i => ({ nombre: i.isCombo ? (i.comboNombre || i.producto.nombre) : i.producto.nombre, cantidad: i.cantidad, precio: i.precio })),
+          metodo_pago: payments.map(p => p.descripcion).join(' + ') || 'Efectivo',
         };
         await enqueueSale(fallbackPayload, fallbackReceipt, turno.id, turno.sucursal);
         savePrintData(ventaId, fallbackReceipt, fallbackComanda);

@@ -16,6 +16,7 @@ interface ComandaData {
   telefono_gerente?: string;
   total?: number;
   items: ComandaItem[];
+  metodo_pago?: string;
 }
 
 export default function ComandaCocina() {
@@ -133,6 +134,13 @@ export default function ComandaCocina() {
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '17px', fontWeight: 'bold', marginTop: '6px', paddingRight: '2mm' }}>
             <span>VALOR TOTAL:</span>
             <span>${data.total.toFixed(2)}</span>
+          </div>
+        )}
+
+        {data.metodo_pago && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 'bold', marginTop: '4px', paddingRight: '2mm' }}>
+            <span>PAGO:</span>
+            <span>{data.metodo_pago.toUpperCase()}</span>
           </div>
         )}
       </div>
