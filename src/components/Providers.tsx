@@ -3,6 +3,7 @@
 import { AuthProvider } from '@/contexts/AuthContext'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 
 interface ProvidersProps {
   children: React.ReactNode
@@ -14,8 +15,12 @@ interface ProvidersProps {
  * 
  * - Tenant Público: NO monta AuthProvider (no hay autenticación)
  * - Tenant Privado: SÍ monta AuthProvider (requiere autenticación)
+ * - Rutas de Impresión: NO monta AuthProvider (evita invalidar sesión compartida)
  */
 export function Providers({ children, isPublic }: ProvidersProps) {
+  const pathname = usePathname();
+  const isPrintPage = pathname?.startsWith('/pos/recibo') || pathname?.startsWith('/pos/comanda');
+
   // Crear QueryClient con useState para evitar recreaciones
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
@@ -34,9 +39,9 @@ export function Providers({ children, isPublic }: ProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {isPublic ? (
-        // Tenant Público: NO montamos AuthProvider
-        // Esto evita cualquier llamada a /api/auth/me/ y loops de redirección
+      {(isPublic || isPrintPage) ? (
+        // Tenant Público o Ruta de Impresión: NO montamos AuthProvider
+        // Esto evita llamadas a /api/auth/me/ y borrado accidental de localStorage
         <>{children}</>
       ) : (
         // Tenant Privado: SÍ montamos AuthProvider
