@@ -140,7 +140,7 @@ export default function POSPage() {
             </div>
           ) : (
             <>
-              <div className={`flex-1 flex flex-col md:flex ${activeTab === 'cart' ? 'hidden' : 'block'}`}>
+              <div className={`flex-1 min-w-0 flex flex-col md:flex ${activeTab === 'cart' ? 'hidden' : 'block'}`}>
                 <POSProductGrid
                   searchTerm={catalog.searchTerm}
                   onSearch={catalog.handleSearch}
@@ -161,7 +161,7 @@ export default function POSPage() {
                   updateSW={sw.updateSW}
                 />
               </div>
-              <div className={`md:flex ${activeTab === 'catalog' ? 'hidden' : 'flex-1'}`}>
+              <div className={`md:flex shrink-0 md:w-[320px] lg:w-[360px] xl:w-[400px] ${activeTab === 'catalog' ? 'hidden' : 'flex-1 w-full'}`}>
                 <POSCart
                   items={cart.items}
                   totals={totals}

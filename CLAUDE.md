@@ -7,7 +7,9 @@ Panel de control ERP multi-tenant. Consume la API Django. Maneja datos financier
 
 ## 🚨 DEPLOY — Flujo Obligatorio (NO saltarse ningún paso)
 
-`npm run build` **solo** compila Next.js. Sin el paso 2, Cloudflare sirve chunks viejos aunque el deploy diga "success".
+> **REGLA CRÍTICA MANDATORIA:** Realizar despliegues de frontend **ÚNICAMENTE** cuando el tenant `persepolis` haya cerrado formalmente su turno de caja. El deploy reemplaza el worker de Cloudflare en caliente y de lo contrario puede provocar fallos en la venta activa o iniciar loops de CPU.
+>
+> `npm run build` **solo** compila Next.js. Sin el paso 2, Cloudflare sirve chunks viejos aunque el deploy diga "success".
 
 ### Deploy normal (Rust sin cambios — lo habitual)
 
@@ -30,6 +32,19 @@ npx wrangler deploy                  # 3. Sube assets + worker a Cloudflare
 
 **Nota:** `npm run build:wasm` requiere Rust toolchain + `wasm-pack` instalados localmente. Después de correrlo, commitear los artefactos actualizados antes de continuar con el build.
 
+### 🚀 Deploy Pendiente — Toggle "ojo" en login (implementado 2026-06-03, no desplegado)
+
+Se agregó un botón mostrar/ocultar contraseña (ícono de ojo) en `src/app/login/page.tsx`. No se deployó: había turno activo en persepolis al momento del cambio. Deploy normal (Rust/WASM sin cambios):
+
+```bash
+# Desde /Users/luisviteri/proyectos/Inventario/ledgerxpertz-frontend/
+npm run build                        # ~30s
+npx opennextjs-cloudflare build      # empaqueta para Cloudflare
+npx wrangler deploy                  # sube a Cloudflare Workers
+```
+
+**Verificar antes:** sin turno activo en persepolis (el deploy reemplaza el worker y puede interrumpir una venta en el POS).
+
 ### 🚀 Deploy Pendiente — Fase 3 POS Offline (implementado 2026-05-25, no desplegado)
 
 > **REGLA:** No deployar con turno activo en persepolis — interrumpiría operaciones POS en curso.
@@ -42,6 +57,14 @@ npm run build                        # ~30s — compila Next.js
 npx opennextjs-cloudflare build      # empaqueta para Cloudflare
 npx wrangler deploy                  # sube a Cloudflare Workers
 ```
+
+> [!WARNING]
+> **Lección Aprendida — Incidente de Loop de Precaching (27-Mayo-2026):**
+> Se registraron ~75k requests y 4,880 errores `Exceeded CPU Time Limit` en Cloudflare por el bucle de instalación del Service Worker en el navegador del cliente. El precaching de Serwist intentó descargar chunks JS pesados en segundo plano que pasaron por SSR y superaron los 10ms de CPU (plan Free), lo que abortó la instalación y provocó que el navegador reintentara la descarga de forma indefinida y oculta.
+>
+> **Prevención Obligatoria:**
+> 1. **Avisar al cliente:** Antes de un deploy grande, notificar a Persepolis que al cerrar caja recargue el navegador una vez para una instalación limpia del SW en frío.
+> 2. **Optimizar precaching:** Mantener el manifiesto de precacheo de Serwist configurado únicamente para los recursos indispensables del POS (WASM, CSS, assets clave) y no meter chunks JS de páginas no offline del dashboard.
 
 **Checklist post-deploy Chrome DevTools (OBLIGATORIO — los 4 criterios):**
 1. **Application → Service Workers:** `sw.js` aparece como `activated and running`
@@ -117,6 +140,7 @@ El POS usa `POSLayout` (`src/components/POSLayout.tsx`), **NO** `DashboardLayout
 
 - Manifest dinámico (`force-dynamic`) en `src/app/manifest.json/route.ts` — adapta `name`/`short_name` por subdominio.
 - Service Worker configurado con Serwist (`src/app/sw.ts` → `public/sw.js`). Solo cachea activos estáticos (JS/CSS/WASM/iconos). La API (`/api/**`) no tiene caché en el SW — Dexie maneja los datos offline.
+  - *Alerta CPU Limit (10ms):* No incluir en el precaching de Serwist todos los chunks JS de Next.js, ya que al descargarse en paralelo se excede el límite de CPU del plan Free en Cloudflare Workers, lo que aborta la conexión e inicia un loop infinito de reintentos de instalación en segundo plano.
 - `withSerwist()` en `next.config.ts` desactivado en development (`disable: process.env.NODE_ENV === 'development'`) para no interferir con hot reload.
 - El SW usa `skipWaiting: false` — el nuevo SW espera en `waiting` hasta que el usuario apruebe la actualización desde el banner en `POSProductGrid`. Nunca recarga automáticamente.
 - Hook: `src/hooks/useServiceWorker.ts` — llamado desde `src/app/pos/page.tsx`.

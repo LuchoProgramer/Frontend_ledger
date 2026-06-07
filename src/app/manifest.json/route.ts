@@ -22,7 +22,7 @@ export async function GET() {
     display: 'standalone',
     background_color: '#4F46E5',
     theme_color: '#4F46E5',
-    orientation: 'portrait-primary',
+    orientation: 'any',
     icons: [
       {
         src: '/icon-192.png',

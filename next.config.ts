@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
 export default withSerwist({
   swSrc: 'src/app/sw.ts',
   swDest: 'public/sw.js',
+  exclude: [() => true], // Exclude all Next.js build chunks from precache to avoid CPU Limit loops
   additionalPrecacheEntries: [
     { url: '/calculos_sri_wasm_bg.wasm', revision: null },
     { url: '/icon-192.png',              revision: null },

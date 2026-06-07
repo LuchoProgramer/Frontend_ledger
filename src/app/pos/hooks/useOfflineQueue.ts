@@ -38,9 +38,10 @@ export async function processSyncQueueFn(
       await apiClient.crearFacturaPOS(JSON.parse(venta.payload));
       await posDB.ventas_offline.update(venta.id!, { estado: 'SINCRONIZADA' });
     } catch (err: any) {
-      const isNetworkError = err?.status === 0 || err?.status === undefined && !err?.message?.includes('Stock');
-      if (isNetworkError && err?.status === 0) {
-        break; // Red caída — detener, reintentar después
+      // Red caída (status 0) o backend temporalmente abajo (502/503/504, ej. restart de deploy):
+      // dejar la venta PENDIENTE y reintentar después, NO marcar ERROR_SYNC.
+      if (err?.status === 0 || [502, 503, 504].includes(err?.status)) {
+        break;
       }
       await posDB.ventas_offline.update(venta.id!, {
         estado: 'ERROR_SYNC',

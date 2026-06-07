@@ -83,3 +83,9 @@ export function useTenant(): string {
   }
   return getTenantFromHostname();
 }
+
+/**
+ * Listas de configuración de impresión por tenant
+ */
+export const TENANTS_CON_IMPRESORA = ['persepolis', 'pukadigital', 'palaciodelasempanadas'];
+export const TENANTS_CON_COMANDA_AUTOMATICA = ['persepolis'];

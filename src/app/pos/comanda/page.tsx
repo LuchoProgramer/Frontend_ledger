@@ -47,6 +47,12 @@ export default function ComandaCocina() {
     }
   }, [data, isLoading]);
 
+  useEffect(() => {
+    const handler = () => window.close();
+    window.addEventListener('afterprint', handler);
+    return () => window.removeEventListener('afterprint', handler);
+  }, []);
+
   if (isLoading) {
     return (
       <div style={{

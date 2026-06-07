@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { loadRecibo } from '../lib/printStore';
+import { getTenant, TENANTS_CON_COMANDA_AUTOMATICA } from '@/lib/tenant';
 
 interface ReciboItem {
   nombre: string;
@@ -65,7 +66,16 @@ export default function ReciboPOS() {
 
   // Also mark as printed when print dialog closes
   useEffect(() => {
-    const handler = () => setPrinted(true);
+    const handler = () => {
+      setPrinted(true);
+      const tenant = getTenant();
+      if (TENANTS_CON_COMANDA_AUTOMATICA.includes(tenant)) {
+        const id = new URLSearchParams(window.location.search).get('id');
+        if (id) {
+          window.location.href = `/pos/comanda?id=${id}`;
+        }
+      }
+    };
     window.addEventListener('afterprint', handler);
     return () => window.removeEventListener('afterprint', handler);
   }, []);
@@ -232,16 +242,18 @@ export default function ReciboPOS() {
         )}
       </div>
 
-      {/* Botón visible solo en pantalla, oculto al imprimir */}
-      <button
-        className="btn-comanda"
-        onClick={() => {
-          const id = new URLSearchParams(window.location.search).get('id');
-          window.open(`/pos/comanda?id=${id}`, 'pos_comanda');
-        }}
-      >
-        Imprimir Comanda Cocina
-      </button>
+      {/* Botón visible solo en pantalla, oculto al imprimir y si no es automática */}
+      {!TENANTS_CON_COMANDA_AUTOMATICA.includes(getTenant()) && (
+        <button
+          className="btn-comanda"
+          onClick={() => {
+            const id = new URLSearchParams(window.location.search).get('id');
+            window.open(`/pos/comanda?id=${id}`, 'pos_comanda');
+          }}
+        >
+          Imprimir Comanda Cocina
+        </button>
+      )}
     </>
   );
 }

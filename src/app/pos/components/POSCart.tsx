@@ -20,7 +20,7 @@ export default function POSCart({
   onOpenPayment, procesando,
 }: Props) {
   return (
-    <div className="w-full md:w-[320px] lg:w-[360px] xl:w-[400px] flex flex-col bg-white shadow-xl">
+    <div className="w-full flex flex-col bg-white shadow-xl">
       {/* Client header */}
       <div className="p-4 border-b bg-gray-50">
         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Cliente (F10)</label>

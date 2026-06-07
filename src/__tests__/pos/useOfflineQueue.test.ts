@@ -61,6 +61,22 @@ describe('processSyncQueueFn', () => {
     expect(mockCrearFacturaPOS).toHaveBeenCalledTimes(1);
   });
 
+  it('deja en PENDIENTE y detiene si el backend está abajo (502, ej. restart de deploy)', async () => {
+    mockCrearFacturaPOS.mockRejectedValue({ status: 502, message: 'Bad Gateway' });
+    const id = await posDB.ventas_offline.add({
+      turno_id: 3, sucursal_id: 10,
+      payload: '{}', receipt_data: '{}',
+      estado: 'PENDIENTE', created_at: Date.now(),
+    });
+
+    const apiClient = { crearFacturaPOS: mockCrearFacturaPOS };
+    await processSyncQueueFn(apiClient as any);
+
+    const venta = await posDB.ventas_offline.get(id);
+    expect(venta?.estado).toBe('PENDIENTE');
+    expect(mockCrearFacturaPOS).toHaveBeenCalledTimes(1);
+  });
+
   it('marca ERROR_SYNC en error de negocio y continúa con la siguiente', async () => {
     mockCrearFacturaPOS
       .mockRejectedValueOnce({ status: 400, message: 'Stock insuficiente' })
