@@ -46,7 +46,7 @@ __BUILD_ID
 .claude/
 
 # Superpowers AI tooling artifacts
-docs/superpowers/
+# docs/superpowers/ (Habilitado para planes de impresión)
 
 # typescript
 *.tsbuildinfo
