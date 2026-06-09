@@ -3,6 +3,7 @@ import { posDB } from '@/lib/db/posDB';
 
 // Mock del apiClient
 const mockGetProductos = jest.fn();
+const mockGetBulkPresentaciones = jest.fn();
 const mockGetCategorias = jest.fn();
 const mockGetCombos = jest.fn();
 const mockGetComboOpciones = jest.fn();
@@ -10,6 +11,7 @@ const mockGetComboOpciones = jest.fn();
 jest.mock('@/lib/api', () => ({
   getApiClient: () => ({
     getProductos: mockGetProductos,
+    getBulkPresentaciones: mockGetBulkPresentaciones,
     getCategorias: mockGetCategorias,
     getCombos: mockGetCombos,
     getComboOpciones: mockGetComboOpciones,
@@ -19,11 +21,21 @@ jest.mock('@/lib/api', () => ({
 // Función pura extraída del hook para poder testearla sin React
 import { preloadCatalogFn } from '@/app/pos/hooks/useOfflineCatalog';
 
+const apiClient = {
+  getProductos: mockGetProductos,
+  getBulkPresentaciones: mockGetBulkPresentaciones,
+  getCategorias: mockGetCategorias,
+  getCombos: mockGetCombos,
+  getComboOpciones: mockGetComboOpciones,
+};
+
 beforeEach(async () => {
   await posDB.productos.clear();
   await posDB.categorias.clear();
   await posDB.combos.clear();
   jest.clearAllMocks();
+  // Default: bulk vacío salvo que el test lo sobreescriba
+  mockGetBulkPresentaciones.mockResolvedValue({ data: {} });
 });
 
 describe('preloadCatalogFn', () => {
@@ -36,13 +48,6 @@ describe('preloadCatalogFn', () => {
     mockGetCategorias.mockResolvedValue({ data: [{ id: 1, nombre: 'Bebidas' }] });
     mockGetCombos.mockResolvedValue({ results: [], next: null });
 
-    const apiClient = {
-      getProductos: mockGetProductos,
-      getCategorias: mockGetCategorias,
-      getCombos: mockGetCombos,
-      getComboOpciones: mockGetComboOpciones,
-    };
-
     await preloadCatalogFn(apiClient as any, 10);
 
     const prods = await posDB.productos.where('sucursal_id').equals(10).toArray();
@@ -52,6 +57,32 @@ describe('preloadCatalogFn', () => {
     const cats = await posDB.categorias.toArray();
     expect(cats).toHaveLength(1);
     expect(cats[0].nombre).toBe('Bebidas');
+  });
+
+  it('adjunta las presentaciones del endpoint bulk a cada producto', async () => {
+    mockGetProductos.mockResolvedValueOnce({ results: [
+      { id: 1, nombre: 'Cono', impuesto_porcentaje: 15, activo: true },
+      { id: 2, nombre: 'Agua', impuesto_porcentaje: 0, activo: true },
+    ], next: null });
+    mockGetCategorias.mockResolvedValue({ data: [] });
+    mockGetCombos.mockResolvedValue({ results: [], next: null });
+    mockGetBulkPresentaciones.mockResolvedValue({ data: {
+      '1': [
+        { id: 11, nombre_presentacion: 'Unidad', cantidad: 1, precio: '0.50', canal: 'LOCAL', canal_display: 'Venta Local / POS' },
+        { id: 12, nombre_presentacion: 'Six Pack', cantidad: 6, precio: '2.50', canal: 'LOCAL', canal_display: 'Venta Local / POS' },
+      ],
+    } });
+
+    await preloadCatalogFn(apiClient as any, 10);
+
+    expect(mockGetBulkPresentaciones).toHaveBeenCalledWith(10);
+    const prods = await posDB.productos.where('sucursal_id').equals(10).toArray();
+    const cono = prods.find(p => p.id === 1)!;
+    const agua = prods.find(p => p.id === 2)!;
+    expect(cono.presentaciones).toHaveLength(2);
+    expect(cono.presentaciones![0].nombre_presentacion).toBe('Unidad');
+    // Producto sin entrada en el bulk → array vacío, no undefined
+    expect(agua.presentaciones).toEqual([]);
   });
 
   it('precarga combos con opciones de slot embebidas', async () => {
@@ -68,13 +99,6 @@ describe('preloadCatalogFn', () => {
       { id: 101, nombre: 'Coca-Cola', codigo: 'CC', stock: 50 },
     ]);
 
-    const apiClient = {
-      getProductos: mockGetProductos,
-      getCategorias: mockGetCategorias,
-      getCombos: mockGetCombos,
-      getComboOpciones: mockGetComboOpciones,
-    };
-
     await preloadCatalogFn(apiClient as any, 10);
 
     const combo = await posDB.combos.get(7);
@@ -87,13 +111,6 @@ describe('preloadCatalogFn', () => {
     mockGetProductos.mockRejectedValue(new Error('Network error'));
     mockGetCategorias.mockResolvedValue({ data: [] });
     mockGetCombos.mockResolvedValue({ results: [], next: null });
-
-    const apiClient = {
-      getProductos: mockGetProductos,
-      getCategorias: mockGetCategorias,
-      getCombos: mockGetCombos,
-      getComboOpciones: mockGetComboOpciones,
-    };
 
     await expect(preloadCatalogFn(apiClient as any, 10)).resolves.not.toThrow();
   });
