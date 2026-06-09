@@ -114,3 +114,9 @@ export interface CategoriasResponse {
     data?: Categoria[];
     error?: string;
 }
+
+export interface BulkPresentacionesResponse {
+    success: boolean;
+    data?: Record<string, Presentacion[]>;
+    error?: string;
+}

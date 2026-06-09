@@ -4,6 +4,7 @@ import type {
   CategoriasResponse,
   PresentacionesResponse,
   ImpuestosResponse,
+  BulkPresentacionesResponse,
 } from '../types/productos';
 import type { ApiClientBase } from './_base';
 
@@ -79,6 +80,12 @@ export function ProductosMixin<TBase extends Ctor>(Base: TBase) {
     async getPresentaciones(productoId: number, sucursalId?: number) {
       const query = sucursalId ? `?sucursal_id=${sucursalId}` : '';
       return this.request<PresentacionesResponse>(`/api/auth/productos/${productoId}/presentaciones/${query}`);
+    }
+
+    async getBulkPresentaciones(sucursalId: number) {
+      return this.request<BulkPresentacionesResponse>(
+        `/api/auth/productos/presentaciones/bulk/?sucursal_id=${sucursalId}`
+      );
     }
 
     async crearPresentacion(productoId: number, data: any) {
