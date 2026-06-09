@@ -5,30 +5,6 @@ import { getApiClient } from '@/lib/api';
 import { Producto } from '@/lib/types/productos';
 import { posDB, ProductoDB, ComboDB } from '@/lib/db/posDB';
 
-// Auxiliar para descargar presentaciones en lotes paralelos (concurrencia controlada)
-async function fetchPresentacionesConLote(
-  apiClient: any,
-  productos: any[],
-  sucursalId: number,
-  concurrencia = 10
-): Promise<ProductoDB[]> {
-  const resultados: ProductoDB[] = [];
-  for (let i = 0; i < productos.length; i += concurrencia) {
-    const lote = productos.slice(i, i + concurrencia);
-    const promesas = lote.map(async (p) => {
-      try {
-        const presRes = await apiClient.getPresentaciones(p.id, sucursalId);
-        return { ...p, sucursal_id: sucursalId, presentaciones: presRes.data || [] };
-      } catch {
-        return { ...p, sucursal_id: sucursalId, presentaciones: [] };
-      }
-    });
-    const loteResultados = await Promise.all(promesas);
-    resultados.push(...loteResultados);
-  }
-  return resultados;
-}
-
 // Función pura exportada para poder testearla
 export async function preloadCatalogFn(
   apiClient: ReturnType<typeof getApiClient>,
@@ -49,14 +25,21 @@ export async function preloadCatalogFn(
       page++;
     }
 
-    // Descargar presentaciones para cada producto en lotes paralelos de 10
-    const items = await fetchPresentacionesConLote(apiClient, rawItems, sucursalId, 10);
+    // 2. Obtener TODAS las presentaciones en una sola petición
+    const bulkRes = await apiClient.getBulkPresentaciones(sucursalId);
+    const presentacionesByProducto = bulkRes.data || {};
 
-    // 2. Categorías en memoria
+    const items: ProductoDB[] = rawItems.map(p => ({
+      ...p,
+      sucursal_id: sucursalId,
+      presentaciones: presentacionesByProducto[String(p.id)] || [],
+    }));
+
+    // 3. Categorías en memoria
     const catRes = await apiClient.getCategorias();
     const cats = catRes.data || [];
 
-    // 3. Combos con opciones embebidas en memoria
+    // 4. Combos con opciones embebidas en memoria
     let comboPage = 1;
     const combosConOpciones: ComboDB[] = [];
     while (true) {
@@ -98,20 +81,17 @@ export async function preloadCatalogFn(
       comboPage++;
     }
 
-    // 4. Guardar datos en la base de datos local usando una transacción de Dexie (operación atómica)
+    // 5. Guardar en IndexedDB de forma atómica
     await posDB.transaction('rw', [posDB.productos, posDB.combos, posDB.categorias], async () => {
-      // Borrar datos viejos de esta sucursal
       await posDB.productos.where('sucursal_id').equals(sucursalId).delete();
       await posDB.combos.where('sucursal_id').equals(sucursalId).delete();
 
-      // Insertar los nuevos datos descargados
       if (items.length > 0) await posDB.productos.bulkPut(items);
       if (cats.length > 0) await posDB.categorias.bulkPut(cats);
       if (combosConOpciones.length > 0) await posDB.combos.bulkPut(combosConOpciones);
     });
   } catch (err) {
     console.warn('[useOfflineCatalog] Error preloading catalog, retaining existing cache:', err);
-    // Red caída — silencioso, el catálogo anterior sigue disponible
   }
 }
 
