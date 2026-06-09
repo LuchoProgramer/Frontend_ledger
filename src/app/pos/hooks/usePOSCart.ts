@@ -32,7 +32,7 @@ export function usePOSCart(
   const handleCartItemClick = async (index: number, item: CartItem) => {
     try {
       let presentaciones = item.producto.presentaciones || [];
-      if (navigator.onLine) {
+      if (presentaciones.length === 0 && navigator.onLine) {
         try {
           const presRes = await apiClient.getPresentaciones(item.producto.id, sucursalId);
           presentaciones = presRes.data || [];
@@ -64,7 +64,7 @@ export function usePOSCart(
     if ((producto.stock ?? 0) <= 0) { alert('Producto agotado'); return; }
     try {
       let presentaciones = producto.presentaciones || [];
-      if (navigator.onLine) {
+      if (presentaciones.length === 0 && navigator.onLine) {
         try {
           const presRes = await apiClient.getPresentaciones(producto.id, sucursalId);
           presentaciones = presRes.data || [];

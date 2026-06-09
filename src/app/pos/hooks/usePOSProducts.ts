@@ -26,6 +26,7 @@ export function usePOSProducts(
   const latestRef = useRef({ isOffline, sucursalId, searchTerm, selectedCategoria });
   latestRef.current = { isOffline, sucursalId, searchTerm, selectedCategoria };
   const loadProductosRef = useRef<(search?: string, sid?: number, categoriaId?: number | null) => Promise<void>>(async () => {});
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadProductos = async (search = '', sid?: number, categoriaId?: number | null) => {
     setLoading(true);
@@ -74,7 +75,10 @@ export function usePOSProducts(
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
-    loadProductos(term, undefined, selectedCategoria);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      loadProductos(term, undefined, selectedCategoria);
+    }, 300);
   };
 
   const handleSelectCategoria = (catId: number | null) => {
