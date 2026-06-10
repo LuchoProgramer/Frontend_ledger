@@ -37,6 +37,15 @@ export default function ReciboPOS() {
   const [printed, setPrinted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const getComandaAuto = (): boolean => {
+    try {
+      const cache = JSON.parse(localStorage.getItem('pos_turno_cache') || '{}');
+      if (typeof cache?.comanda_automatica === 'boolean') return cache.comanda_automatica;
+    } catch { /* ignore */ }
+    return TENANTS_CON_COMANDA_AUTOMATICA.includes(getTenant());
+  };
+  const [comandaAuto, setComandaAuto] = useState(false);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setIsLoading(params.get('loading') === 'true');
@@ -52,6 +61,7 @@ export default function ReciboPOS() {
         } catch {}
       }
     }
+    setComandaAuto(getComandaAuto());
   }, []);
 
   useEffect(() => {
@@ -64,12 +74,10 @@ export default function ReciboPOS() {
     }
   }, [data, isLoading]);
 
-  // Also mark as printed when print dialog closes
   useEffect(() => {
     const handler = () => {
       setPrinted(true);
-      const tenant = getTenant();
-      if (TENANTS_CON_COMANDA_AUTOMATICA.includes(tenant)) {
+      if (getComandaAuto()) {
         const id = new URLSearchParams(window.location.search).get('id');
         if (id) {
           window.location.href = `/pos/comanda?id=${id}`;
@@ -243,7 +251,7 @@ export default function ReciboPOS() {
       </div>
 
       {/* Botón visible solo en pantalla, oculto al imprimir y si no es automática */}
-      {!TENANTS_CON_COMANDA_AUTOMATICA.includes(getTenant()) && (
+      {!comandaAuto && (
         <button
           className="btn-comanda"
           onClick={() => {
