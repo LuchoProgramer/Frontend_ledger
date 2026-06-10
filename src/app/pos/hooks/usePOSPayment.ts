@@ -88,7 +88,8 @@ export function usePOSPayment({
         return;
       }
       const tenant = window.location.hostname.split('.')[0];
-      printWindow = TENANTS_CON_IMPRESORA.includes(tenant)
+      const usaImpresora = turno?.impresora_activa ?? TENANTS_CON_IMPRESORA.includes(tenant);
+      printWindow = usaImpresora
         ? window.open(`${window.location.origin}/pos/recibo?id=${ventaId}&loading=true`, 'pos_recibo')
         : null;
 
@@ -112,7 +113,7 @@ export function usePOSPayment({
 
       const numeroPedido = new Date().getTime().toString().slice(-6);
       const negocio = ({ persepolis: 'Persepolis Grill & Burgers' } as Record<string, string>)[tenant] || tenant;
-      const telefonoGerente = TENANTS_TELEFONOS[tenant] || '';
+      const telefonoGerente = turno?.telefono_atencion ?? (TENANTS_TELEFONOS[tenant] || '');
       const totalPagadoFinal = payments.reduce((s, p) => s + p.total, 0);
 
       const receiptData = {
@@ -186,7 +187,7 @@ export function usePOSPayment({
         const fallbackReceipt = {
           negocio: negocio2, sucursal: turno.sucursal_nombre,
           fecha: new Date().toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' }),
-          numero_pedido: numeroPedido2, telefono_gerente: TENANTS_TELEFONOS[tenant2] || '',
+          numero_pedido: numeroPedido2, telefono_gerente: turno?.telefono_atencion ?? (TENANTS_TELEFONOS[tenant2] || ''),
           items: items.map(i => ({ nombre: i.isCombo ? (i.comboNombre || i.producto.nombre) : i.producto.nombre, cantidad: i.cantidad, precio: i.precio, subtotal: i.subtotal })),
           subtotal: totals.subtotal, iva: totals.impuesto, total: totals.total,
           pagos: payments.map(p => ({ descripcion: p.descripcion, total: p.total })),
@@ -194,7 +195,7 @@ export function usePOSPayment({
         };
         const fallbackComanda = {
           numero: numeroPedido2, fecha: fallbackReceipt.fecha,
-          cliente: client.razon_social, telefono_gerente: TENANTS_TELEFONOS[tenant2] || '',
+          cliente: client.razon_social, telefono_gerente: turno?.telefono_atencion ?? (TENANTS_TELEFONOS[tenant2] || ''),
           total: totals.total,
           items: items.map(i => ({ nombre: i.isCombo ? (i.comboNombre || i.producto.nombre) : i.producto.nombre, cantidad: i.cantidad, precio: i.precio })),
           metodo_pago: payments.map(p => p.descripcion).join(' + ') || 'Efectivo',
