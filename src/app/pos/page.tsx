@@ -26,7 +26,6 @@ export default function POSPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const tenant = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : '';
-  const hasCashControl = ['persepolis'].includes(tenant);
   const [montoInicialInput, setMontoInicialInput] = useState<string>('35.00');
 
   const showToast = (message: string) => {
@@ -43,6 +42,10 @@ export default function POSPage() {
     catalog.loadCategorias();
     offlineCatalog.preloadCatalog(sucursalId);
   }, offlineQueue.pendingCount);
+
+  const hasCashControl =
+    turno.sucursales.find(s => s.id === turno.selectedSucursal)?.control_caja
+    ?? ['persepolis'].includes(tenant);
 
   const catalog = usePOSProducts(turno.turno?.sucursal, offlineCatalog.searchOffline);
 
@@ -304,6 +307,7 @@ export default function POSPage() {
         </PortalModal>
 
         <ShiftCloseModal
+          controlCaja={turno.turno?.control_caja ?? ['persepolis'].includes(tenant)}
           isOpen={turno.showClosingModal}
           onClose={() => turno.setShowClosingModal(false)}
           onConfirm={data => turno.handleConfirmCloseTurno(data, () => { cart.reset(); client.reset(); })}

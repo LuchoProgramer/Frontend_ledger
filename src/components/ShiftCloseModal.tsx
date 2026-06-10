@@ -7,6 +7,7 @@ interface ShiftCloseModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (data: ShiftCloseData) => Promise<void>;
+    controlCaja?: boolean;
     systemTotals?: { // Opcional: Para mostrar lo que el sistema espera (si quieres ser transparente)
         expectedCash: number;
         expectedCard: number;
@@ -23,9 +24,9 @@ export interface ShiftCloseData {
     efectivo_a_dejar?: number;
 }
 
-export default function ShiftCloseModal({ isOpen, onClose, onConfirm, systemTotals }: ShiftCloseModalProps) {
+export default function ShiftCloseModal({ isOpen, onClose, onConfirm, controlCaja, systemTotals }: ShiftCloseModalProps) {
     const tenant = typeof window !== 'undefined' ? window.location.hostname.split('.')[0] : '';
-    const hasCashControl = ['persepolis'].includes(tenant);
+    const hasCashControl = controlCaja ?? ['persepolis'].includes(tenant);
 
     const [data, setData] = useState<ShiftCloseData>({
         efectivo_total: 0,
