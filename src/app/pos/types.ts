@@ -53,6 +53,10 @@ export interface Turno {
   sucursal: number;
   sucursal_nombre: string;
   inicio_turno: string;
+  impresora_activa?: boolean;
+  comanda_automatica?: boolean;
+  control_caja?: boolean;
+  telefono_atencion?: string;
 }
 
 export interface Payment {

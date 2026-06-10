@@ -8,6 +8,7 @@ export interface SucursalSimple {
   nombre: string;
   codigo_establecimiento?: string;
   es_matriz?: boolean;
+  control_caja?: boolean;
 }
 
 export interface Usuario {
