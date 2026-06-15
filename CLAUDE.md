@@ -7,7 +7,7 @@ Panel de control ERP multi-tenant. Consume la API Django. Maneja datos financier
 
 ## 🚨 DEPLOY — Flujo Obligatorio (NO saltarse ningún paso)
 
-> **REGLA CRÍTICA MANDATORIA:** Realizar despliegues de frontend **ÚNICAMENTE** cuando el tenant `persepolis` haya cerrado formalmente su turno de caja. El deploy reemplaza el worker de Cloudflare en caliente y de lo contrario puede provocar fallos en la venta activa o iniciar loops de CPU.
+> **REGLA CRÍTICA MANDATORIA (FRONTEND):** Realizar despliegues de frontend **ÚNICAMENTE** cuando el tenant `persepolis` haya cerrado formalmente su turno de caja. El deploy reemplaza el worker de Cloudflare en caliente → puede cortar una venta en pleno swap o disparar el loop de CPU/precaching del Service Worker (incidente 27-May-2026). **Esto aplica SOLO al frontend;** los deploys de **backend** (`restart web`) SÍ se toleran con turno activo porque el POS encola el 502 del restart (fix idempotente `venta_uuid` — ver `LedgerXpertz/.claude/deploy.md`).
 >
 > `npm run build` **solo** compila Next.js. Sin el paso 2, Cloudflare sirve chunks viejos aunque el deploy diga "success".
 
@@ -32,6 +32,19 @@ npx wrangler deploy                  # 3. Sube assets + worker a Cloudflare
 
 **Nota:** `npm run build:wasm` requiere Rust toolchain + `wasm-pack` instalados localmente. Después de correrlo, commitear los artefactos actualizados antes de continuar con el build.
 
+### 🚀 Deploy Pendiente — Default por-tenant del toggle de factura (implementado 2026-06-14, no desplegado)
+
+`usePOSPayment.ts` ahora inicializa el toggle Factura/Nota desde `turno.factura_electronica_default` (flag del backend, **ya desplegado y activado en la_huequita**). Commits frontend: `fafee3f` (tipo `Turno`), `beaecac` (`useEffect` en `usePOSPayment`). No se deployó: persepolis tenía turno activo (gate de frontend). Deploy normal (Rust/WASM sin cambios):
+
+```bash
+# Desde /Users/luisviteri/proyectos/Inventario/ledgerxpertz-frontend/
+npm run build                        # ~30s
+npx opennextjs-cloudflare build
+npx wrangler deploy
+```
+
+**Verificar antes:** persepolis sin turno activo. **Smoke post-deploy:** en el POS de la_huequita, abrir el modal de pago → el toggle arranca en "Factura Electrónica (SRI)" (encendido); en persepolis sigue arrancando en "Nota de Venta (Solo Interno)". Toggle flipeable en ambos. Spec/plan: `docs/superpowers/specs/2026-06-14-pos-factura-default-por-tenant-design.md`.
+
 ### 🚀 Deploy Pendiente — Toggle "ojo" en login (implementado 2026-06-03, no desplegado)
 
 Se agregó un botón mostrar/ocultar contraseña (ícono de ojo) en `src/app/login/page.tsx`. No se deployó: había turno activo en persepolis al momento del cambio. Deploy normal (Rust/WASM sin cambios):
@@ -47,7 +60,7 @@ npx wrangler deploy                  # sube a Cloudflare Workers
 
 ### 🚀 Deploy Pendiente — Fase 3 POS Offline (implementado 2026-05-25, no desplegado)
 
-> **REGLA:** No deployar con turno activo en persepolis — interrumpiría operaciones POS en curso.
+> **REGLA (frontend):** No deployar con turno activo en persepolis — el swap del worker de Cloudflare interrumpiría operaciones POS en curso. (Deploys de **backend** sí se toleran con turno — ver regla reconciliada arriba.)
 
 Subfases incluidas: 3.1 (calculadora fiscal WASM en POS), 3.2 (catálogo Dexie offline + cola FIFO de ventas con sync automático), 3.3 (Serwist Service Worker — app shell cacheado + banner "Nueva versión").
 
