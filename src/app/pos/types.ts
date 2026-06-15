@@ -57,6 +57,7 @@ export interface Turno {
   comanda_automatica?: boolean;
   control_caja?: boolean;
   telefono_atencion?: string;
+  factura_electronica_default?: boolean;
 }
 
 export interface Payment {
