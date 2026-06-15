@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { getApiClient } from '@/lib/api';
 import { CartItem, ClientData, Turno, Payment, CONSUMIDOR_FINAL } from '../types';
 import { savePrintData } from '../lib/printStore';
@@ -43,6 +43,13 @@ export function usePOSPayment({
   const [esInterno, setEsInterno] = useState(true);
   const [procesando, setProcesando] = useState(false);
   const procesandoRef = useRef(false);
+
+  // Default del toggle Factura/Nota por-tenant (backend): al abrir/cambiar turno,
+  // arranca en "Factura Electrónica" si el tenant lo configuró. Sin el flag → nota interna (como hoy).
+  // Keyed en turno?.id → solo al cambiar de turno, no pisa el toggle flipeado dentro del mismo turno.
+  useEffect(() => {
+    if (turno) setEsInterno(!(turno.factura_electronica_default ?? false));
+  }, [turno?.id]);
 
   const apiClient = getApiClient();
 
