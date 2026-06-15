@@ -22,6 +22,7 @@ interface Props {
   isOffline?: boolean;
   needsRefresh?: boolean;
   updateSW?: () => void;
+  mostrarStock?: boolean;
 }
 
 export default function POSProductGrid({
@@ -32,6 +33,7 @@ export default function POSProductGrid({
   isOffline = false,
   needsRefresh = false,
   updateSW,
+  mostrarStock = false,
 }: Props) {
   return (
     <div className="flex-1 flex flex-col p-4 bg-gray-50 overflow-hidden">
@@ -148,7 +150,12 @@ export default function POSProductGrid({
                 <div className="absolute top-2 right-2 bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full z-10">AGOTADO</div>
               )}
               <h3 className="font-semibold text-gray-900 text-sm leading-snug break-words line-clamp-3">{prod.nombre}</h3>
-              <div className="mt-2 flex items-end justify-end">
+              <div className="mt-2 flex items-end justify-between gap-1">
+                {mostrarStock ? (
+                  <span className="text-xs text-gray-500">Stock: {stock}</span>
+                ) : (
+                  <span />
+                )}
                 <span className="text-base font-bold text-blue-600">{precio}</span>
               </div>
             </div>

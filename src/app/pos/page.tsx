@@ -162,6 +162,7 @@ export default function POSPage() {
                   isOffline={catalog.isOffline}
                   needsRefresh={sw.needsRefresh}
                   updateSW={sw.updateSW}
+                  mostrarStock={turno.turno?.mostrar_stock_pos ?? false}
                 />
               </div>
               <div className={`md:flex shrink-0 md:w-[320px] lg:w-[360px] xl:w-[400px] ${activeTab === 'catalog' ? 'hidden' : 'flex-1 w-full'}`}>
