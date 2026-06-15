@@ -32,18 +32,13 @@ npx wrangler deploy                  # 3. Sube assets + worker a Cloudflare
 
 **Nota:** `npm run build:wasm` requiere Rust toolchain + `wasm-pack` instalados localmente. Después de correrlo, commitear los artefactos actualizados antes de continuar con el build.
 
-### 🚀 Deploy Pendiente — Default por-tenant del toggle de factura (implementado 2026-06-14, no desplegado)
+### ✅ Mostrar stock en tarjetas del POS (por-tenant) — DESPLEGADO 2026-06-14 (Version ID `4655c8ea`)
 
-`usePOSPayment.ts` ahora inicializa el toggle Factura/Nota desde `turno.factura_electronica_default` (flag del backend, **ya desplegado y activado en la_huequita**). Commits frontend: `fafee3f` (tipo `Turno`), `beaecac` (`useEffect` en `usePOSPayment`). No se deployó: persepolis tenía turno activo (gate de frontend). Deploy normal (Rust/WASM sin cambios):
+`POSProductGrid` muestra "Stock: N" en cada tarjeta solo si `turno.mostrar_stock_pos` (flag backend, activado en la_huequita). Default false → tarjeta igual que hoy (persepolis no muestra). Incluyó fix de `jest.config` (`jsx` classic → `react-jsx`) para poder renderizar componentes en tests (suite 44/44). Desplegado con turno activo en persepolis (override del usuario) — mitigado (2 assets nuevos), post-deploy estable sin 5xx. **Pendiente smoke visual:** las tarjetas de la_huequita muestran "Stock: N"; persepolis no. Plan: `docs/superpowers/plans/2026-06-15-pos-mostrar-stock-por-tenant.md`.
 
-```bash
-# Desde /Users/luisviteri/proyectos/Inventario/ledgerxpertz-frontend/
-npm run build                        # ~30s
-npx opennextjs-cloudflare build
-npx wrangler deploy
-```
+### ✅ Default por-tenant del toggle de factura — DESPLEGADO 2026-06-14 (Version ID `c52c14d4`)
 
-**Verificar antes:** persepolis sin turno activo. **Smoke post-deploy:** en el POS de la_huequita, abrir el modal de pago → el toggle arranca en "Factura Electrónica (SRI)" (encendido); en persepolis sigue arrancando en "Nota de Venta (Solo Interno)". Toggle flipeable en ambos. Spec/plan: `docs/superpowers/specs/2026-06-14-pos-factura-default-por-tenant-design.md`.
+`usePOSPayment.ts` inicializa el toggle Factura/Nota desde `turno.factura_electronica_default` (flag del backend, desplegado + activado en la_huequita). Commits: `fafee3f` (tipo `Turno`), `beaecac` (`useEffect`). **Desplegado con turno activo en persepolis (override explícito del usuario)** — riesgo aceptado; mitigado porque el deploy subió solo 2 assets nuevos (BUILD_ID + 1 chunk del POS, los otros 111 sin cambios → re-precaching mínimo del SW). Post-deploy verificado: homepage/`/pos`/sw.js/chunk → 200, 6 hits estables sin 5xx (sin loop de CPU). **PENDIENTE de smoke visual:** abrir el modal de pago en el POS de la_huequita → el toggle debe arrancar en "Factura Electrónica (SRI)"; en persepolis sigue en "Nota de Venta". Requiere sesión autenticada (no verificable por curl). Spec/plan: `docs/superpowers/specs/2026-06-14-pos-factura-default-por-tenant-design.md`.
 
 ### 🚀 Deploy Pendiente — Toggle "ojo" en login (implementado 2026-06-03, no desplegado)
 
