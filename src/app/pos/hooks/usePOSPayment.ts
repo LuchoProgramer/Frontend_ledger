@@ -63,7 +63,15 @@ export function usePOSPayment({
     setPaymentAmount(totals.total.toFixed(2));
     setPayments([]);
     setPaymentMethod('01');
-    setEsInterno(client.identificacion === '9999999999');
+    // Default del toggle al abrir el modal. Si el tenant factura por defecto
+    // (factura_electronica_default), arranca en Factura Electrónica SIEMPRE — incluso
+    // para Consumidor Final. Sin el flag, se mantiene el comportamiento previo:
+    // Consumidor Final → Nota interna, cliente identificado → Factura.
+    setEsInterno(
+      (turno?.factura_electronica_default ?? false)
+        ? false
+        : client.identificacion === '9999999999'
+    );
     setShowModal(true);
   };
 
