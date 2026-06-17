@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
+import { validarTransportista } from '@/lib/transportista';
 import { Truck, ShoppingCart, Search, ArrowRight, User, AlertCircle } from 'lucide-react';
 
 type TrasladoStep = 'sucursales' | 'carrito' | 'transportista' | 'confirmacion' | 'comprobante';
@@ -47,7 +48,7 @@ export default function NuevaGuiaPage() {
     const [productosDisponibles, setProductosDisponibles] = useState<any[]>([]);
     const [loadingProductos, setLoadingProductos] = useState(false);
     const [cartTraslado, setCartTraslado] = useState<CartItem[]>([]);
-    const [transportistaTraslado, setTransportistaTraslado] = useState({ ruc: '', razon_social: '', placa: '' });
+    const [transportistaTraslado, setTransportistaTraslado] = useState({ ruc: '9999999999999', razon_social: 'CONSUMIDOR FINAL', placa: '' });
     const [submittingTraslado, setSubmittingTraslado] = useState(false);
     const submittingTrasladoRef = useRef(false);
     const [guiaGenerada, setGuiaGenerada] = useState<string | null>(null);
@@ -410,7 +411,13 @@ export default function NuevaGuiaPage() {
                                             ← Volver
                                         </button>
                                         <button
-                                            onClick={() => { setError(''); setTrasladoStep('confirmacion'); }}
+                                            onClick={() => {
+                                                const v = validarTransportista(transportistaTraslado.ruc);
+                                                if (!v.valido) { setError(v.mensaje!); return; }
+                                                setTransportistaTraslado(p => ({ ...p, ruc: v.normalizado! }));
+                                                setError('');
+                                                setTrasladoStep('confirmacion');
+                                            }}
                                             disabled={!transportistaTraslado.ruc || !transportistaTraslado.razon_social}
                                             className="flex-1 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-40 min-h-[44px]"
                                         >
