@@ -72,7 +72,8 @@ export default function POSPage() {
     onSaleComplete: () => {
       cart.reset();
       client.reset();
-      catalog.loadProductos(catalog.searchTerm, undefined, catalog.selectedCategoria);
+      catalog.resetSearch();             // limpia texto + categoría y recarga el catálogo
+      searchInputRef.current?.focus();   // cursor listo para la siguiente venta
     },
     showToast,
     enqueueSale: offlineQueue.enqueueSale,

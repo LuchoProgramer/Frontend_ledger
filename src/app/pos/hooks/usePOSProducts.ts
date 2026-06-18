@@ -87,6 +87,15 @@ export function usePOSProducts(
     setShowCategoryDrawer(false);
   };
 
+  // Resetea el buscador tras cobrar: limpia texto y categoría, cancela el debounce
+  // pendiente y recarga el catálogo completo. Deja al cajero listo para la siguiente venta.
+  const resetSearch = () => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    setSearchTerm('');
+    setSelectedCategoria(null);
+    loadProductos('', undefined, null);
+  };
+
   useEffect(() => {
     if (!sucursalId || !searchTerm.trim()) { setCombos([]); return; }
     const timer = setTimeout(() => {
@@ -102,6 +111,6 @@ export function usePOSProducts(
     showCategoryDrawer, setShowCategoryDrawer,
     searchTerm, loading, combos, isOffline,
     loadProductos, loadCategorias,
-    handleSearch, handleSelectCategoria,
+    handleSearch, handleSelectCategoria, resetSearch,
   };
 }
