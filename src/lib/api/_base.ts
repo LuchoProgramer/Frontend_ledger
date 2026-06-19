@@ -152,7 +152,15 @@ export class ApiClientBase {
       return this.request<T>(endpoint, options, true);
     } catch (error) {
       drainQueue(error);
-      if (typeof window !== 'undefined') {
+      // Desloguear SOLO ante un rechazo de auth REAL del endpoint de refresh
+      // (401/403 → refresh token inválido/expirado). Un error de red transitorio
+      // —fetch lanzó (sin `status`), `status === 0`, u offline— NO debe matar una
+      // sesión válida (el refresh token dura 7 días). Esto pasaba al volver de
+      // minimizar el POS: la red de la tablet tardaba en despertar, el fetch del
+      // refresh fallaba y se deslogueaba al cajero pese a tener sesión viva.
+      const status = (error as ApiError)?.status;
+      const esRechazoAuth = status === 401 || status === 403;
+      if (esRechazoAuth && typeof window !== 'undefined') {
         localStorage.removeItem('user');
         const isLoginPage = window.location.pathname === '/login'
           || window.location.pathname.endsWith('/login');
