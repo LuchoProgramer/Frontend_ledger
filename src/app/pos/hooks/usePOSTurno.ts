@@ -23,7 +23,9 @@ export function usePOSTurno(
 
   const loadSucursales = async () => {
     try {
-      const res = await apiClient.getSucursales();
+      // Solo las sucursales del usuario: evita que el selector preseleccione una
+      // sucursal ajena (un vendedor de Lico 2 abriendo turno en Sucursal 1).
+      const res = await apiClient.getMisSucursales();
       if (res.success && res.sucursales) {
         setSucursales(res.sucursales);
         if (res.sucursales.length > 0) setSelectedSucursal(res.sucursales[0].id);

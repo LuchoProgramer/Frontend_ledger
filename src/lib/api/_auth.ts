@@ -115,5 +115,12 @@ export function AuthMixin<TBase extends Ctor>(Base: TBase) {
     async getSucursales() {
       return this.request<SucursalesResponse>('/api/auth/usuarios/sucursales/');
     }
+
+    // Solo las sucursales asignadas al usuario autenticado (todas si es staff).
+    // El POS usa esta en vez de getSucursales() para que el selector de turno no
+    // ofrezca sucursales ajenas (incidente la_huequita 2026-06-20).
+    async getMisSucursales() {
+      return this.request<SucursalesResponse>('/api/auth/mis-sucursales/');
+    }
   };
 }
