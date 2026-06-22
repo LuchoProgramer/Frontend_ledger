@@ -6,14 +6,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDebounce } from '@/hooks/useDebounce';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Search, Trash2, Layers, CheckCircle2, AlertCircle, Plus } from 'lucide-react';
+import { stockEnSucursal, calcularStockResultante, type DesgloseItem } from './_calculos';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-interface DesgloseItem {
-  sucursal: number;
-  sucursal_nombre: string;
-  cantidad: number;
-}
 
 interface ProductoConStock {
   id: number;
@@ -338,6 +333,27 @@ export default function AjusteLotePage() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 min-h-[44px]"
                   />
                 </div>
+
+                {/* Stock actual de la sucursal + resultado en vivo */}
+                {sucursalSeleccionada && (() => {
+                  const stockActual = stockEnSucursal(productoSeleccionado.desglose, Number(sucursalSeleccionada));
+                  const qty = parseFloat(cantidadNueva);
+                  const hayCantidad = !isNaN(qty) && qty > 0;
+                  const resultante = calcularStockResultante(stockActual, tipoSeleccionado, hayCantidad ? qty : 0);
+                  const negativo = resultante < 0;
+                  return (
+                    <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm">
+                      <span className="text-gray-500">
+                        Stock actual: <span className="font-bold text-gray-800">{stockActual}</span>
+                      </span>
+                      {hayCantidad && (
+                        <span className={negativo ? 'text-red-600 font-bold' : 'text-gray-500'}>
+                          Quedará en: <span className={`font-bold ${negativo ? 'text-red-600' : 'text-indigo-700'}`}>{resultante}</span>
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {errorLinea && <p className="text-xs text-red-500">{errorLinea}</p>}
 

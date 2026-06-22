@@ -80,5 +80,16 @@ export function ContabilidadMixin<TBase extends Ctor>(Base: TBase) {
         method: 'POST',
       });
     }
+
+    // Aplica al stock las diferencias de los detalles seleccionados (solo admin).
+    async aplicarAjustesAuditoria(id: number, detalleIds: number[]) {
+      return this.request<{
+        estado: string;
+        ajustados: Array<{ id: number; producto: string; diferencia: string }>;
+        omitidos: Array<{ id: number; motivo: string }>;
+      }>(`/api/conteo/auditorias/${id}/aplicar_ajustes/`, {
+        method: 'POST', body: JSON.stringify({ detalle_ids: detalleIds }),
+      });
+    }
   };
 }

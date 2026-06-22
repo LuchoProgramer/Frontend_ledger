@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useMemo, use } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { esAjustable, idsAjustables } from './_ajustes';
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -28,10 +30,14 @@ export default function AuditoriaDetailPage(props: PageProps) {
     const [selectedCategoria, setSelectedCategoria] = useState<string | null>(null);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [aplicando, setAplicando] = useState(false);
     const categoriaRef = useRef<HTMLDivElement>(null);
 
     const router = useRouter();
     const apiClient = getApiClient();
+    const { user } = useAuth();
+    const isAdmin = !!(user?.is_staff || user?.is_superuser || (user?.groups ?? []).includes('Administrador'));
 
     useEffect(() => {
         loadDetalle();
@@ -63,9 +69,11 @@ export default function AuditoriaDetailPage(props: PageProps) {
                 stock_sistema: d.cantidad_sistema,
                 conteo_fisico: d.cantidad_fisica,
                 diferencia: d.diferencia,
+                revisado: !!d.revisado,
                 modificado: false,
             }));
             setItems(mappedItems);
+            setSelectedIds(new Set());
         } catch (error) {
             console.error(error);
             alert('Error al cargar auditoría');
@@ -114,6 +122,30 @@ export default function AuditoriaDetailPage(props: PageProps) {
         }
     };
 
+    const toggleSeleccion = (itemId: number) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(itemId)) next.delete(itemId); else next.add(itemId);
+            return next;
+        });
+    };
+
+    const aplicarAjustes = async () => {
+        const ids = [...selectedIds];
+        if (ids.length === 0) return;
+        if (!confirm(`¿Aplicar ${ids.length} ajuste${ids.length !== 1 ? 's' : ''} al inventario? Esto corregirá el stock y queda registrado en el Kardex.`)) return;
+        setAplicando(true);
+        try {
+            const res = await apiClient.aplicarAjustesAuditoria(Number(id), ids);
+            await loadDetalle();
+            alert(`${res.ajustados.length} ajuste${res.ajustados.length !== 1 ? 's' : ''} aplicado${res.ajustados.length !== 1 ? 's' : ''} al stock.`);
+        } catch (error: any) {
+            alert(error.message || 'Error al aplicar ajustes');
+        } finally {
+            setAplicando(false);
+        }
+    };
+
     // Unique sorted categories derived from loaded items
     const categoriasUnicas = useMemo(
         () => [...new Set(items.map(i => i.categoria))].sort(),
@@ -134,6 +166,9 @@ export default function AuditoriaDetailPage(props: PageProps) {
 
     const contados = items.filter(i => i.conteo_fisico !== null && i.conteo_fisico !== undefined).length;
     const isPendiente = auditoria?.estado === 'PENDIENTE';
+    // Modo "aplicar ajustes": solo admin, con la auditoría ya finalizada y filas pendientes de aplicar.
+    const ajustablesIds = idsAjustables(items);
+    const modoAjuste = isAdmin && !isPendiente && ajustablesIds.length > 0;
 
     if (loading) return <DashboardLayout><div className="p-8 text-center text-gray-400">Cargando...</div></DashboardLayout>;
     if (!auditoria) return <DashboardLayout><div className="p-8 text-center text-gray-500">Auditoría no encontrada</div></DashboardLayout>;
@@ -180,6 +215,21 @@ export default function AuditoriaDetailPage(props: PageProps) {
                                 className="flex-1 md:flex-none px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 shadow-sm disabled:opacity-50 text-sm"
                             >
                                 Finalizar
+                            </button>
+                        </div>
+                    )}
+
+                    {modoAjuste && (
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <span className="text-xs text-gray-500">
+                                {ajustablesIds.length} con diferencia · {selectedIds.size} seleccionado{selectedIds.size !== 1 ? 's' : ''}
+                            </span>
+                            <button
+                                onClick={aplicarAjustes}
+                                disabled={aplicando || selectedIds.size === 0}
+                                className="flex-1 md:flex-none px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold"
+                            >
+                                {aplicando ? 'Aplicando...' : `Aplicar ajustes (${selectedIds.size})`}
                             </button>
                         </div>
                     )}
@@ -259,6 +309,16 @@ export default function AuditoriaDetailPage(props: PageProps) {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
+                                {modoAjuste && (
+                                    <th className="px-4 py-3 text-left w-10">
+                                        <input
+                                            type="checkbox"
+                                            aria-label="Seleccionar todos los ajustables"
+                                            checked={ajustablesIds.length > 0 && ajustablesIds.every(id => selectedIds.has(id))}
+                                            onChange={e => setSelectedIds(e.target.checked ? new Set(ajustablesIds) : new Set())}
+                                        />
+                                    </th>
+                                )}
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Producto</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
@@ -269,10 +329,24 @@ export default function AuditoriaDetailPage(props: PageProps) {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredItems.length === 0 && (
-                                <tr><td colSpan={6} className="p-6 text-center text-gray-400">Sin productos{(searchTerm || selectedCategoria) && ' con ese criterio'}.</td></tr>
+                                <tr><td colSpan={modoAjuste ? 7 : 6} className="p-6 text-center text-gray-400">Sin productos{(searchTerm || selectedCategoria) && ' con ese criterio'}.</td></tr>
                             )}
                             {filteredItems.map((item) => (
-                                <tr key={item.id} className={`hover:bg-gray-50 ${item.modificado ? 'bg-blue-50/30' : ''}`}>
+                                <tr key={item.id} className={`hover:bg-gray-50 ${selectedIds.has(item.id) ? 'bg-indigo-50/40' : item.modificado ? 'bg-blue-50/30' : ''}`}>
+                                    {modoAjuste && (
+                                        <td className="px-4 py-3">
+                                            {esAjustable(item) ? (
+                                                <input
+                                                    type="checkbox"
+                                                    aria-label={`Aplicar ajuste de ${item.nombre}`}
+                                                    checked={selectedIds.has(item.id)}
+                                                    onChange={() => toggleSeleccion(item.id)}
+                                                />
+                                            ) : item.revisado ? (
+                                                <span className="text-xs font-bold text-blue-600" title="Ya aplicado">✓</span>
+                                            ) : null}
+                                        </td>
+                                    )}
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono">{item.codigo}</td>
                                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.nombre}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{item.categoria}</td>
@@ -326,11 +400,25 @@ export default function AuditoriaDetailPage(props: PageProps) {
                         </div>
                     )}
                     {filteredItems.map((item) => (
-                        <div key={item.id} className={`bg-white rounded-lg shadow p-4 space-y-3 ${item.modificado ? 'border-l-4 border-indigo-400' : ''}`}>
+                        <div key={item.id} className={`bg-white rounded-lg shadow p-4 space-y-3 ${selectedIds.has(item.id) ? 'border-l-4 border-indigo-500' : item.modificado ? 'border-l-4 border-indigo-400' : ''}`}>
                             <div className="flex justify-between items-start gap-2">
-                                <div className="min-w-0">
-                                    <div className="font-medium text-gray-900 truncate">{item.nombre}</div>
-                                    <div className="text-xs text-gray-400 font-mono">{item.codigo} · {item.categoria}</div>
+                                <div className="flex items-start gap-2 min-w-0">
+                                    {modoAjuste && esAjustable(item) && (
+                                        <input
+                                            type="checkbox"
+                                            aria-label={`Aplicar ajuste de ${item.nombre}`}
+                                            className="mt-1 shrink-0"
+                                            checked={selectedIds.has(item.id)}
+                                            onChange={() => toggleSeleccion(item.id)}
+                                        />
+                                    )}
+                                    {modoAjuste && item.revisado && (
+                                        <span className="mt-0.5 text-xs font-bold text-blue-600 shrink-0" title="Ya aplicado">✓</span>
+                                    )}
+                                    <div className="min-w-0">
+                                        <div className="font-medium text-gray-900 truncate">{item.nombre}</div>
+                                        <div className="text-xs text-gray-400 font-mono">{item.codigo} · {item.categoria}</div>
+                                    </div>
                                 </div>
                                 {item.conteo_fisico !== null && item.conteo_fisico !== undefined && (
                                     <span className={`text-sm font-bold shrink-0
@@ -393,6 +481,25 @@ export default function AuditoriaDetailPage(props: PageProps) {
                 )}
                 {/* Espacio para los botones flotantes en mobile */}
                 {isPendiente && <div className="md:hidden h-16" />}
+
+                {/* Barra flotante mobile — aplicar ajustes (admin) */}
+                {modoAjuste && (
+                    <>
+                        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 flex items-center gap-3 z-10">
+                            <span className="text-xs text-gray-500 flex-1">
+                                {selectedIds.size} de {ajustablesIds.length} seleccionado{selectedIds.size !== 1 ? 's' : ''}
+                            </span>
+                            <button
+                                onClick={aplicarAjustes}
+                                disabled={aplicando || selectedIds.size === 0}
+                                className="px-4 py-2 bg-indigo-600 text-white rounded text-sm font-semibold disabled:opacity-40"
+                            >
+                                {aplicando ? 'Aplicando...' : `Aplicar (${selectedIds.size})`}
+                            </button>
+                        </div>
+                        <div className="md:hidden h-16" />
+                    </>
+                )}
             </div>
         </DashboardLayout>
     );
