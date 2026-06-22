@@ -45,6 +45,21 @@ export default function InventarioPage() {
     } catch { data.setError('Error descargando plantilla'); }
   };
 
+  const handleExport = async () => {
+    try {
+      const blob = await getApiClient().exportarInventario({
+        search: data.searchTerm || undefined,
+        sucursal: data.selectedSucursal,
+        agrupado: !data.selectedSucursal,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const fecha = new Date().toISOString().slice(0, 10);
+      a.href = url; a.download = `stock_${fecha}.xlsx`; a.click();
+      window.URL.revokeObjectURL(url);
+    } catch { data.setError('Error exportando inventario'); }
+  };
+
   const handleUploadSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -85,6 +100,10 @@ export default function InventarioPage() {
           <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">Gestión de Inventario</h2>
           {canManage && (
             <div className="mt-4 flex md:mt-0 md:ml-4 space-x-3">
+              <button type="button" onClick={handleExport}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                Exportar
+              </button>
               <button type="button" onClick={() => setShowUpload(true)}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                 Importar Excel

@@ -69,6 +69,22 @@ export function InventarioMixin<TBase extends Ctor>(Base: TBase) {
       return response.blob();
     }
 
+    async exportarInventario(params?: {
+      search?: string; sucursal?: number; agrupado?: boolean;
+    }): Promise<Blob> {
+      const q = new URLSearchParams();
+      if (params?.search) q.append('search', params.search);
+      if (params?.sucursal) q.append('sucursal', params.sucursal.toString());
+      if (params?.agrupado) q.append('agrupado', 'true');
+      const url = `${this.baseURL}/api/auth/inventario/export/${q.toString() ? `?${q}` : ''}`;
+      const response = await fetch(url, {
+        headers: { 'X-Tenant': this.tenant },
+        credentials: 'include',
+      });
+      if (!response.ok) throw { message: 'Error export', status: response.status };
+      return response.blob();
+    }
+
     async getMovimientos(params?: {
       page?: number; producto?: number; sucursal?: number;
       tipo?: string; fecha_desde?: string; fecha_hasta?: string;
