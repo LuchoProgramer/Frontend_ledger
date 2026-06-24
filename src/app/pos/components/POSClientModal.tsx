@@ -18,12 +18,15 @@ interface Props {
   setNewClientData: (d: ClientData) => void;
   saving: boolean;
   onSave: () => void;
+  consultandoSri: boolean;
+  lookupRuc: (identificacion: string) => void;
 }
 
 export default function POSClientModal({
   isOpen, onClose,
   searchTerm, searchResults, searching, onSearch, onSelect,
   newClientMode, setNewClientMode, newClientData, setNewClientData, saving, onSave,
+  consultandoSri, lookupRuc,
 }: Props) {
   const { valido, completo } = validarIdentificacion(
     newClientData.tipo_identificacion || '05',
@@ -74,8 +77,13 @@ export default function POSClientModal({
                     className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm p-2 border ${borderClass}`}
                     value={newClientData.identificacion}
                     onChange={e => setNewClientData({ ...newClientData, identificacion: e.target.value })}
+                    onBlur={() => {
+                      const id = newClientData.identificacion?.trim() || '';
+                      if (id.length === 10 || id.length === 13) lookupRuc(id);
+                    }}
                   />
                   {completo && !valido && <p className="mt-1 text-xs text-red-600">Identificación inválida</p>}
+                  {consultandoSri && <p className="mt-1 text-xs text-indigo-600">Consultando SRI…</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Nombre y Apellido *</label>

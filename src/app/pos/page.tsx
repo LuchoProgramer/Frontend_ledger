@@ -247,6 +247,8 @@ export default function POSPage() {
           setNewClientData={client.setNewClientData}
           saving={client.saving}
           onSave={client.handleSave}
+          consultandoSri={client.consultandoSri}
+          lookupRuc={client.lookupRuc}
         />
 
         {/* Payment modal */}
