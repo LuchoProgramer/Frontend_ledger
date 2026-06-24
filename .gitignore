@@ -42,9 +42,6 @@ yarn-error.log*
 .wrangler/
 __BUILD_ID
 
-# Claude Code session state
-.claude/
-
 # Superpowers AI tooling artifacts
 # docs/superpowers/ (Habilitado para planes de impresión)
 
