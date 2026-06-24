@@ -32,6 +32,10 @@ npx wrangler deploy                  # 3. Sube assets + worker a Cloudflare
 
 **Nota:** `npm run build:wasm` requiere Rust toolchain + `wasm-pack` instalados localmente. Después de correrlo, commitear los artefactos actualizados antes de continuar con el build.
 
+### ✅ Reset del buscador del POS tras cobrar — DESPLEGADO 2026-06-18 (Version ID `2c410b94`)
+
+`onSaleComplete` (`pos/page.tsx`) recargaba el catálogo conservando `searchTerm`/`selectedCategoria` → el texto buscado se quedaba escrito tras cada venta (reportado por la cajera de la_huequita). Nuevo `usePOSProducts.resetSearch()` limpia texto + categoría, cancela el debounce y recarga el catálogo completo; además se reenfoca `searchInputRef` → el cajero escribe la siguiente venta directo. Commit `4dd08c3`. TDD: `usePOSProducts.resetSearch.test.ts` (2/2), suite POS 34/34, tsc limpio. **Desplegado con turno activo en persepolis Y la_huequita (override explícito del usuario)** — mitigado: subió solo 2 assets (BUILD_ID + chunk del POS `page-80c2937e73ad03ae.js`, 111 sin cambios → re-precaching mínimo). Smoke: persepolis `/`,`/pos`,`/sw.js`,chunk → 200 (chunk contiene `resetSearch`); la_huequita `/pos` → 200. Sin 5xx.
+
 ### ✅ Mostrar stock en tarjetas del POS (por-tenant) — DESPLEGADO 2026-06-14 (Version ID `4655c8ea`)
 
 `POSProductGrid` muestra "Stock: N" en cada tarjeta solo si `turno.mostrar_stock_pos` (flag backend, activado en la_huequita). Default false → tarjeta igual que hoy (persepolis no muestra). Incluyó fix de `jest.config` (`jsx` classic → `react-jsx`) para poder renderizar componentes en tests (suite 44/44). Desplegado con turno activo en persepolis (override del usuario) — mitigado (2 assets nuevos), post-deploy estable sin 5xx. **Pendiente smoke visual:** las tarjetas de la_huequita muestran "Stock: N"; persepolis no. Plan: `docs/superpowers/plans/2026-06-15-pos-mostrar-stock-por-tenant.md`.
@@ -48,31 +52,13 @@ npx wrangler deploy                  # 3. Sube assets + worker a Cloudflare
 
 **Bug reportado en producción (la_huequita, primer día):** las 43 ventas del día salieron como **Nota interna** pese a `factura_electronica_default=true`. Investigación (Network response, bundle de Cloudflare, chunk compilado): el flag llegaba `true` al navegador y el `useEffect` lo aplicaba bien, **pero `openModal` (al abrir el modal de pago) hacía `setEsInterno(client.identificacion === '9999999999')` → forzaba interna para Consumidor Final** (el cliente por defecto, el 99% de ventas de mostrador), pisando el flag. Por eso el toggle aparecía en "Nota" al ir a pagar. **Fix (`usePOSPayment.ts`, commit `78d70a5`):** si el tenant factura por defecto, `openModal` arranca en Factura SIEMPRE (incluso CF); sin el flag se preserva el comportamiento previo (CF→nota, identificado→factura). TDD: test RED reproduce el síntoma exacto (openModal+CF+flag→factura); 6/6 toggle + 28/28 POS. **Deploy:** gate de persepolis verificado pero override del usuario ("hazlo ahora con cuidado") — mitigado: solo 2 assets nuevos (BUILD_ID + chunk POS `page-312dd34bc99ab96a.js`, 111 sin cambios). Smoke: la_huequita `/`,`/pos`,`/sw.js`,chunk → 200; persepolis `/pos` → 200 (no roto); el chunk desplegado contiene el fix (`factura_electronica_default` ×2). **Workaround usado mientras tanto:** el cajero activaba el toggle a mano (1 click). **Pendiente:** las 43 notas internas ya emitidas → promocionar a SRI en un plan aparte (ambiente 2, cuidar fecha/error 65; `promocionar_a_sri` no descuadra stock).
 
-### 🚀 Deploy Pendiente — Toggle "ojo" en login (implementado 2026-06-03, no desplegado)
+### ✅ Toggle "ojo" en login — DESPLEGADO (commit `d84ea93`, 2026-06-07)
 
-Se agregó un botón mostrar/ocultar contraseña (ícono de ojo) en `src/app/login/page.tsx`. No se deployó: había turno activo en persepolis al momento del cambio. Deploy normal (Rust/WASM sin cambios):
+Botón mostrar/ocultar contraseña (ícono de ojo) en `src/app/login/page.tsx` (`showPassword`, `type` text/password, aria-label "Mostrar/Ocultar contraseña", `aria-pressed`). Se commiteó el 2026-06-07 y salió a prod con un deploy posterior (cada `wrangler deploy` sube el worker completo). **Verificado en prod 2026-06-24:** el chunk `app/login/page-5d7522c70bda94e8.js` de persepolis contiene los marcadores del toggle. El registro "pendiente (no desplegado)" stale se eliminó ese día.
 
-```bash
-# Desde /Users/luisviteri/proyectos/Inventario/ledgerxpertz-frontend/
-npm run build                        # ~30s
-npx opennextjs-cloudflare build      # empaqueta para Cloudflare
-npx wrangler deploy                  # sube a Cloudflare Workers
-```
+### ✅ Fase 3 POS Offline — DESPLEGADO 2026-05-26 (Cloudflare version `7585b9a8`)
 
-**Verificar antes:** sin turno activo en persepolis (el deploy reemplaza el worker y puede interrumpir una venta en el POS).
-
-### 🚀 Deploy Pendiente — Fase 3 POS Offline (implementado 2026-05-25, no desplegado)
-
-> **REGLA (frontend):** No deployar con turno activo en persepolis — el swap del worker de Cloudflare interrumpiría operaciones POS en curso. (Deploys de **backend** sí se toleran con turno — ver regla reconciliada arriba.)
-
-Subfases incluidas: 3.1 (calculadora fiscal WASM en POS), 3.2 (catálogo Dexie offline + cola FIFO de ventas con sync automático), 3.3 (Serwist Service Worker — app shell cacheado + banner "Nueva versión").
-
-```bash
-# Desde /Users/luisviteri/proyectos/Inventario/ledgerxpertz-frontend/
-npm run build                        # ~30s — compila Next.js
-npx opennextjs-cloudflare build      # empaqueta para Cloudflare
-npx wrangler deploy                  # sube a Cloudflare Workers
-```
+Subfases en producción: 3.1 (calculadora fiscal WASM en POS), 3.2 (catálogo Dexie offline + cola FIFO de ventas con sync automático), 3.3 (Serwist Service Worker — app shell cacheado + banner "Nueva versión"). Patrones documentados en `.claude/modules.md`. El registro "pendiente" stale se eliminó el 2026-06-24. La lección del incidente de precaching y el checklist DevTools se conservan abajo como referencia obligatoria para futuros cambios al Service Worker.
 
 > [!WARNING]
 > **Lección Aprendida — Incidente de Loop de Precaching (27-Mayo-2026):**
