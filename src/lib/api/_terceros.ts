@@ -23,6 +23,33 @@ export function TercerosMixin<TBase extends Ctor>(Base: TBase) {
       return this.request<any>('/api/clientes/', { method: 'POST', body: JSON.stringify(data) });
     }
 
+    /**
+     * Consulta un RUC/cédula (caché de clientes → API oficial del SRI).
+     * Devuelve los datos normalizados o null si no hay datos / error.
+     */
+    async consultarRuc(identificacion: string): Promise<{
+      identificacion: string;
+      razon_social: string;
+      direccion: string;
+      tipo_identificacion: string;
+      email?: string;
+      telefono?: string;
+    } | null> {
+      try {
+        const res = await this.request<any>(
+          `/api/auth/sri/consultar-ruc/?identificacion=${encodeURIComponent(identificacion)}`
+        );
+        const data = res?.data;
+        // Validación runtime ligera (el repo no usa Zod): razon_social string no vacío.
+        if (!data || typeof data.razon_social !== 'string' || data.razon_social.trim() === '') {
+          return null;
+        }
+        return data;
+      } catch {
+        return null; // 404 / red / etc. → sin datos, no bloquea el llenado manual
+      }
+    }
+
     // ── Proveedores ───────────────────────────────────────────────────────────
 
     async getProveedores(params?: { search?: string; page_size?: number }) {
