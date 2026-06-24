@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getApiClient } from '@/lib/api';
 import { Producto, Categoria } from '@/lib/types/productos';
+import { posDB } from '@/lib/db/posDB';
 import { ComboResult } from '../types';
 
 type OfflineSearchFn = (term: string, categoriaId: number | null, sucursalId: number) => Promise<Producto[]>;
@@ -66,11 +67,22 @@ export function usePOSProducts(
     return () => window.removeEventListener('online', handleOnline);
   }, []);
 
+  // Stale-while-revalidate (T2.2): las categorías casi nunca cambian, así que pintamos
+  // primero desde Dexie (0 red, instantáneo) y luego revalidamos contra el backend,
+  // refrescando estado y caché. Si el backend falla, se conserva lo cacheado.
   const loadCategorias = async () => {
     try {
+      const cached = await posDB.categorias.toArray();
+      if (cached.length > 0) setCategorias(cached);
+    } catch { /* Dexie no disponible: seguimos al backend */ }
+
+    try {
       const res = await apiClient.getCategorias();
-      setCategorias(res.data ?? []);
-    } catch { /* non-critical */ }
+      const fresh = res.data ?? [];
+      setCategorias(fresh);
+      await posDB.categorias.clear();
+      if (fresh.length > 0) await posDB.categorias.bulkPut(fresh);
+    } catch { /* non-critical: se conserva la caché ya pintada */ }
   };
 
   const handleSearch = (term: string) => {
