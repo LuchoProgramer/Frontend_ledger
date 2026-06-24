@@ -18,6 +18,8 @@ export function usePOSClient() {
   const [newClientMode, setNewClientMode] = useState(false);
   const [newClientData, setNewClientData] = useState<ClientData>(EMPTY_NEW_CLIENT);
   const [saving, setSaving] = useState(false);
+  const [consultandoSri, setConsultandoSri] = useState(false);
+  const [ultimaConsultaSri, setUltimaConsultaSri] = useState<string>('');
 
   const apiClient = getApiClient();
 
@@ -59,6 +61,27 @@ export function usePOSClient() {
     } finally { setSaving(false); }
   };
 
+  const lookupRuc = async (identificacion: string) => {
+    const ident = (identificacion || '').trim();
+    if (ident.length !== 10 && ident.length !== 13) return;
+    if (ident === ultimaConsultaSri) return; // guard: no repetir
+    setUltimaConsultaSri(ident);
+    setConsultandoSri(true);
+    try {
+      const data = await apiClient.consultarRuc(ident);
+      if (data) {
+        setNewClientData(prev => ({
+          ...prev,
+          razon_social: data.razon_social || prev.razon_social,
+          direccion: data.direccion || prev.direccion,
+          tipo_identificacion: ident.length === 13 ? '04' : '05',
+        }));
+      }
+    } finally {
+      setConsultandoSri(false);
+    }
+  };
+
   const reset = () => setSelected(CONSUMIDOR_FINAL);
 
   return {
@@ -67,5 +90,6 @@ export function usePOSClient() {
     searchTerm, searchResults, searching, handleSearch,
     newClientMode, setNewClientMode, newClientData, setNewClientData, saving, handleSave,
     handleSelect,
+    consultandoSri, lookupRuc,
   };
 }
