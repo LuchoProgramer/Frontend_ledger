@@ -28,7 +28,7 @@ export function TurnosMixin<TBase extends Ctor>(Base: TBase) {
     async cerrarTurno(datos: {
       efectivo_total: number; tarjeta_total: number;
       transferencia_total: number; salidas_caja: number;
-      efectivo_a_dejar?: number;
+      efectivo_a_dejar?: number; motivo_salida?: string; observaciones?: string;
     }) {
       return this.request<any>('/api/turnos/cerrar/', { method: 'POST', body: JSON.stringify(datos) });
     }

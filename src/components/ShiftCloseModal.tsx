@@ -20,6 +20,7 @@ export interface ShiftCloseData {
     tarjeta_total: number;
     transferencia_total: number;
     salidas_caja: number;
+    motivo_salida: string;
     observaciones: string;
     efectivo_a_dejar?: number;
 }
@@ -33,13 +34,14 @@ export default function ShiftCloseModal({ isOpen, onClose, onConfirm, controlCaj
         tarjeta_total: 0,
         transferencia_total: 0,
         salidas_caja: 0,
+        motivo_salida: '',
         observaciones: '',
         efectivo_a_dejar: hasCashControl ? 35.00 : 0
     });
     const [loading, setLoading] = useState(false);
 
     const handleChange = (field: keyof ShiftCloseData, value: string) => {
-        if (field === 'observaciones') {
+        if (field === 'observaciones' || field === 'motivo_salida') {
             setData(prev => ({ ...prev, [field]: value }));
         } else {
             setData(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
@@ -47,6 +49,11 @@ export default function ShiftCloseModal({ isOpen, onClose, onConfirm, controlCaj
     };
 
     const handleSubmit = async () => {
+        // SEC-14: una salida de caja sin justificar puede encubrir un faltante.
+        if (data.salidas_caja > 0 && !data.motivo_salida.trim()) {
+            alert('Debe indicar el motivo de la salida de caja (gastos / retiros).');
+            return;
+        }
         if (!confirm('¿Estás seguro de cerrar el turno con estos valores? Esta acción es irreversible.')) return;
 
         setLoading(true);
@@ -174,6 +181,25 @@ export default function ShiftCloseModal({ isOpen, onClose, onConfirm, controlCaj
                             />
                         </div>
                     </div>
+
+                    {/* Motivo de la salida — obligatorio si hay gastos/retiros (SEC-14) */}
+                    {data.salidas_caja > 0 && (
+                        <div className="flex items-center justify-between">
+                            <label className="block text-sm font-medium text-red-700 w-1/3">
+                                Motivo del retiro <span className="text-red-500">*</span>
+                            </label>
+                            <div className="w-2/3">
+                                <input
+                                    type="text"
+                                    required
+                                    className="block w-full rounded-md border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border bg-red-50"
+                                    placeholder="Ej: pago a proveedor, compra de insumos…"
+                                    value={data.motivo_salida}
+                                    onChange={(e) => handleChange('motivo_salida', e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Total Declarado */}
                     <div className="flex items-center justify-between pt-4 border-t border-gray-200">

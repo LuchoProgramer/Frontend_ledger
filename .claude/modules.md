@@ -53,7 +53,7 @@
 | `/pos/recibo` | Completo | Recibo térmico 72mm; todo `font-weight: bold`; auto-print |
 | `/pos/comanda` | Completo | Comanda de cocina 72mm; ítems con precio unitario en itálica; VALOR TOTAL al pie; auto-print |
 | `/ventas` | Existente | Historial de ventas (solo Administrador) |
-| `/turnos` | Existente | Historial de cajas |
+| `/turnos` | Existente | Historial de cajas. **2026-06-24 (SEC-14, impl — deploy diferido):** `ShiftCloseModal` muestra un campo "Motivo del retiro" (obligatorio) cuando `salidas_caja > 0`; valida en `handleSubmit` y envía `motivo_salida` en el payload de `cerrarTurno` (`_turnos.ts`). El backend lo exige (400 si falta). tsc limpio. **Deploy coordinado: frontend PRIMERO, luego backend** (si no, el backend nuevo rechaza cierres-con-salida del frontend viejo). Bloqueado por turno abierto de persepolis. |
 
 **Patrones POS — carrito:**
 - Stepper `[-][qty][+]`: `type="text" inputMode="numeric"`, `onFocus={e => e.target.select()}`
