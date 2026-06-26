@@ -3,7 +3,8 @@
  */
 import 'fake-indexeddb/auto';
 
-import { reconciliarCarrito } from '@/app/pos/_reconcileCatalogo';
+import { reconciliarCarrito, idsPresentacionValidos } from '@/app/pos/_reconcileCatalogo';
+import { posDB } from '@/lib/db/posDB';
 
 const item = (presId: number, nombre = 'Prod', isCombo = false) => ({
   producto: { id: 1, nombre },
@@ -36,9 +37,6 @@ describe('reconciliarCarrito', () => {
     expect(res.nombresAfectados).toEqual([]);
   });
 });
-
-import { idsPresentacionValidos } from '@/app/pos/_reconcileCatalogo';
-import { posDB } from '@/lib/db/posDB';
 
 describe('idsPresentacionValidos', () => {
   beforeEach(async () => { await posDB.productos.clear(); });

@@ -31,6 +31,6 @@ export function reconciliarCarrito(
 export async function idsPresentacionValidos(sucursalId: number): Promise<Set<number>> {
   const productos = await posDB.productos.where('sucursal_id').equals(sucursalId).toArray();
   const ids = new Set<number>();
-  productos.forEach((p: any) => (p.presentaciones ?? []).forEach((pr: any) => ids.add(pr.id)));
+  productos.forEach(p => (p.presentaciones ?? []).forEach(pr => ids.add(pr.id)));
   return ids;
 }
