@@ -202,6 +202,11 @@ export function usePOSCart(
 
   const removeFromCart = (index: number) => setItems(prev => prev.filter((_, i) => i !== index));
 
+  const removeItemsByIndices = (indices: number[]) => {
+    const set = new Set(indices);
+    setItems(prev => prev.filter((_, i) => !set.has(i)));
+  };
+
   const updateQuantity = (index: number, newQty: number) => {
     if (newQty < 1) return;
     setItems(prev => {
@@ -229,7 +234,7 @@ export function usePOSCart(
   const reset = () => setItems([]);
 
   return {
-    items, addToCart, addPresentationToCart, removeFromCart, updateQuantity, calculateTotals, reset,
+    items, addToCart, addPresentationToCart, removeFromCart, removeItemsByIndices, updateQuantity, calculateTotals, reset,
     handleCartItemClick,
     showPresModal, setShowPresModal, productToSelect, availablePresentations, targetCartIndex,
     addComboToCart,
