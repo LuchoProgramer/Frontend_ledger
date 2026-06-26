@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { getApiClient } from '@/lib/api';
 import { CartItem, ClientData, Turno, Payment, CONSUMIDOR_FINAL } from '../types';
 import { savePrintData } from '../lib/printStore';
+import { reconciliarCarrito, idsPresentacionValidos } from '@/app/pos/_reconcileCatalogo';
 
 const PAYMENT_METHODS: Record<string, string> = {
   '01': 'Efectivo', '19': 'Tarjeta de Crédito', '16': 'Tarjeta de Débito',
@@ -25,6 +26,8 @@ interface UsePOSPaymentArgs {
   onSaleComplete: () => void;
   showToast: (msg: string) => void;
   enqueueSale?: (payload: object, receiptData: object, turnoId: number, sucursalId: number) => Promise<void>;
+  preloadCatalog?: (sucursalId: number) => Promise<void>;
+  removeItemsByIndices?: (indices: number[]) => void;
 }
 
 export function usePOSPayment({
@@ -35,6 +38,8 @@ export function usePOSPayment({
   onSaleComplete,
   showToast,
   enqueueSale,
+  preloadCatalog,
+  removeItemsByIndices,
 }: UsePOSPaymentArgs) {
   const [showModal, setShowModal] = useState(false);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -220,6 +225,24 @@ export function usePOSPayment({
         if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo?id=${ventaId}`;
         setShowModal(false);
         onSaleComplete();
+      } else if (error?.status === 400 && turno && preloadCatalog && removeItemsByIndices) {
+        // SEC stale-catalog: el checkout devuelve 400 tanto por ítem inexistente
+        // como por errores de negocio. Re-sincronizamos y dejamos que el diff decida.
+        if (printWindow) { try { printWindow.close(); } catch { /* ignore */ } }
+        try {
+          await preloadCatalog(turno.sucursal);
+          const idsValidos = await idsPresentacionValidos(turno.sucursal);
+          const { indicesAQuitar, nombresAfectados } = reconciliarCarrito(items, idsValidos);
+          if (indicesAQuitar.length > 0) {
+            removeItemsByIndices(indicesAQuitar);
+            showToast(`${nombresAfectados.join(', ')} se actualizó en el catálogo — agrégalo de nuevo`);
+            setShowModal(false);
+          } else {
+            showToast(error?.message || 'Error al procesar venta');
+          }
+        } catch {
+          showToast(error?.message || 'Error al procesar venta');
+        }
       } else {
         if (printWindow) { try { printWindow.close(); } catch { /* ignore */ } }
         alert(error?.errorMessage || error?.message || 'Error al procesar venta');
