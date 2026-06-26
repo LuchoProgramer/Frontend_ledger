@@ -77,6 +77,8 @@ export default function POSPage() {
     },
     showToast,
     enqueueSale: offlineQueue.enqueueSale,
+    preloadCatalog: offlineCatalog.preloadCatalog,
+    removeItemsByIndices: cart.removeItemsByIndices,
   });
 
   // Keyboard shortcuts
