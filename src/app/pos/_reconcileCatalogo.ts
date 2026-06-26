@@ -1,6 +1,8 @@
-// Decide qué ítems del carrito quedaron con un presentacion_id huérfano
-// (ausente del catálogo fresco). Los combos se ignoran: su producto/presentacion
-// son virtuales (id === combo.id) y nunca están en el catálogo de productos.
+// Reconciliación del carrito contra el catálogo offline (Dexie) tras una
+// recuperación de catálogo: decide qué ítems quedaron con un presentacion_id
+// huérfano y de dónde leer los ids válidos vigentes.
+
+import { posDB } from '@/lib/db/posDB';
 
 export interface ItemCarritoReconciliable {
   producto: { id: number; nombre: string };
@@ -22,4 +24,13 @@ export function reconciliarCarrito(
     }
   });
   return { indicesAQuitar, nombresAfectados };
+}
+
+// Lee del catálogo offline (Dexie) el set de presentacion_id válidos de una sucursal.
+// Las presentaciones vienen embebidas en cada producto (useOfflineCatalog las guarda así).
+export async function idsPresentacionValidos(sucursalId: number): Promise<Set<number>> {
+  const productos = await posDB.productos.where('sucursal_id').equals(sucursalId).toArray();
+  const ids = new Set<number>();
+  productos.forEach((p: any) => (p.presentaciones ?? []).forEach((pr: any) => ids.add(pr.id)));
+  return ids;
 }
