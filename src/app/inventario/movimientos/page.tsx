@@ -15,20 +15,10 @@ import {
   X,
   ArrowLeft,
 } from 'lucide-react';
+import { Movimiento, TIPO_STYLES, TIPO_LABELS } from './constants';
+import MovimientoDetailModal from './components/MovimientoDetailModal';
 
 // ── Types ────────────────────────────────────────────────────────────────────
-
-interface Movimiento {
-  id: number;
-  producto_nombre: string;
-  sucursal_nombre: string;
-  tipo_movimiento: string;
-  cantidad: number;
-  saldo_posterior?: number | null;
-  motivo: string;
-  usuario_nombre: string | null;
-  fecha: string;
-}
 
 interface Sucursal {
   id: number;
@@ -50,22 +40,6 @@ const TIPOS = [
   { value: 'TRANSFERENCIA_ENTRADA', label: 'Transferencia entrada' },
   { value: 'TRANSFERENCIA_SALIDA', label: 'Transferencia salida' },
 ];
-
-const TIPO_STYLES: Record<string, string> = {
-  COMPRA: 'bg-green-100 text-green-800',
-  VENTA: 'bg-blue-100 text-blue-800',
-  AJUSTE: 'bg-yellow-100 text-yellow-800',
-  TRANSFERENCIA_ENTRADA: 'bg-purple-100 text-purple-800',
-  TRANSFERENCIA_SALIDA: 'bg-orange-100 text-orange-800',
-};
-
-const TIPO_LABELS: Record<string, string> = {
-  COMPRA: 'Compra',
-  VENTA: 'Venta',
-  AJUSTE: 'Ajuste',
-  TRANSFERENCIA_ENTRADA: 'Transf. Entrada',
-  TRANSFERENCIA_SALIDA: 'Transf. Salida',
-};
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -109,6 +83,7 @@ export default function MovimientosInventarioPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedMov, setSelectedMov] = useState<Movimiento | null>(null);
 
   // ── Data loading ──────────────────────────────────────────────────────────
 
@@ -349,7 +324,17 @@ export default function MovimientosInventarioPage() {
                   movimientos.map((mov) => (
                     <tr
                       key={mov.id}
-                      className="hover:bg-gray-50 transition-colors"
+                      onClick={() => setSelectedMov(mov)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedMov(mov);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`Ver detalle del movimiento de ${mov.producto_nombre}`}
+                      className="hover:bg-gray-50 focus:bg-indigo-50 focus:outline-none cursor-pointer transition-colors"
                     >
                       {/* Fecha */}
                       <td className="px-4 py-3 whitespace-nowrap text-gray-600">
@@ -440,6 +425,11 @@ export default function MovimientosInventarioPage() {
         </div>
 
       </div>
+
+      <MovimientoDetailModal
+        movimiento={selectedMov}
+        onClose={() => setSelectedMov(null)}
+      />
     </DashboardLayout>
   );
 }
