@@ -37,7 +37,7 @@ export default function StepForm({
           <p className="text-xs text-gray-500 mb-2">
             Ingresa cuántas unidades <strong>deben existir</strong> (no la diferencia).
           </p>
-          <input type="number" step="0.01" min="0" autoFocus
+          <input type="number" step="1" min="0" inputMode="numeric" autoFocus
             placeholder={`Ej: ${selectedSucursal.currentStock}`}
             className="w-full px-4 py-3 text-lg rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
             value={targetQty}

@@ -7,6 +7,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Search, Trash2, Layers, CheckCircle2, AlertCircle, Plus } from 'lucide-react';
 import { stockEnSucursal, calcularStockResultante, type DesgloseItem } from './_calculos';
+import { validarCantidadAjuste } from '../_validacion';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -106,8 +107,8 @@ export default function AjusteLotePage() {
   function handleAgregarLinea() {
     if (!productoSeleccionado) { setErrorLinea('Selecciona un producto.'); return; }
     if (!sucursalSeleccionada) { setErrorLinea('Selecciona una sucursal.'); return; }
-    const qty = parseFloat(cantidadNueva);
-    if (isNaN(qty) || qty <= 0) { setErrorLinea('Ingresa una cantidad válida mayor a 0.'); return; }
+    const errorCantidad = validarCantidadAjuste(cantidadNueva);
+    if (errorCantidad) { setErrorLinea(errorCantidad); return; }
 
     const suc = sucursales.find(s => s.id === Number(sucursalSeleccionada));
     setLineas(prev => [...prev, {
@@ -325,8 +326,9 @@ export default function AjusteLotePage() {
                   <label className="block text-xs font-bold text-gray-600 mb-1">Cantidad</label>
                   <input
                     type="number"
-                    min="0.01"
-                    step="0.01"
+                    min="1"
+                    step="1"
+                    inputMode="numeric"
                     placeholder="0"
                     value={cantidadNueva}
                     onChange={e => setCantidadNueva(e.target.value)}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { ProductoConStock, Sucursal, AjusteReceipt, Step } from '../_types';
+import { validarCantidadAjuste } from '../_validacion';
 
 interface UseAjustesWizardProps {
   api: any;
@@ -79,7 +80,8 @@ export function useAjustesWizard({ api, username, email }: UseAjustesWizardProps
 
   function handleReviewAjuste() {
     const qty = parseFloat(targetQty);
-    if (isNaN(qty) || qty < 0) { setFormError('Ingresa una cantidad válida (número mayor o igual a 0).'); return; }
+    const errorCantidad = validarCantidadAjuste(targetQty, { permitirCero: true });
+    if (errorCantidad) { setFormError(errorCantidad); return; }
     if (!motivo.trim()) { setFormError('El motivo del ajuste es obligatorio.'); return; }
     if (qty === selectedSucursal!.currentStock) { setFormError('La cantidad ingresada es igual al stock actual. No hay diferencia que ajustar.'); return; }
     setFormError('');
