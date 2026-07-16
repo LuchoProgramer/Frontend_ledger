@@ -79,6 +79,7 @@ export default function POSPage() {
     enqueueSale: offlineQueue.enqueueSale,
     preloadCatalog: offlineCatalog.preloadCatalog,
     removeItemsByIndices: cart.removeItemsByIndices,
+    processSyncQueue: offlineQueue.processSyncQueue,
   });
 
   // Keyboard shortcuts
@@ -102,7 +103,7 @@ export default function POSPage() {
 
   if (turno.loading) {
     return (
-      <POSLayout pendingCount={offlineQueue.pendingCount} errorCount={offlineQueue.errorCount}>
+      <POSLayout pendingCount={offlineQueue.pendingCount} errorCount={offlineQueue.errorCount} onSyncPending={offlineQueue.processSyncQueue}>
         <div className="flex items-center justify-center h-full">
           <p className="text-gray-500">Verificando turno...</p>
         </div>
@@ -111,7 +112,7 @@ export default function POSPage() {
   }
 
   return (
-    <POSLayout pendingCount={offlineQueue.pendingCount} errorCount={offlineQueue.errorCount}>
+    <POSLayout pendingCount={offlineQueue.pendingCount} errorCount={offlineQueue.errorCount} onSyncPending={offlineQueue.processSyncQueue}>
       <div className="flex flex-col h-full overflow-hidden bg-gray-100">
 
         {/* Mobile tab navigation */}

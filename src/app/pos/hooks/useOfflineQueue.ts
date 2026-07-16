@@ -90,6 +90,11 @@ export function useOfflineQueue(): UseOfflineQueueReturn {
     enqueueSaleFn(payload, receiptData, turnoId, sucursalId);
 
   useEffect(() => {
+    // Drenar la cola también al montar: en una tablet kiosk que nunca sale de la
+    // pestaña del POS, 'online'/visibilitychange pueden no dispararse jamás y una
+    // venta encolada por un blip quedaría PENDIENTE para siempre (⚡ atascado
+    // bloqueando el cierre de caja — incidente la_huequita 2026-07-16).
+    if (navigator.onLine) processSyncQueue();
     const handleOnline = () => processSyncQueue();
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && navigator.onLine) processSyncQueue();

@@ -28,6 +28,7 @@ interface UsePOSPaymentArgs {
   enqueueSale?: (payload: object, receiptData: object, turnoId: number, sucursalId: number) => Promise<void>;
   preloadCatalog?: (sucursalId: number) => Promise<void>;
   removeItemsByIndices?: (indices: number[]) => void;
+  processSyncQueue?: () => Promise<void>;
 }
 
 export function usePOSPayment({
@@ -40,6 +41,7 @@ export function usePOSPayment({
   enqueueSale,
   preloadCatalog,
   removeItemsByIndices,
+  processSyncQueue,
 }: UsePOSPaymentArgs) {
   const [showModal, setShowModal] = useState(false);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -183,6 +185,9 @@ export function usePOSPayment({
       if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo?id=${ventaId}`;
       setShowModal(false);
       onSaleComplete();
+      // La venta acaba de pasar → hay conexión probada: drenar ventas PENDIENTE
+      // encoladas por un blip anterior (sin bloquear el flujo de la venta actual).
+      processSyncQueue?.().catch(() => {});
 
     } catch (error: any) {
       // Si error de red (status 0) o backend temporalmente abajo (502/503/504, ej. restart de deploy),
