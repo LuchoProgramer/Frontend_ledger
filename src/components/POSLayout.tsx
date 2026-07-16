@@ -9,9 +9,10 @@ interface POSLayoutProps {
   pendingCount?: number;
   errorCount?: number;
   onSyncPending?: () => void;
+  onShowErrors?: () => void;
 }
 
-export default function POSLayout({ children, pendingCount = 0, errorCount = 0, onSyncPending }: POSLayoutProps) {
+export default function POSLayout({ children, pendingCount = 0, errorCount = 0, onSyncPending, onShowErrors }: POSLayoutProps) {
   const router = useRouter();
   const { user, logout, loading: authLoading } = useAuth();
   const [tenant, setTenant] = useState('');
@@ -80,9 +81,14 @@ export default function POSLayout({ children, pendingCount = 0, errorCount = 0, 
                 </button>
               )}
               {errorCount > 0 && (
-                <div className="flex items-center gap-1 bg-red-100 border border-red-300 px-2 py-1 rounded-lg">
+                <button
+                  onClick={onShowErrors}
+                  aria-label="Ver ventas con error de sincronización"
+                  title="Tocar para ver el detalle de las ventas con error"
+                  className="flex items-center gap-1 bg-red-100 border border-red-300 hover:bg-red-200 active:bg-red-300 px-3 py-2 rounded-lg transition-colors"
+                >
                   <span className="text-xs font-bold text-red-700">⚠ {errorCount}</span>
-                </div>
+                </button>
               )}
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('pos:close-turno'))}

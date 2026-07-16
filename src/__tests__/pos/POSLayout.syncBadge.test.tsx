@@ -40,3 +40,26 @@ describe('POSLayout — badge ⚡ de ventas pendientes', () => {
     expect(screen.queryByRole('button', { name: /sincronizar/i })).toBeNull();
   });
 });
+
+describe('POSLayout — badge ⚠ de ventas con error', () => {
+  it('es un botón que dispara onShowErrors al tocarlo', () => {
+    const onShowErrors = jest.fn();
+    render(
+      <POSLayout errorCount={1} onShowErrors={onShowErrors}>
+        <div />
+      </POSLayout>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /ventas con error/i }));
+    expect(onShowErrors).toHaveBeenCalledTimes(1);
+  });
+
+  it('sin errores no muestra el badge', () => {
+    render(
+      <POSLayout errorCount={0} onShowErrors={jest.fn()}>
+        <div />
+      </POSLayout>
+    );
+    expect(screen.queryByRole('button', { name: /ventas con error/i })).toBeNull();
+  });
+});

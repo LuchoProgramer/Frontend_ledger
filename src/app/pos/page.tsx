@@ -19,9 +19,11 @@ import POSCart from './components/POSCart';
 import POSClientModal from './components/POSClientModal';
 import POSSlotModal from './components/POSSlotModal';
 import POSPaymentModal from './components/POSPaymentModal';
+import OfflineQueueModal from './components/OfflineQueueModal';
 
 export default function POSPage() {
   const [activeTab, setActiveTab] = useState<Tab>('catalog');
+  const [showQueueModal, setShowQueueModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -103,16 +105,17 @@ export default function POSPage() {
 
   if (turno.loading) {
     return (
-      <POSLayout pendingCount={offlineQueue.pendingCount} errorCount={offlineQueue.errorCount} onSyncPending={offlineQueue.processSyncQueue}>
+      <POSLayout pendingCount={offlineQueue.pendingCount} errorCount={offlineQueue.errorCount} onSyncPending={offlineQueue.processSyncQueue} onShowErrors={() => setShowQueueModal(true)}>
         <div className="flex items-center justify-center h-full">
           <p className="text-gray-500">Verificando turno...</p>
         </div>
+        <OfflineQueueModal isOpen={showQueueModal} onClose={() => setShowQueueModal(false)} onRetry={offlineQueue.processSyncQueue} />
       </POSLayout>
     );
   }
 
   return (
-    <POSLayout pendingCount={offlineQueue.pendingCount} errorCount={offlineQueue.errorCount} onSyncPending={offlineQueue.processSyncQueue}>
+    <POSLayout pendingCount={offlineQueue.pendingCount} errorCount={offlineQueue.errorCount} onSyncPending={offlineQueue.processSyncQueue} onShowErrors={() => setShowQueueModal(true)}>
       <div className="flex flex-col h-full overflow-hidden bg-gray-100">
 
         {/* Mobile tab navigation */}
@@ -319,6 +322,8 @@ export default function POSPage() {
           onClose={() => turno.setShowClosingModal(false)}
           onConfirm={data => turno.handleConfirmCloseTurno(data, () => { cart.reset(); client.reset(); })}
         />
+
+        <OfflineQueueModal isOpen={showQueueModal} onClose={() => setShowQueueModal(false)} onRetry={offlineQueue.processSyncQueue} />
       </div>
     </POSLayout>
   );
