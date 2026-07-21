@@ -32,6 +32,12 @@ npx wrangler deploy                  # 3. Sube assets + worker a Cloudflare
 
 **Nota:** `npm run build:wasm` requiere Rust toolchain + `wasm-pack` instalados localmente. Después de correrlo, commitear los artefactos actualizados antes de continuar con el build.
 
+### ⏳ Captura de errores no manejados en global-error.tsx — PENDIENTE DE DEPLOY
+
+**Objetivo:** Instrumentar `global-error.tsx` para mostrar `error.message`/`digest` truncados en pantalla y enviar un POST best-effort a `/api/errores-frontend/` con `X-Tenant` header si el tenant no es `public`.
+**Archivos:** `src/app/global-error.tsx`, `src/lib/reportError.ts`, `src/__tests__/reportError.test.ts`, `src/__tests__/globalError.test.tsx`.
+**Tests:** 132/132 tests de Jest pasando (`reportError.test.ts` 5/5 OK, `globalError.test.tsx` 1/1 OK), `npx tsc --noEmit` limpio.
+
 ### ✅ Diagnóstico de la cola offline (badge ⚠ tocable) — DESPLEGADO 2026-07-16 (Version ID `a2780c92`)
 
 **Incidente (la_huequita, tablet Fire de Emili):** una venta encolada fue rechazada por el backend (401→refresh→400 a las 22:06 UTC) → quedó `ERROR_SYNC` en Dexie con el ⚠ 1 en el header, **invisible e inaccionable**: ver qué había dentro exigía ADB + `chrome://inspect` contra la tablet (Silk no tiene DevTools). **Fix (commit `b1c8d39`):** el badge ⚠ de `POSLayout` ahora es botón (`onShowErrors`) que abre `OfflineQueueModal` — lista `ventas_offline` en `ERROR_SYNC`/`PENDIENTE` con fecha, turno, cliente, total, ítems y el `error_msg` exacto, con acciones **Reintentar** (→`PENDIENTE`+sync; `venta_uuid` idempotente) y **Descartar** (doble confirmación). Lógica pura en `_ventaOfflineView.ts`. Tests: 3 suites nuevas/ampliadas, suite 127/127, tsc limpio. **Deploy:** override explícito del usuario (persepolis turno 50 y la_huequita 98/99 abiertos) — subió solo 3 assets (BUILD_ID + chunk POS `page-19d6c155d1c372fe.js` + 1, 111 sin cambios → precaching mínimo). Smoke: la-huequita `/`,`/pos`,`/sw.js` → 200; persepolis `/pos` → 200; chunk de prod contiene "Ventas sin sincronizar" (el primer fetch del chunk devolvió HTML por lag de propagación del edge — reintentar antes de asumir deploy roto). La tablet atascada necesita aceptar el banner "Nueva versión" (o minimizar/volver) para ver el modal.
