@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 import { isChunkLoadError, maybeReloadOnChunkError } from '@/lib/chunkError';
+import { buildErrorReportPayload, reportClientError } from '@/lib/reportError';
+import { getApiUrl, getTenant } from '@/lib/tenant';
 
 export default function GlobalError({
   error,
@@ -10,14 +12,36 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    maybeReloadOnChunkError(error, {
+    const reloaded = maybeReloadOnChunkError(error, {
       storage: window.sessionStorage,
       now: Date.now(),
       reload: () => window.location.reload(),
     });
+
+    if (!reloaded && !isChunkLoadError(error)) {
+      const payload = buildErrorReportPayload(error, {
+        pathname: window.location.pathname,
+        userAgent: window.navigator.userAgent,
+      });
+      const fetchFn =
+        typeof window !== 'undefined' && window.fetch
+          ? window.fetch.bind(window)
+          : typeof fetch !== 'undefined'
+            ? fetch
+            : (async () => ({} as Response));
+
+      reportClientError(payload, {
+        fetchFn,
+        apiUrl: getApiUrl(),
+        tenant: getTenant(),
+      });
+    }
   }, [error]);
 
   const esChunk = isChunkLoadError(error);
+  const mensajeTecnico = error.message
+    ? error.message.slice(0, 200) + (error.digest ? ` (digest: ${error.digest})` : '')
+    : null;
 
   return (
     <html lang="es">
@@ -58,6 +82,11 @@ export default function GlobalError({
           >
             Recargar
           </button>
+          {!esChunk && mensajeTecnico && (
+            <p style={{ margin: 0, color: '#9ca3af', maxWidth: 420, fontSize: 12 }}>
+              {mensajeTecnico}
+            </p>
+          )}
         </div>
       </body>
     </html>
