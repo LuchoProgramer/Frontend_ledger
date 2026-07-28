@@ -17,7 +17,6 @@ export default function PurchasesPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    // Upload Modal variables removed
     const [sucursales, setSucursales] = useState<any[]>([]);
 
     const apiClient = getApiClient();

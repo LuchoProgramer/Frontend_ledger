@@ -4,12 +4,13 @@ import { useState } from 'react';
 
 interface Props {
   sucursales: { id: number; nombre: string }[];
+  cargandoCatalogos?: boolean;
   buscando: boolean;
   error: string | null;
   onBuscar: (clave: string, sucursalId: number) => void;
 }
 
-export default function ImportClaveStep({ sucursales, buscando, error, onBuscar }: Props) {
+export default function ImportClaveStep({ sucursales, cargandoCatalogos, buscando, error, onBuscar }: Props) {
   const [clave, setClave] = useState('');
   const [sucursalId, setSucursalId] = useState<number | null>(sucursales[0]?.id ?? null);
 
@@ -41,12 +42,13 @@ export default function ImportClaveStep({ sucursales, buscando, error, onBuscar 
           <option key={s.id} value={s.id}>{s.nombre}</option>
         ))}
       </select>
+      {cargandoCatalogos && <p className="text-xs text-gray-500 mt-1">Cargando sucursales...</p>}
 
       {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
 
       <button
         type="button"
-        disabled={!claveValida || sucursalId === null || buscando}
+        disabled={!claveValida || sucursalId === null || buscando || !!cargandoCatalogos}
         onClick={() => sucursalId !== null && onBuscar(clave, sucursalId)}
         className="mt-5 w-full bg-blue-600 text-white rounded px-4 py-2 font-medium disabled:opacity-50"
       >

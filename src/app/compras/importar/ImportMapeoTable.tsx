@@ -1,6 +1,6 @@
 'use client';
 
-import type { LineaEnEdicion } from '@/lib/hooks/useImportCompra';
+import { lineaResuelta, type LineaEnEdicion } from '@/lib/hooks/useImportCompra';
 import ImportLineaRow from './ImportLineaRow';
 
 interface Props {
@@ -18,11 +18,7 @@ export default function ImportMapeoTable({
   lineas, totalResuelto, totalXML, puedeConfirmar, confirmando,
   onCambiarLinea, onCrearNuevo, onConfirmar,
 }: Props) {
-  const resueltas = lineas.filter((l) =>
-    l.accion === 'omitir'
-    || (l.accion === 'mapear' && l.productoIdSeleccionado !== null)
-    || (l.accion === 'crear' && !!l.nuevoProducto)
-  ).length;
+  const resueltas = lineas.filter(lineaResuelta).length;
 
   return (
     <div className="bg-white rounded-lg shadow p-6">

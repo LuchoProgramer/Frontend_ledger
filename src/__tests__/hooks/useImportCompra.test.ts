@@ -90,4 +90,37 @@ describe('useImportCompra', () => {
     }));
     expect(result.current.compraCreadaId).toBe(5);
   });
+
+  it('ignora una segunda llamada a confirmar mientras la primera sigue en vuelo', async () => {
+    mockPreview.mockResolvedValue({
+      proveedor: { existe: false, id: null, ruc: '1790011674001', razon_social: 'Prov' },
+      cabecera: { numero_factura: 'x', fecha_emision: '2026-07-15',
+        total_sin_impuestos: '20.00', total_con_impuestos: '22.00' },
+      lineas: [
+        { codigo: 'AG005', descripcion: 'Fosforos', cantidad_xml: '2', precio: '10',
+          total: '20', estado: 'ok', producto_sugerido: { id: 1, nombre: 'Fosforos' },
+          candidatos: [], factor_empaque: '1' },
+      ],
+    });
+    let resolverConfirmar: (v: any) => void;
+    mockConfirmar.mockReturnValue(new Promise((resolve) => { resolverConfirmar = resolve; }));
+
+    const { result } = renderHook(() => useImportCompra());
+    await act(async () => {
+      await result.current.buscar('clave', 1);
+    });
+
+    // Dispara confirmar() dos veces sin esperar la primera (doble click/tap).
+    act(() => {
+      result.current.confirmar();
+      result.current.confirmar();
+    });
+
+    await act(async () => {
+      resolverConfirmar!({ success: true, compra_id: 5, resueltas: 1, omitidas: 0 });
+      await Promise.resolve();
+    });
+
+    expect(mockConfirmar).toHaveBeenCalledTimes(1);
+  });
 });

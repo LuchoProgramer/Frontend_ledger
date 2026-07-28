@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { getApiClient } from '@/lib/api';
 import type {
   ImportPreviewResponse, ImportLineaPreview, ImportLineaPayload, ImportAccion,
@@ -30,7 +30,7 @@ function lineaAEdicion(l: ImportLineaPreview): LineaEnEdicion {
   };
 }
 
-function lineaResuelta(l: LineaEnEdicion): boolean {
+export function lineaResuelta(l: LineaEnEdicion): boolean {
   if (l.accion === null) return false;
   if (l.accion === 'omitir') return true;
   if (l.accion === 'mapear') return l.productoIdSeleccionado !== null;
@@ -51,6 +51,9 @@ export function useImportCompra() {
   const [buscando, setBuscando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [compraCreadaId, setCompraCreadaId] = useState<number | null>(null);
+  // El `disabled` del botón depende de un re-render de React y no cierra la
+  // ventana de un doble click/tap; mismo patrón que compras/nueva/page.tsx.
+  const confirmandoRef = useRef(false);
 
   const apiClient = getApiClient();
 
@@ -89,6 +92,8 @@ export function useImportCompra() {
 
   const confirmar = useCallback(async () => {
     if (!puedeConfirmar || sucursalId === null) return;
+    if (confirmandoRef.current) return;
+    confirmandoRef.current = true;
     setConfirmando(true);
     setError(null);
     try {
@@ -111,6 +116,7 @@ export function useImportCompra() {
     } catch (err: any) {
       setError(err?.message || 'Error confirmando la compra');
     } finally {
+      confirmandoRef.current = false;
       setConfirmando(false);
     }
   }, [apiClient, claveAcceso, sucursalId, lineas, puedeConfirmar]);

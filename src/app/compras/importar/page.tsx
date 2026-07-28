@@ -3,40 +3,26 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
-import { getApiClient } from '@/lib/api';
 import { useImportCompra } from '@/lib/hooks/useImportCompra';
+import { useComprasCatalogos } from '@/lib/hooks/useComprasCatalogos';
 import ImportClaveStep from './ImportClaveStep';
 import ImportMapeoTable from './ImportMapeoTable';
 import CrearProductoInline from './CrearProductoInline';
 
 export default function ImportarCompraPage() {
   const router = useRouter();
-  const apiClient = getApiClient();
 
-  const [sucursales, setSucursales] = useState<{ id: number; nombre: string }[]>([]);
-  const [categorias, setCategorias] = useState<any[]>([]);
-  const [impuestos, setImpuestos] = useState<any[]>([]);
   const [codigoCreandoNuevo, setCodigoCreandoNuevo] = useState<string | null>(null);
+
+  const {
+    sucursales, categorias, impuestos, cargando: cargandoCatalogos, error: errorCatalogos,
+  } = useComprasCatalogos();
 
   const {
     paso, lineas, error, buscando, confirmando, compraCreadaId,
     puedeConfirmar, totalResuelto, totalXML,
     buscar, actualizarLinea, confirmar,
   } = useImportCompra();
-
-  useEffect(() => {
-    (async () => {
-      const [sucRes, catRes, impRes] = await Promise.all([
-        apiClient.getSucursalesList({ page_size: 100 }),
-        apiClient.getCategorias?.() ?? Promise.resolve({ data: [] }),
-        apiClient.getImpuestos?.() ?? Promise.resolve({ data: [] }),
-      ]);
-      setSucursales(sucRes.results || []);
-      setCategorias((catRes as any).data || (Array.isArray(catRes) ? catRes : []));
-      setImpuestos((impRes as any).data || (Array.isArray(impRes) ? impRes : []));
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (compraCreadaId) {
@@ -52,8 +38,9 @@ export default function ImportarCompraPage() {
         {paso === 'buscar' && (
           <ImportClaveStep
             sucursales={sucursales}
+            cargandoCatalogos={cargandoCatalogos}
             buscando={buscando}
-            error={error}
+            error={errorCatalogos || error}
             onBuscar={buscar}
           />
         )}
