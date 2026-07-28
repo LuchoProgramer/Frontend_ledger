@@ -32,11 +32,10 @@ npx wrangler deploy                  # 3. Sube assets + worker a Cloudflare
 
 **Nota:** `npm run build:wasm` requiere Rust toolchain + `wasm-pack` instalados localmente. Después de correrlo, commitear los artefactos actualizados antes de continuar con el build.
 
-### ⏳ Captura de errores no manejados en global-error.tsx — PENDIENTE DE DEPLOY
+### ✅ Captura de errores no manejados en global-error.tsx — DESPLEGADO 2026-07-21 (Version `322d1277`, confirmado en prod 2026-07-27)
 
-**Objetivo:** Instrumentar `global-error.tsx` para mostrar `error.message`/`digest` truncados en pantalla y enviar un POST best-effort a `/api/errores-frontend/` con `X-Tenant` header si el tenant no es `public`.
+`global-error.tsx` muestra `error.message`/`digest` truncados en pantalla y envía un POST best-effort a `/api/errores-frontend/` con `X-Tenant` header si el tenant no es `public`. Verificado en prod: `POST https://api.ledgerxpertz.com/api/errores-frontend/` → 201; el chunk `global-error-*.js` desplegado contiene la referencia al endpoint. Detalle completo: `.claude/modules.md` (tabla de Infraestructura).
 **Archivos:** `src/app/global-error.tsx`, `src/lib/reportError.ts`, `src/__tests__/reportError.test.ts`, `src/__tests__/globalError.test.tsx`.
-**Tests:** 132/132 tests de Jest pasando (`reportError.test.ts` 5/5 OK, `globalError.test.tsx` 1/1 OK), `npx tsc --noEmit` limpio.
 
 ### ✅ Diagnóstico de la cola offline (badge ⚠ tocable) — DESPLEGADO 2026-07-16 (Version ID `a2780c92`)
 

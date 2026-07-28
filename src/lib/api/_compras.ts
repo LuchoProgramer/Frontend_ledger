@@ -1,4 +1,7 @@
-import type { ComprasResponse, CreateCompraPayload } from '../types/compras';
+import type {
+  ComprasResponse, CreateCompraPayload,
+  ImportPreviewResponse, ImportConfirmarPayload, ImportConfirmarResponse,
+} from '../types/compras';
 import type { ApiClientBase } from './_base';
 
 type Ctor<T = ApiClientBase> = new (...args: any[]) => T;
@@ -24,13 +27,18 @@ export function ComprasMixin<TBase extends Ctor>(Base: TBase) {
       return this.request<any>(`/api/compras/${id}/`);
     }
 
-    async uploadCompraXML(file: File, sucursalId: number) {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('sucursal_id', sucursalId.toString());
-      return this.request<{ success: boolean; message: string; compra_id?: number; error?: string }>(
-        '/api/compras/xml/', { method: 'POST', body: formData }
-      );
+    async previewImportarCompra(claveAcceso: string, sucursalId: number) {
+      return this.request<ImportPreviewResponse>('/api/compras/importar/preview/', {
+        method: 'POST',
+        body: JSON.stringify({ clave_acceso: claveAcceso, sucursal_id: sucursalId }),
+      });
+    }
+
+    async confirmarImportarCompra(payload: ImportConfirmarPayload) {
+      return this.request<ImportConfirmarResponse>('/api/compras/importar/confirmar/', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
     }
   };
 }
