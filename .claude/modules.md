@@ -114,10 +114,11 @@
 | Ruta | Estado | Notas |
 |---|---|---|
 | `/compras` | Completo | Historial paginado (15.7KB) |
-| `/compras/nueva` | Completo | Formulario de registro de compra |
+| `/compras/nueva` | Completo | Formulario de registro de compra manual |
+| `/compras/importar` | Completo | **DESPLEGADO 2026-07-27 (Version `eb55bb45`):** importar compra pegando la clave de acceso SRI (49 dígitos) → preview con auto-mapeo de líneas contra el catálogo (aprendizaje por proveedor vía `CodigoProveedorProducto`) → operador resuelve pendientes (mapear existente / crear nuevo / omitir) → confirma. Reemplaza el viejo `upload_compra_xml` (roto). Hook `useImportCompra` (guard anti-doble-submit `confirmandoRef`) + `useComprasCatalogos` (carga sucursales/categorías/impuestos con estado de error, ya no falla en silencio). `ImportLineaRow` muestra qué decidió el operador por línea ("Nuevo: {nombre}" / "Omitida", con "Cambiar"/"Deshacer"). Diseño: `docs/superpowers/specs/2026-06-20-importacion-compras-xml-design.md`. Deploy: solo 6 assets nuevos, chunk del POS sin cambios (cero impacto en checkout). Smoke persepolis/la-huequita `/`,`/pos`,`/sw.js`,`/compras/importar` → 200. |
 | `/proveedores` | Completo | Gestión de proveedores (18KB) |
 
-- `api.getCompras()`, `api.crearCompra(payload)`, `api.getProveedores()` → `_compras.ts`
+- `api.getCompras()`, `api.crearCompra(payload)`, `api.getProveedores()`, `api.previewImportarCompra()`, `api.confirmarImportarCompra()` → `_compras.ts`
 
 ## 📒 Contabilidad
 
