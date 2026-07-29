@@ -93,6 +93,24 @@ export function VentasMixin<TBase extends Ctor>(Base: TBase) {
       });
     }
 
+    /** NC ELECTRÓNICAS (modelo NotaCredito, firmadas y enviadas al SRI).
+     *  Ojo: es otra tabla que las notas internas, que son Factura tipo 04 y se
+     *  listan con getHistorialVentas({ tipo_comprobante: '04' }). */
+    async getNotasCredito(params: {
+      search?: string; estado_sri?: string; start_date?: string; end_date?: string;
+    } = {}) {
+      const q = new URLSearchParams();
+      Object.entries(params).forEach(([k, v]) => { if (v) q.append(k, String(v)); });
+      return this.request<any>(`/api/notas-credito/${q.toString() ? `?${q}` : ''}`);
+    }
+
+    async descargarNotaCreditoXML(id: number, numero?: string) {
+      return this.downloadFile(
+        `/api/notas-credito/${id}/descargar_xml/`,
+        `NC_${numero || id}.xml`,
+      );
+    }
+
     // ── Retenciones ───────────────────────────────────────────────────────────
 
     async getRetenciones(params: any = {}) {
