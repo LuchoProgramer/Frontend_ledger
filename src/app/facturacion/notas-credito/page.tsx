@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
 import Link from 'next/link';
-import { combinarNotas, NotaCreditoFila } from './_notasCredito';
+import { combinarNotas, formatearFecha, NotaCreditoFila } from './_notasCredito';
 
 const ESTILO_SRI: Record<string, string> = {
     AUT: 'bg-green-100 text-green-800',
@@ -90,7 +90,7 @@ export default function CreditNotesPage() {
                             {notas.map((nc) => (
                                 <tr key={nc.key} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {new Date(nc.fecha).toLocaleDateString()}
+                                        {formatearFecha(nc.fecha)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {nc.numero}

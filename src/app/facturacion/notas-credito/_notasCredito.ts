@@ -69,3 +69,20 @@ export function combinarNotas(
         ...internas.map(normalizarInterna),
     ].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
 }
+
+/** Formatea la fecha de emisión para la tabla.
+ *
+ * `NotaCredito.fecha_emision` es un `DateField`, así que llega como
+ * `'2026-07-28'` — y `new Date('2026-07-28')` lo interpreta como **medianoche
+ * UTC**: en Ecuador (UTC-5) eso renderiza el día ANTERIOR. La NC emitida el 28
+ * se mostraba como 27. En un comprobante fiscal la fecha de emisión importa.
+ *
+ * Los timestamps completos (las notas internas vienen de un `DateTimeField`) sí
+ * deben convertirse a hora local: ahí convertir es lo correcto.
+ */
+export function formatearFecha(fecha: string): string {
+    if (!fecha) return SIN_DATO;
+    const esSoloFecha = /^\d{4}-\d{2}-\d{2}$/.test(fecha);
+    const d = esSoloFecha ? new Date(`${fecha}T00:00:00`) : new Date(fecha);
+    return Number.isNaN(d.getTime()) ? SIN_DATO : d.toLocaleDateString();
+}

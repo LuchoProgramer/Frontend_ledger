@@ -7,6 +7,7 @@ import {
     normalizarElectronica,
     normalizarInterna,
     combinarNotas,
+    formatearFecha,
 } from '@/app/facturacion/notas-credito/_notasCredito';
 
 const NC_ELECTRONICA = {
@@ -78,5 +79,28 @@ describe('combinarNotas', () => {
         );
         expect(filas).toHaveLength(2);
         expect(new Set(filas.map((f) => f.key)).size).toBe(2);
+    });
+});
+
+describe('formatearFecha', () => {
+    // `NotaCredito.fecha_emision` es DateField → llega como '2026-07-28'.
+    // new Date() lo interpreta como medianoche UTC, y en Ecuador (UTC-5) eso
+    // renderiza el día ANTERIOR: la NC emitida el 28 se veía como 27.
+    it('una fecha sin hora se muestra tal cual, sin correrse un día', () => {
+        expect(formatearFecha('2026-07-28')).toBe(
+            new Date(2026, 6, 28).toLocaleDateString(),
+        );
+    });
+
+    it('un timestamp con zona sí se convierte a hora local', () => {
+        // Las notas internas vienen de un DateTimeField: acá convertir es lo
+        // correcto, no el bug.
+        expect(formatearFecha('2026-07-29T02:30:00Z')).toBe(
+            new Date('2026-07-29T02:30:00Z').toLocaleDateString(),
+        );
+    });
+
+    it('no revienta con fecha vacía', () => {
+        expect(formatearFecha('')).toBe('—');
     });
 });
