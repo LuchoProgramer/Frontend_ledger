@@ -109,6 +109,19 @@
 - `api.trasladoBulk({ origen_id, destino_id, productos, generar_guia, transportista })`
 - `enviar_sri=False` — guía queda en borrador; se envía desde `/guias`
 
+## 🧾 Notas de Crédito
+
+| Ruta | Estado | Notas |
+|---|---|---|
+| `/facturacion/notas-credito` | 🔴 **Rota (2026-07-28)** | Lista la fuente equivocada — ver abajo |
+| `/facturacion/notas-credito/nueva` | Funciona | Elegir factura + ítems + motivo → `POST /api/ventas/notas-credito/nueva/` |
+
+**🔴 La lista no muestra las NC electrónicas.** `page.tsx:18` llama `getHistorialVentas({ tipo_comprobante: '04' })` → `GET /api/ventas/facturas/?tipo_comprobante=04`, que devuelve **`Factura` tipo 04 = las notas INTERNAS**. Las NC electrónicas viven en el modelo `NotaCredito`, otra tabla. Antes la pantalla "funcionaba" porque listaba notas internas; desde que el backend emite NC electrónicas (2026-07-28) la pantalla queda vacía. Endpoint correcto: **`GET /api/notas-credito/`** (`NotaCreditoViewSet.list`; filtros `search`, `estado_sri`, `start_date`, `end_date`). **Gotcha:** `NotaCreditoListSerializer` **no expone `cliente`** y la tabla tiene columna CLIENTE → agregar el campo al serializer o usar el detail. Decisión pendiente: si la pantalla debe listar también las notas internas (la_huequita opera casi todo con ventas internas). Detalle: `docs/planning/2026-07-28-cierre-nc-electronica.md`.
+
+**Backend (desplegado 2026-07-28):** `POST /api/ventas/notas-credito/nueva/` bifurca por el estado SRI de la factura de origen — `AUT` → **NC electrónica** (firma + envío al SRI); `PPR`/`ENV` → **400** ("todavía en trámite"); interna/`DEV`/`RECHAZADA` → nota interna con identificador `NI-{id}` (ya no finge numeración del SRI). El `confirm()` de `nueva/page.tsx:72` sigue diciendo "esta acción enviará el documento al SRI" — inexacto para ventas internas, pendiente de ajustar.
+
+**Falta:** la NC **no se le envía al cliente** — no hay RIDE/PDF ni correo al quedar `AUT` (las facturas sí lo tienen). Por ahora se baja el XML con `GET /api/notas-credito/{id}/descargar_xml/`.
+
 ## 🛒 Compras y Proveedores
 
 | Ruta | Estado | Notas |
