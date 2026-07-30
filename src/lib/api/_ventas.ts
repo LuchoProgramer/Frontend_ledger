@@ -43,14 +43,18 @@ export function VentasMixin<TBase extends Ctor>(Base: TBase) {
       return this.request<any>(`/api/facturas/${id}/promocionar_sri/`, { method: 'POST' });
     }
 
-    async descargarXML(id: number): Promise<Blob> {
-      const url = `${this.baseURL}/api/facturas/${id}/descargar_xml/`;
-      const response = await fetch(url, {
-        headers: { 'X-Tenant': this.tenant },
-        credentials: 'include',
-      });
-      if (!response.ok) throw { message: 'Error al descargar XML', status: response.status } as ApiError;
-      return response.blob();
+    /** Descarga el XML autorizado. El nombre lo pone el backend
+     *  (FACTURA-001-002-000000005.xml) vía Content-Disposition. */
+    async descargarFacturaXML(id: number) {
+      return this.downloadFile(`/api/facturas/${id}/descargar_xml/`);
+    }
+
+    /** Exporta los XML autorizados de un rango en un ZIP con RESUMEN.csv.
+     *  Requiere rol Administrador (o Contador, cuando exista ese grupo). */
+    async exportarComprobantesXML(desde: string, hasta: string) {
+      return this.downloadFile(
+        `/api/comprobantes/export_xml/?desde=${desde}&hasta=${hasta}`,
+      );
     }
 
     // ── POS / Ventas ──────────────────────────────────────────────────────────
@@ -104,11 +108,8 @@ export function VentasMixin<TBase extends Ctor>(Base: TBase) {
       return this.request<any>(`/api/notas-credito/${q.toString() ? `?${q}` : ''}`);
     }
 
-    async descargarNotaCreditoXML(id: number, numero?: string) {
-      return this.downloadFile(
-        `/api/notas-credito/${id}/descargar_xml/`,
-        `NC_${numero || id}.xml`,
-      );
+    async descargarNotaCreditoXML(id: number) {
+      return this.downloadFile(`/api/notas-credito/${id}/descargar_xml/`);
     }
 
     // ── Retenciones ───────────────────────────────────────────────────────────

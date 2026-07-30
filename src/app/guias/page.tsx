@@ -256,12 +256,7 @@ export default function GuiasRemisionPage() {
                                                 <button
                                                     onClick={async () => {
                                                         try {
-                                                            const blob = await apiClient.descargarGuiaXML(guia.id);
-                                                            const url = window.URL.createObjectURL(blob);
-                                                            const a = document.createElement('a');
-                                                            a.href = url;
-                                                            a.download = `guia_${guia.numero_autorizacion}.xml`;
-                                                            a.click();
+                                                            await apiClient.descargarGuiaXML(guia.id);
                                                         } catch (e) {
                                                             alert('Error descargando XML');
                                                         }

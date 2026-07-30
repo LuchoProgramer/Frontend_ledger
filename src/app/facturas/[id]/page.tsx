@@ -85,16 +85,7 @@ export default function DetalleFactura() {
 
     try {
       const api = getApiClient(tenant);
-      const blob = await api.descargarXML(factura.id);
-
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `factura_${factura.id}.xml`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      await api.descargarFacturaXML(factura.id);
     } catch (err: any) {
       alert(`Error: ${err.message}`);
     }

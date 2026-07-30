@@ -29,14 +29,8 @@ export function GuiasMixin<TBase extends Ctor>(Base: TBase) {
       return this.request<any>(`/api/guias/${id}/enviar_sri/`, { method: 'POST' });
     }
 
-    async descargarGuiaXML(id: number): Promise<Blob> {
-      const url = `${this.baseURL}/api/guias/${id}/descargar_xml/`;
-      const response = await fetch(url, {
-        headers: { 'X-Tenant': this.tenant },
-        credentials: 'include',
-      });
-      if (!response.ok) throw { message: 'Error descarga XML', status: response.status } as ApiError;
-      return response.blob();
+    async descargarGuiaXML(id: number) {
+      return this.downloadFile(`/api/guias/${id}/descargar_xml/`);
     }
 
     async descargarGuiaPDF(id: number, filename?: string) {

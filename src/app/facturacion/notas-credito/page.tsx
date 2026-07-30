@@ -121,7 +121,7 @@ export default function CreditNotesPage() {
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         {nc.origen === 'ELECTRONICA' ? (
                                             <button
-                                                onClick={() => apiClient.descargarNotaCreditoXML(nc.id, nc.numero)}
+                                                onClick={() => apiClient.descargarNotaCreditoXML(nc.id)}
                                                 className="text-indigo-600 hover:text-indigo-900"
                                             >
                                                 XML
