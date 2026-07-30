@@ -8,7 +8,7 @@ import { getApiClient } from '@/lib/api';
 import { Factura } from '@/lib/types/ventas';
 
 export default function SalesHistoryPage() {
-    const { user, loading: authLoading } = useAuth();
+    const { user, isAdmin, loading: authLoading } = useAuth();
     const router = useRouter();
     const [facturas, setFacturas] = useState<Factura[]>([]);
     const [loading, setLoading] = useState(false);
@@ -21,6 +21,22 @@ export default function SalesHistoryPage() {
     const [totalPages, setTotalPages] = useState(1);
 
     const apiClient = getApiClient();
+
+    /** Baja en un ZIP los XML autorizados del mes en curso, con RESUMEN.csv.
+     *  Las fechas se calculan al hacer clic: hardcodearlas dejaría el botón
+     *  bajando siempre el mismo mes. */
+    const exportarXmlDelMes = async () => {
+        const hoy = new Date();
+        const iso = (d: Date) =>
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const desde = iso(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+        const hasta = iso(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0));
+        try {
+            await apiClient.exportarComprobantesXML(desde, hasta);
+        } catch {
+            alert('No se pudo exportar. Si el rango es muy grande, probá un mes más corto.');
+        }
+    };
 
     // Check Auth and Permissions
     useEffect(() => {
@@ -112,19 +128,21 @@ export default function SalesHistoryPage() {
                         )}
                     </div>
                     <div className="flex gap-2">
-                        <button
-                            onClick={() => apiClient.exportarComprobantesXML('2026-07-01', '2026-07-31')}
-                            className="px-4 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors shadow-sm"
-                        >
-                            ⬇️ Bajar XML del mes
-                        </button>
+                        {isAdmin && (
+                            <button
+                                onClick={exportarXmlDelMes}
+                                className="px-4 py-2 bg-white text-indigo-600 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors shadow-sm"
+                            >
+                                ⬇️ Bajar XML del mes
+                            </button>
+                        )}
                         <button
                             onClick={() => loadFacturas()}
                             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
                         >
                             🔄 Actualizar
                         </button>
-                    </div>>
+                    </div>
                 </div>
 
                 {/* Filters */}
