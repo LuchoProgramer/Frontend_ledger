@@ -2,7 +2,12 @@ function validarCedula(cedula: string): boolean {
   if (cedula.length !== 10) return false;
   const provincia = parseInt(cedula.substring(0, 2), 10);
   if (provincia < 1 || (provincia > 24 && provincia !== 30)) return false;
-  if (parseInt(cedula[2], 10) >= 6) return false;
+  // NO se valida el "tercer dígito 0-5". El algoritmo clásico dice que debe ser
+  // 0-5 para persona natural, pero **el SRI no aplica esa regla**: existen
+  // cédulas reales con tercer dígito ≥6. Verificado end-to-end en SistemaSalud
+  // (2026-06-10): factura con `1762866877` → AUTORIZADA. Rechazarlas acá dejaba
+  // al cajero sin poder facturarle a un cliente con cédula válida.
+  // La integridad real la da el dígito verificador (módulo 10) de abajo.
   const coefs = [2, 1, 2, 1, 2, 1, 2, 1, 2];
   let suma = 0;
   for (let i = 0; i < 9; i++) {
