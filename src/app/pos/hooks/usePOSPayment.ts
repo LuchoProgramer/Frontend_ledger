@@ -29,6 +29,8 @@ interface UsePOSPaymentArgs {
   preloadCatalog?: (sucursalId: number) => Promise<void>;
   removeItemsByIndices?: (indices: number[]) => void;
   processSyncQueue?: () => Promise<void>;
+  /** Abre el modal de cliente. Lo usa el tope legal de Consumidor Final. */
+  showClientModal?: () => void;
 }
 
 export function usePOSPayment({
@@ -42,6 +44,7 @@ export function usePOSPayment({
   preloadCatalog,
   removeItemsByIndices,
   processSyncQueue,
+  showClientModal,
 }: UsePOSPaymentArgs) {
   const [showModal, setShowModal] = useState(false);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -230,6 +233,16 @@ export function usePOSPayment({
         if (printWindow) printWindow.location.href = `${window.location.origin}/pos/recibo?id=${ventaId}`;
         setShowModal(false);
         onSaleComplete();
+      } else if (error?.status === 400 && error?.data?.code === 'IDENTIFICACION_REQUERIDA') {
+        // Tope legal: una factura a Consumidor Final por más de 50 USD exige
+        // identificar al comprador (Ficha SRI 2.34 §9.10). El backend es quien
+        // bloquea; acá sólo se lleva a la cajera a donde puede resolverlo, en vez
+        // de dejarla frente a un error. Va ANTES de la rama de catálogo stale
+        // porque las dos son 400 y aquella re-sincroniza el catálogo al pedo.
+        if (printWindow) { try { printWindow.close(); } catch { /* ignore */ } }
+        setShowModal(false);
+        showToast(error?.data?.error || error?.message || 'Ingresá los datos del cliente');
+        showClientModal?.();
       } else if (error?.status === 400 && turno && preloadCatalog && removeItemsByIndices) {
         // SEC stale-catalog: el checkout devuelve 400 tanto por ítem inexistente
         // como por errores de negocio. Re-sincronizamos y dejamos que el diff decida.

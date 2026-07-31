@@ -82,6 +82,7 @@ export default function POSPage() {
     preloadCatalog: offlineCatalog.preloadCatalog,
     removeItemsByIndices: cart.removeItemsByIndices,
     processSyncQueue: offlineQueue.processSyncQueue,
+    showClientModal: () => client.setShowModal(true),
   });
 
   // Keyboard shortcuts

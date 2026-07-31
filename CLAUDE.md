@@ -32,6 +32,18 @@ npx wrangler deploy                  # 3. Sube assets + worker a Cloudflare
 
 **Nota:** `npm run build:wasm` requiere Rust toolchain + `wasm-pack` instalados localmente. Después de correrlo, commitear los artefactos actualizados antes de continuar con el build.
 
+### ⚖️ Tope legal de 50 USD a Consumidor Final — el POS abre el modal de cliente
+
+**Ficha SRI 2.34 §9.10:** una factura a Consumidor Final por más de 50 USD exige identificar al adquirente. **El bloqueo lo hace el backend** (`IdentificacionRequeridaError` → 400 con `code: 'IDENTIFICACION_REQUERIDA'`), porque el POS se puede saltar y la API es el límite real. El frontend sólo reacciona: cierra el modal de pago, muestra el mensaje y **abre el modal de cliente**, que es donde la cajera puede resolverlo.
+
+> ⚠️ **El checkout devuelve 400 tanto para esto como para el catálogo stale.** La rama del tope va **ANTES** en el `else if`, si no una venta bloqueada por el tope dispararía una re-sincronización del catálogo que no arregla nada y encima tarda. Hay un test que lo fija.
+
+**Archivos:** `src/app/pos/hooks/usePOSPayment.ts` (arg `showClientModal`), `src/app/pos/page.tsx` (cableado). Tests: `src/__tests__/pos/usePOSPayment.topeConsumidorFinal.test.ts` (4).
+
+### ✅ Cédulas con tercer dígito ≥6 — el POS las rechazaba y el SRI las acepta
+
+`src/app/pos/utils/validarIdentificacion.ts` seguía el algoritmo clásico, que exige tercer dígito 0-5 para persona natural. **El SRI no aplica esa regla.** Verificado end-to-end en el proyecto hermano: `1762866877` → AUTORIZADA. **Consecuencia real: el cajero no podía facturarle a un cliente con cédula válida.** La integridad la sigue dando el dígito verificador (módulo 10). Tests: `src/__tests__/validarIdentificacion.test.ts` (7) — no había ninguno antes.
+
 ### ✅ Captura de errores no manejados en global-error.tsx — DESPLEGADO 2026-07-21 (Version `322d1277`, confirmado en prod 2026-07-27)
 
 `global-error.tsx` muestra `error.message`/`digest` truncados en pantalla y envía un POST best-effort a `/api/errores-frontend/` con `X-Tenant` header si el tenant no es `public`. Verificado en prod: `POST https://api.ledgerxpertz.com/api/errores-frontend/` → 201; el chunk `global-error-*.js` desplegado contiene la referencia al endpoint. Detalle completo: `.claude/modules.md` (tabla de Infraestructura).
