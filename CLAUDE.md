@@ -40,6 +40,17 @@ npx wrangler deploy                  # 3. Sube assets + worker a Cloudflare
 
 **Archivos:** `src/app/pos/hooks/usePOSPayment.ts` (arg `showClientModal`), `src/app/pos/page.tsx` (cableado). Tests: `src/__tests__/pos/usePOSPayment.topeConsumidorFinal.test.ts` (4).
 
+### ✅ Fix doble del carrito POS (`impuesto_porcentaje` + corrupción producto/presentación) — DESPLEGADO 2026-08-01 (Version `9cb49caa`)
+
+Dos bugs con la misma raíz, encontrados en sesiones separadas, desplegados juntos apenas persepolis cerró turno:
+
+1. **Crash `impuesto_porcentaje`** (reportado por una clienta de persepolis): `targetCartIndex` no se reseteaba al cancelar el modal de "cambiar presentación" — si el item objetivo se eliminaba después, el siguiente producto agregado reusaba el índice stale y quedaba sin `producto`. Fix: `cancelPresentationSelection()` en `usePOSCart.ts` + guard en `addPresentationToCart`.
+2. **"Procesando…" que nunca termina, la venta no se hace** (la_huequita, reportado con video): mismo mecanismo pero sin pasar por "cancelar" — si se elimina OTRO item del carrito antes de confirmar una nueva presentación, el índice stale queda apuntando a un producto distinto y `addPresentationToCart` le escribía encima la presentación equivocada → el backend lo rechazaba (SEC-11) con un 400 genérico que el frontend no distinguía, mostrando solo un `showToast` fácil de no notar. Fix: `hasValidTarget` ahora exige también que el producto del slot coincida.
+
+De paso se encontró y arregló que `reportError.ts` pegaba a `/errores-frontend/` sin el prefijo `/api/` (404 silencioso desde hacía tiempo) + el mismo error en el fallback de `getApiUrl()` en `tenant.ts`.
+
+**Deploy:** solo 3 assets nuevos (BUILD_ID + chunk `global-error` + chunk `pos/page`), 112 sin cambios → precaching mínimo. Smoke test: la_huequita y persepolis `/`,`/pos`,`/sw.js` → 200; el chunk del POS desplegado contiene `cancelPresentationSelection`. Detalle completo: `.claude/modules.md` (sección "Patrones POS — carrito").
+
 ### ✅ Cédulas con tercer dígito ≥6 — el POS las rechazaba y el SRI las acepta
 
 `src/app/pos/utils/validarIdentificacion.ts` seguía el algoritmo clásico, que exige tercer dígito 0-5 para persona natural. **El SRI no aplica esa regla.** Verificado end-to-end en el proyecto hermano: `1762866877` → AUTORIZADA. **Consecuencia real: el cajero no podía facturarle a un cliente con cédula válida.** La integridad la sigue dando el dígito verificador (módulo 10). Tests: `src/__tests__/validarIdentificacion.test.ts` (7) — no había ninguno antes.
