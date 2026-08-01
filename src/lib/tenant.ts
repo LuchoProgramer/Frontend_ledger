@@ -67,7 +67,10 @@ export function getApiUrl(hostname?: string): string {
 
   // Para esta migración, forzamos el uso del Backend Centralizado
   // Esto permitirá probar la "SPA Pura" incluso en local
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.ledgerxpertz.com/api';
+  // Sin /api de sufijo: `_base.ts` (ApiClientBase) construye cada endpoint con
+  // su propio prefijo `/api/...` sobre esta base. Un fallback con `/api` acá
+  // duplicaría el prefijo en cada request si NEXT_PUBLIC_API_URL faltara.
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.ledgerxpertz.com';
 
   // Eliminamos lógica de reemplazo de {tenant} en URL porque el backend
   // centralizado usa Headers (X-Tenant) para diferenciar, no subdominios en la API.

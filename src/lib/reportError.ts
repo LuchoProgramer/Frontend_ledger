@@ -39,7 +39,7 @@ export async function reportClientError(
   }
 
   try {
-    await deps.fetchFn(`${deps.apiUrl}/errores-frontend/`, {
+    await deps.fetchFn(`${deps.apiUrl}/api/errores-frontend/`, {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),

@@ -107,11 +107,16 @@ export function usePOSCart(
   const addPresentationToCart = (producto: Producto, presentacion: Presentacion) => {
     const stockActual = producto.stock ?? 0;
     setItems(prev => {
-      // targetCartIndex puede quedar apuntando a un índice que ya no existe (item
-      // eliminado del carrito mientras el modal de "cambiar presentación" seguía
-      // referenciándolo). Si el slot ya no existe, tratamos esto como un alta nueva
-      // en vez de escribir sobre `undefined` (que perdería `producto` en silencio).
-      const hasValidTarget = targetCartIndex !== null && prev[targetCartIndex] !== undefined;
+      // targetCartIndex puede quedar apuntando a un índice que ya no existe, o que
+      // ahora contiene OTRO producto (item eliminado del carrito — desplazando los
+      // siguientes — mientras el modal de "cambiar presentación" seguía referenciando
+      // el índice viejo). En ambos casos tratamos esto como un alta nueva: sin el
+      // chequeo de producto, se sobreescribe el slot ajeno con la presentación elegida
+      // para otro producto — el backend lo rechaza con "La presentación no pertenece
+      // al producto indicado" (incidente la_huequita 2026-08-01).
+      const hasValidTarget = targetCartIndex !== null
+        && prev[targetCartIndex] !== undefined
+        && prev[targetCartIndex].producto.id === producto.id;
       const otherStock = prev
         .filter((item, idx) => item.producto.id === producto.id && idx !== targetCartIndex)
         .reduce((sum, i) => sum + i.cantidad * i.presentacion.cantidad, 0);
