@@ -199,7 +199,7 @@ export default function POSPage() {
         )}
 
         {/* Presentation selection modal */}
-        <PortalModal isOpen={cart.showPresModal} onClose={() => cart.setShowPresModal(false)}>
+        <PortalModal isOpen={cart.showPresModal} onClose={cart.cancelPresentationSelection}>
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 max-w-lg w-full rounded-2xl">
             <h3 className="text-xl font-bold text-gray-900 mb-2">
               {cart.targetCartIndex !== null ? 'Cambiar Presentación' : 'Seleccionar Presentación'}
@@ -221,7 +221,7 @@ export default function POSPage() {
               ))}
             </div>
             <div className="mt-4 text-right">
-              <button onClick={() => cart.setShowPresModal(false)} className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium">Cancelar</button>
+              <button onClick={cart.cancelPresentationSelection} className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium">Cancelar</button>
             </div>
           </div>
         </PortalModal>

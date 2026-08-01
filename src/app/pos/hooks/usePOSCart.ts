@@ -107,18 +107,23 @@ export function usePOSCart(
   const addPresentationToCart = (producto: Producto, presentacion: Presentacion) => {
     const stockActual = producto.stock ?? 0;
     setItems(prev => {
+      // targetCartIndex puede quedar apuntando a un índice que ya no existe (item
+      // eliminado del carrito mientras el modal de "cambiar presentación" seguía
+      // referenciándolo). Si el slot ya no existe, tratamos esto como un alta nueva
+      // en vez de escribir sobre `undefined` (que perdería `producto` en silencio).
+      const hasValidTarget = targetCartIndex !== null && prev[targetCartIndex] !== undefined;
       const otherStock = prev
         .filter((item, idx) => item.producto.id === producto.id && idx !== targetCartIndex)
         .reduce((sum, i) => sum + i.cantidad * i.presentacion.cantidad, 0);
-      let quantity = targetCartIndex !== null && prev[targetCartIndex] ? prev[targetCartIndex].cantidad : 1;
+      let quantity = hasValidTarget ? prev[targetCartIndex as number].cantidad : 1;
       if (otherStock + quantity * presentacion.cantidad > stockActual) {
         alert(`Sin stock suficiente. Max: ${stockActual - otherStock} unidades.`);
         return prev;
       }
-      if (targetCartIndex !== null) {
+      if (hasValidTarget) {
         const newCart = [...prev];
         const precio = Number(presentacion.precio);
-        newCart[targetCartIndex] = { ...newCart[targetCartIndex], presentacion, precio, subtotal: quantity * precio, total: quantity * precio };
+        newCart[targetCartIndex as number] = { ...newCart[targetCartIndex as number], presentacion, precio, subtotal: quantity * precio, total: quantity * precio };
         return newCart;
       }
       const existingIdx = prev.findIndex(i => i.producto.id === producto.id && i.presentacion.id === presentacion.id);
@@ -200,6 +205,16 @@ export function usePOSCart(
     setSlotError('');
   };
 
+  // Cerrar el modal de "cambiar presentación" sin elegir ninguna: además de ocultarlo,
+  // hay que soltar targetCartIndex — si no, queda apuntando al item que estaba editando
+  // y un alta posterior (agregar producto nuevo) puede reusar ese índice si el item
+  // objetivo se eliminó del carrito mientras tanto.
+  const cancelPresentationSelection = () => {
+    setShowPresModal(false);
+    setProductToSelect(null);
+    setTargetCartIndex(null);
+  };
+
   const removeFromCart = (index: number) => setItems(prev => prev.filter((_, i) => i !== index));
 
   const removeItemsByIndices = (indices: number[]) => {
@@ -235,7 +250,7 @@ export function usePOSCart(
 
   return {
     items, addToCart, addPresentationToCart, removeFromCart, removeItemsByIndices, updateQuantity, calculateTotals, reset,
-    handleCartItemClick,
+    handleCartItemClick, cancelPresentationSelection,
     showPresModal, setShowPresModal, productToSelect, availablePresentations, targetCartIndex,
     addComboToCart,
     showSlotModal, setShowSlotModal, pendingCombo, slotOpciones, slotSelections, setSlotSelections,
