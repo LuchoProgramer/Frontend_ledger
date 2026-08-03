@@ -64,6 +64,12 @@ export default function ConfiguracionPage() {
     return (
         <DashboardLayout>
             <div className="max-w-4xl mx-auto px-4 py-8">
+                <div className="mb-4">
+                    <a href="/configuracion/mcp-connector" className="text-sm text-indigo-600 hover:text-indigo-800 underline">
+                        Conector MCP (beta) →
+                    </a>
+                </div>
+
                 <h1 className="text-2xl font-bold text-gray-900 mb-6">Configuración General</h1>
 
                 <div className="bg-white shadow rounded-lg p-6">
