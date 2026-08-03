@@ -122,5 +122,11 @@ export function AuthMixin<TBase extends Ctor>(Base: TBase) {
     async getMisSucursales() {
       return this.request<SucursalesResponse>('/api/auth/mis-sucursales/');
     }
+
+    async activarConectorMCP() {
+      return this.request<{ username: string; password: string; created: boolean }>(
+        '/api/auth/mcp-connector/activar/', { method: 'POST' }
+      );
+    }
   };
 }
