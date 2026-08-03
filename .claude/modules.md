@@ -156,6 +156,12 @@
 | Compras | Registrar Compra · Historial · Proveedores |
 | Contabilidad & Tributación | Libro Diario · Plan de Cuentas |
 
+## ⚙️ Configuración
+
+| Ruta | Estado | Notas |
+|---|---|---|
+| `/configuracion/mcp-connector` | 🟡 Código listo, **SIN DESPLEGAR** | Botón self-service: cualquier `Administrador` genera (o rota) sus credenciales del conector MCP Premium llamando a `POST /api/auth/mcp-connector/activar/` (backend ya en prod). Gateo de rol: patrón `useAuth()`+`useEffect`+`router.replace('/configuracion')` (NO el prop `allowedRoles` de `DashboardLayout`, ese solo oculta/muestra links). Cliente API: `activarConectorMCP()` en `_auth.ts`. Link agregado en `/configuracion` ("Conector MCP (beta) →"). Plan: `docs/superpowers/plans/2026-08-02-mcp-conector-premium-multi-tenant-frontend.md` (Tasks 1-4 ejecutadas por un agente externo, verificadas commit-por-commit contra el diff real por Claude Code — sin desvíos). Tests: `src/__tests__/configuracion/MCPConnectorPage.test.tsx` (4/4); suite completa 170/170; `tsc --noEmit` limpio. Commits: `654bb5b`, `7cf135c`, `6697899` (pusheados a `origin/main`, working tree limpio). **Bloqueado para deploy:** persepolis tiene turno abierto (turno #68, Matriz-Cuenca, confirmado por query directa a la BD el 2026-08-02 ~23:xx UTC) — gate estricto de este repo (línea 10 de este `CLAUDE.md`). **Próxima sesión:** confirmar turno cerrado → correr Task 5 del plan (`npm run build && npx opennextjs-cloudflare build && npx wrangler deploy` + checklist de 4 criterios del Service Worker + smoke test de la página + esta misma entrada actualizada con la Version de Cloudflare). |
+
 ## 📊 Reportes
 
 | Ruta | Estado | Notas |
