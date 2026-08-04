@@ -13,10 +13,11 @@ import { ComprasMixin } from './_compras';
 import { GuiasMixin } from './_guias';
 import { ReportesMixin } from './_reportes';
 import { ContabilidadMixin } from './_contabilidad';
-
+import { GastosMixin } from './_gastos';
 // Compose all domain mixins into a single ApiClient class
-const ComposedApiClient = ContabilidadMixin(
-  ReportesMixin(
+const ComposedApiClient = GastosMixin(
+  ContabilidadMixin(
+    ReportesMixin(
     GuiasMixin(
       ComprasMixin(
         TercerosMixin(
@@ -37,6 +38,7 @@ const ComposedApiClient = ContabilidadMixin(
               )
             )
           )
+        )
         )
       )
     )
