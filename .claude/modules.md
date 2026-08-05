@@ -143,8 +143,10 @@
 |---|---|---|
 | `/contabilidad/libro-diario` | Completo | Asientos con filtros fecha; filas expandibles Debe/Haber (241 líneas) |
 | `/contabilidad/plan-cuentas` | Completo | Árbol jerárquico; modal CRUD; tipos de cuenta (339 líneas) |
+| `/gastos` | ✅ **IMPLEMENTADO, no desplegado** (2026-08-04) | Registrar/anular gastos (categoría fija RENTA/INSUMOS/SERVICIOS/OTRO, monto, fecha, sucursal, descripción opcional). Solo rol `Administrador`. Selector de sucursal real vía `getSucursalesList()` (mismo patrón que `reportes/ventas`). **Deliberadamente independiente de `AsientoContable`/Contabilidad** — ver spec `docs/superpowers/specs/2026-08-04-gastos-diarios-utilidad-design.md`. |
 
 - `api.getAsientos(params)`, `api.getPlanCuentas()` → `_contabilidad.ts`
+- `api.getGastos(params)`, `api.crearGasto(data)`, `api.anularGasto(id)`, `api.getReporteUtilidad(params)` → `_gastos.ts` (nuevo, `GastosMixin`)
 
 ## 🗂️ Menú lateral (`DashboardLayout.tsx`)
 
@@ -154,7 +156,7 @@
 | Productos | Listar · Agregar · Categorías · Combos (ícono `Gift`) |
 | Logística | Guías de Remisión |
 | Compras | Registrar Compra · Historial · Proveedores |
-| Contabilidad & Tributación | Libro Diario · Plan de Cuentas |
+| Contabilidad & Tributación | Registrar Gasto (`Administrador`) · Reporte de Utilidad (`Administrador`+`Contador`) · Libro Diario · Plan de Cuentas |
 
 ## ⚙️ Configuración
 
@@ -167,6 +169,7 @@
 | Ruta | Estado | Notas |
 |---|---|---|
 | `/reportes` | Pendiente mejoras | Cierre de caja, ventas del día, resumen de productos |
+| `/reportes/utilidad` | ✅ **IMPLEMENTADO, no desplegado** (2026-08-04) | Ingresos (Factura SRI + Venta interna) − Gastos, por rango de fechas + sucursal. Roles `Administrador`+`Contador`. Backend: `core/api_reportes.py::get_reporte_utilidad`. Plan: `docs/superpowers/plans/2026-08-04-gastos-diarios-utilidad.md` (Tasks 6-9). `tsc --noEmit` limpio, `npm run build` OK — verificado corriendo los comandos, no solo reportado por el agente que lo implementó. **Pendiente: deploy** (rsync+migrate_schemas backend, build+wrangler frontend con su propio gate de turno). |
 
 **Pendiente:** Cierre de caja por cajero · Ventas del día por sucursal · Exportar/filtrar visible · CSR obligatorio.
 
