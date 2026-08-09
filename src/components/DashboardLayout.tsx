@@ -140,6 +140,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 { name: 'Registrar Compra', href: '/compras/nueva', icon: <Plus className="w-4 h-4" /> },
                 { name: 'Historial de Compras', href: '/compras', icon: <ClipboardList className="w-4 h-4" /> },
                 { name: 'Proveedores', href: '/proveedores', icon: <Users className="w-4 h-4" /> },
+                { name: 'Clientes', href: '/clientes', icon: <Users className="w-4 h-4" />, allowedRoles: ['Administrador', 'Bodeguero', 'Vendedor'] },
             ]
         },
         {
