@@ -134,8 +134,10 @@
 | `/compras/nueva` | Completo | Formulario de registro de compra manual |
 | `/compras/importar` | Completo | **DESPLEGADO 2026-07-27 (Version `eb55bb45`):** importar compra pegando la clave de acceso SRI (49 dígitos) → preview con auto-mapeo de líneas contra el catálogo (aprendizaje por proveedor vía `CodigoProveedorProducto`) → operador resuelve pendientes (mapear existente / crear nuevo / omitir) → confirma. Reemplaza el viejo `upload_compra_xml` (roto). Hook `useImportCompra` (guard anti-doble-submit `confirmandoRef`) + `useComprasCatalogos` (carga sucursales/categorías/impuestos con estado de error, ya no falla en silencio). `ImportLineaRow` muestra qué decidió el operador por línea ("Nuevo: {nombre}" / "Omitida", con "Cambiar"/"Deshacer"). Diseño: `docs/superpowers/specs/2026-06-20-importacion-compras-xml-design.md`. Deploy: solo 6 assets nuevos, chunk del POS sin cambios (cero impacto en checkout). Smoke persepolis/la-huequita `/`,`/pos`,`/sw.js`,`/compras/importar` → 200. |
 | `/proveedores` | Completo | Gestión de proveedores (18KB) |
+| `/clientes` | Completo (Pendiente Deploy) | Directorio de clientes y cuentas por cobrar (saldo, abonar, historial de movimientos, límite de crédito). Roles: `Administrador`, `Bodeguero`, `Vendedor`. |
 
 - `api.getCompras()`, `api.crearCompra(payload)`, `api.getProveedores()`, `api.previewImportarCompra()`, `api.confirmarImportarCompra()` → `_compras.ts`
+- `api.getClientes()`, `api.crearCliente()`, `api.actualizarCliente()`, `api.abonarCliente()`, `api.getMovimientosCuenta()`, `api.setLimiteCredito()` → `_terceros.ts`
 
 ## 📒 Contabilidad
 
@@ -155,7 +157,7 @@
 | Inventario | Ajuste de Stock · Ingreso de Mercadería · Ajuste por Lote (ícono `Layers`) · Movimientos |
 | Productos | Listar · Agregar · Categorías · Combos (ícono `Gift`) |
 | Logística | Guías de Remisión |
-| Compras | Registrar Compra · Historial · Proveedores |
+| Compras | Registrar Compra · Historial · Proveedores · Clientes (`Administrador`, `Bodeguero`, `Vendedor`) |
 | Contabilidad & Tributación | Registrar Gasto (`Administrador`) · Reporte de Utilidad (`Administrador`+`Contador`) · Libro Diario · Plan de Cuentas |
 
 ## ⚙️ Configuración
