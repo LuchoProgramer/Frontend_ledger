@@ -1,3 +1,4 @@
+import type { Cliente, ClientesResponse, MovimientoCuenta } from '../types/clientes';
 import type { ProveedoresResponse } from '../types/proveedores';
 import type { ApiClientBase } from './_base';
 
@@ -12,7 +13,7 @@ export function TercerosMixin<TBase extends Ctor>(Base: TBase) {
       const q = new URLSearchParams();
       if (params?.page) q.append('page', params.page.toString());
       if (params?.search) q.append('search', params.search);
-      return this.request<any>(`/api/clientes/${q.toString() ? `?${q}` : ''}`);
+      return this.request<ClientesResponse>(`/api/clientes/${q.toString() ? `?${q}` : ''}`);
     }
 
     async getCliente(id: number) {
@@ -21,6 +22,26 @@ export function TercerosMixin<TBase extends Ctor>(Base: TBase) {
 
     async crearCliente(data: any) {
       return this.request<any>('/api/clientes/', { method: 'POST', body: JSON.stringify(data) });
+    }
+
+    async actualizarCliente(id: number, data: Partial<import('../types/clientes').ClienteFormData>) {
+      return this.request<Cliente>(`/api/clientes/${id}/`, { method: 'PATCH', body: JSON.stringify(data) });
+    }
+
+    async abonarCliente(id: number, data: { monto: string; metodo_pago: string }) {
+      return this.request<{ saldo_pendiente: string }>(`/api/clientes/${id}/abonar/`, {
+        method: 'POST', body: JSON.stringify(data),
+      });
+    }
+
+    async getMovimientosCuenta(id: number) {
+      return this.request<MovimientoCuenta[]>(`/api/clientes/${id}/movimientos_cuenta/`);
+    }
+
+    async setLimiteCredito(id: number, limiteCredito: string | null) {
+      return this.request<{ limite_credito: string | null }>(`/api/clientes/${id}/set_limite_credito/`, {
+        method: 'POST', body: JSON.stringify({ limite_credito: limiteCredito }),
+      });
     }
 
     /**

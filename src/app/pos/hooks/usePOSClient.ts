@@ -29,7 +29,7 @@ export function usePOSClient() {
     setSearching(true);
     try {
       const res = await apiClient.getClientes({ search: term });
-      setSearchResults(res.results || res.data || []);
+      setSearchResults((res.results || (res as any).data || []) as ClientData[]);
     } catch (e) { console.error(e); }
     finally { setSearching(false); }
   };
