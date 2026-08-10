@@ -50,5 +50,18 @@ export function GastosMixin<TBase extends Ctor>(Base: TBase) {
         utilidad_neta: number;
       }>(`/api/reportes/utilidad/?${q.toString()}`);
     }
+
+    async getReporteFormulario104(params: Record<string, any> = {}) {
+      const q = new URLSearchParams();
+      Object.keys(params).forEach(key => {
+        if (params[key] !== undefined && params[key] !== '') q.append(key, params[key]);
+      });
+      return this.request<{
+        ventas_por_tarifa: Array<{ tarifa_iva: string; base_imponible: string; iva_generado: string }>;
+        compras_por_tarifa: Array<{ tarifa_iva: string; base_imponible: string; iva_pagado: string }>;
+        retenciones_iva_efectuadas: string;
+        iva_a_pagar: string;
+      }>(`/api/reportes/formulario-104/?${q.toString()}`);
+    }
   };
 }

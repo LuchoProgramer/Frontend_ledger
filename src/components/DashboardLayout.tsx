@@ -163,6 +163,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             items: [
                 { name: 'Registrar Gasto', href: '/gastos', icon: <Briefcase className="w-4 h-4" />, allowedRoles: ['Administrador'] },
                 { name: 'Reporte de Utilidad', href: '/reportes/utilidad', icon: <TrendingUp className="w-4 h-4" />, allowedRoles: ['Administrador', 'Contador'] },
+                { name: 'Formulario 104', href: '/reportes/formulario-104', icon: <Calculator className="w-4 h-4" />, allowedRoles: ['Administrador', 'Contador'] },
                 { name: 'Libro Diario', href: '/contabilidad/libro-diario', icon: <Book className="w-4 h-4" /> },
                 { name: 'Plan de Cuentas', href: '/contabilidad/plan-cuentas', icon: <FileSpreadsheet className="w-4 h-4" /> },
                 { name: 'Retenciones', href: '/facturacion/retenciones', icon: <CreditCard className="w-4 h-4" /> },
