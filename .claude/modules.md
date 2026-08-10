@@ -158,7 +158,7 @@
 | Productos | Listar · Agregar · Categorías · Combos (ícono `Gift`) |
 | Logística | Guías de Remisión |
 | Compras | Registrar Compra · Historial · Proveedores · Clientes (`Administrador`, `Bodeguero`, `Vendedor`) |
-| Contabilidad & Tributación | Registrar Gasto (`Administrador`) · Reporte de Utilidad (`Administrador`+`Contador`) · Libro Diario · Plan de Cuentas |
+| Contabilidad & Tributación | Registrar Gasto (`Administrador`) · Reporte de Utilidad (`Administrador`+`Contador`) · Formulario 104 (`Administrador`+`Contador`) · Libro Diario · Plan de Cuentas |
 
 ## ⚙️ Configuración
 
@@ -172,6 +172,7 @@
 |---|---|---|
 | `/reportes` | Pendiente mejoras | Cierre de caja, ventas del día, resumen de productos |
 | `/reportes/utilidad` | ✅ **DESPLEGADO 2026-08-06** (Version `bade42b0-2cdc-44fd-80fc-defad7fa4319`) | Ingresos (Factura SRI + Venta interna) − Gastos, por rango de fechas + sucursal. Roles `Administrador`+`Contador`. Backend: `core/api_reportes.py::get_reporte_utilidad`. Plan: `docs/superpowers/plans/2026-08-04-gastos-diarios-utilidad.md` (Tasks 6-9). `tsc --noEmit` limpio, `npm run build` OK, smoke test del chunk real en prod (`persepolis`/`la-huequita`, `/`,`/pos`,`/sw.js`,`/gastos`,`/reportes/utilidad` → 200; chunk `gastos/page-f093ce82420ceab8.js` contiene "Registrar Gasto"/"RENTA"/"INSUMOS"). |
+| `/reportes/formulario-104` | Completo (pendiente deploy) | Reporte para declaración mensual de IVA (F104) con ventas y compras agrupadas por tarifa de IVA, retenciones efectuadas e IVA a pagar / crédito tributario. Roles: `Administrador`, `Contador`. Endpoint: `GET /api/reportes/formulario-104/`. Plan: `docs/superpowers/plans/2026-08-09-formulario-104.md`. |
 
 **Pendiente:** Cierre de caja por cajero · Ventas del día por sucursal · Exportar/filtrar visible · CSR obligatorio.
 
