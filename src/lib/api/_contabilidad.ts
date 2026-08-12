@@ -61,8 +61,8 @@ export function ContabilidadMixin<TBase extends Ctor>(Base: TBase) {
     }
 
     async createAuditoria(data: {
-      tipo: 'INICIO_TURNO' | 'FIN_TURNO' | 'ALEATORIO';
-      productos?: number[]; aleatorio_cantidad?: number; categoria_id?: number;
+      tipo: 'INICIO_TURNO' | 'FIN_TURNO';
+      productos?: number[]; categoria_id?: number;
     }) {
       return this.request<AuditoriaDetailResponse>('/api/conteo/auditorias/', {
         method: 'POST', body: JSON.stringify(data),

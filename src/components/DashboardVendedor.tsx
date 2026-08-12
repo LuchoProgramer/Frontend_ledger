@@ -137,9 +137,7 @@ export default function DashboardVendedor({ tenant }: DashboardVendedorProps) {
         // Traemos todos los productos (o filtrar por categoría más tarde)
         const auditRes = await api.createAuditoria({
           tipo: 'INICIO_TURNO',
-          // productos: [] // Empty implies all logic in backend or default? Backend defaults to empty list. 
-          // Backend logic: if empty, defaults to ALL if tipo != ALEATORIO. 
-          // Let's assume backend handles logic to select products for Audit.
+          // Sin `productos`: el backend audita todos los productos activos de la sucursal.
         })
 
         if (auditRes) {
