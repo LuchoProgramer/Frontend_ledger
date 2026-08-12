@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { esAjustable, idsAjustables } from './_ajustes';
+import { esAjustable, idsAjustables, mensajeNoContados, mensajeOmitidos } from './_ajustes';
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -114,8 +114,9 @@ export default function AuditoriaDetailPage(props: PageProps) {
         if (!confirm('¿Finalizar la auditoría? Esto cerrará el conteo y generará el reporte final.')) return;
         try {
             await guardarAvance();
-            await apiClient.finalizeAuditoria(Number(id));
-            alert('Auditoría finalizada correctamente.');
+            const res = await apiClient.finalizeAuditoria(Number(id)) as any;
+            const avisoNoContados = mensajeNoContados(res?.no_contados || []);
+            alert(avisoNoContados ? `Auditoría finalizada.\n${avisoNoContados}` : 'Auditoría finalizada correctamente.');
             router.push('/inventario/auditoria');
         } catch (error: any) {
             alert(error.message || 'Error al finalizar');
@@ -138,7 +139,9 @@ export default function AuditoriaDetailPage(props: PageProps) {
         try {
             const res = await apiClient.aplicarAjustesAuditoria(Number(id), ids);
             await loadDetalle();
-            alert(`${res.ajustados.length} ajuste${res.ajustados.length !== 1 ? 's' : ''} aplicado${res.ajustados.length !== 1 ? 's' : ''} al stock.`);
+            const avisoOmitidos = mensajeOmitidos(res.omitidos || []);
+            const base = `${res.ajustados.length} ajuste${res.ajustados.length !== 1 ? 's' : ''} aplicado${res.ajustados.length !== 1 ? 's' : ''} al stock.`;
+            alert(avisoOmitidos ? `${base}\n${avisoOmitidos}` : base);
         } catch (error: any) {
             alert(error.message || 'Error al aplicar ajustes');
         } finally {
