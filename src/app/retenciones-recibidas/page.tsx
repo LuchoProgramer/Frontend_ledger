@@ -12,7 +12,7 @@ export default function RetencionesRecibidasPage() {
   const { user, loading: authLoading, isAdmin } = useAuth();
   const router = useRouter();
   const puedeVer = isAdmin || (user?.groups ?? []).includes('Contador');
-  const { retenciones, loading, error, importar } = useRetencionesRecibidas();
+  const { retenciones, loading, error, importar, crearManual } = useRetencionesRecibidas();
   const [modalAbierto, setModalAbierto] = useState(false);
 
   useEffect(() => {
@@ -47,9 +47,16 @@ export default function RetencionesRecibidasPage() {
         <div className="space-y-3">
           {retenciones.map((r) => (
             <div key={r.id} className="p-4 border rounded-lg">
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm items-center">
                 <span className="font-medium">{r.razon_social_agente_retencion}</span>
-                <span className="text-gray-500">{r.fecha_emision}</span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    r.origen === 'SRI' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {r.origen === 'SRI' ? 'SRI' : 'Manual'}
+                  </span>
+                  <span className="text-gray-500">{r.fecha_emision}</span>
+                </div>
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 {r.numero_documento} — sobre factura {r.factura_id ? r.numero_factura_sustento : `${r.numero_factura_sustento} (no registrada en el sistema)`}
@@ -60,9 +67,10 @@ export default function RetencionesRecibidasPage() {
         </div>
 
         {modalAbierto && (
-          <ImportarRetencionModal onImportar={importar} onClose={() => setModalAbierto(false)} />
+          <ImportarRetencionModal onImportar={importar} onCrearManual={crearManual} onClose={() => setModalAbierto(false)} />
         )}
       </div>
     </DashboardLayout>
   );
 }
+
