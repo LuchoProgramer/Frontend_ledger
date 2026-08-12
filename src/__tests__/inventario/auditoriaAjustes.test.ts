@@ -9,6 +9,8 @@
 import {
   esAjustable,
   idsAjustables,
+  mensajeNoContados,
+  mensajeOmitidos,
   type AuditoriaItem,
 } from '@/app/inventario/auditoria/[id]/_ajustes';
 
@@ -47,5 +49,43 @@ describe('idsAjustables', () => {
 
   it('devuelve lista vacía si nada es ajustable', () => {
     expect(idsAjustables([{ id: 1, conteo_fisico: 5, diferencia: 0, revisado: false }])).toEqual([]);
+  });
+});
+
+describe('mensajeNoContados', () => {
+  it('vacío si no quedó nada sin contar', () => {
+    expect(mensajeNoContados([])).toBe('');
+  });
+
+  it('lista los productos que quedaron sin contar', () => {
+    const msg = mensajeNoContados([
+      { id: 1, producto: 'Cristal' },
+      { id: 2, producto: 'Pozo' },
+    ]);
+    expect(msg).toContain('2 productos');
+    expect(msg).toContain('Cristal');
+    expect(msg).toContain('Pozo');
+  });
+
+  it('singular para exactamente 1', () => {
+    expect(mensajeNoContados([{ id: 1, producto: 'Cristal' }])).toContain('1 producto sin contar');
+  });
+});
+
+describe('mensajeOmitidos', () => {
+  it('vacío si no hubo omitidos', () => {
+    expect(mensajeOmitidos([])).toBe('');
+  });
+
+  it('agrupa por motivo con su conteo', () => {
+    const msg = mensajeOmitidos([
+      { id: 1, motivo: 'no contado' },
+      { id: 2, motivo: 'no contado' },
+      { id: 3, motivo: 'sin diferencia' },
+      { id: 4, motivo: 'ya aplicado' },
+    ]);
+    expect(msg).toContain('2 no contado');
+    expect(msg).toContain('1 sin diferencia');
+    expect(msg).toContain('1 ya aplicado');
   });
 });
