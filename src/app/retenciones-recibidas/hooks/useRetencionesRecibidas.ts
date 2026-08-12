@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getApiClient } from '@/lib/api';
-import type { RetencionRecibida } from '@/lib/types/retenciones';
+import type { RetencionRecibida, CrearRetencionManualPayload } from '@/lib/types/retenciones';
 
 export function useRetencionesRecibidas() {
   const [retenciones, setRetenciones] = useState<RetencionRecibida[]>([]);
@@ -29,5 +29,12 @@ export function useRetencionesRecibidas() {
     await cargar();
   }, [cargar]);
 
-  return { retenciones, loading, error, importar, recargar: cargar };
+  const crearManual = useCallback(async (payload: CrearRetencionManualPayload) => {
+    const api = getApiClient();
+    await api.crearRetencionRecibidaManual(payload);
+    await cargar();
+  }, [cargar]);
+
+  return { retenciones, loading, error, importar, crearManual, recargar: cargar };
 }
+
