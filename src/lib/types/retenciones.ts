@@ -45,3 +45,32 @@ export interface RetencionesResponse {
     previous?: string | null;
     results?: Retencion[];
 }
+
+export interface DetalleRetencionRecibida {
+  codigo_impuesto: '1' | '2' | '6';
+  codigo_retencion: string;
+  base_imponible: string;
+  porcentaje_retener: string;
+  valor_retenido: string;
+}
+
+export interface RetencionRecibida {
+  id: number;
+  numero_documento: string;
+  fecha_emision: string;
+  periodo_fiscal: string;
+  ruc_agente_retencion: string;
+  razon_social_agente_retencion: string;
+  cliente_id: number | null;
+  numero_factura_sustento: string;
+  factura_id: number | null;
+  total_retenido: string;
+  detalles: DetalleRetencionRecibida[];
+}
+
+export interface RetencionesRecibidasResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: RetencionRecibida[];
+}

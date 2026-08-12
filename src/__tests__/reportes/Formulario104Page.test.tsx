@@ -34,7 +34,7 @@ describe('ReporteFormulario104Page', () => {
     mockGetReporte.mockResolvedValue({
       ventas_por_tarifa: [{ tarifa_iva: '15.00', base_imponible: '100.00', iva_generado: '15.00' }],
       compras_por_tarifa: [],
-      retenciones_iva_efectuadas: '0.00',
+      retenciones_iva_recibidas: '0.00',
       iva_a_pagar: '15.00',
     });
     render(<ReporteFormulario104Page />);

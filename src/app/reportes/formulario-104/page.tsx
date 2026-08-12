@@ -21,7 +21,7 @@ export default function ReporteFormulario104Page() {
   const [reporte, setReporte] = useState<{
     ventas_por_tarifa: Array<{ tarifa_iva: string; base_imponible: string; iva_generado: string }>;
     compras_por_tarifa: Array<{ tarifa_iva: string; base_imponible: string; iva_pagado: string }>;
-    retenciones_iva_efectuadas: string;
+    retenciones_iva_recibidas: string;
     iva_a_pagar: string;
   } | null>(null);
 
@@ -105,8 +105,8 @@ export default function ReporteFormulario104Page() {
               ))}
             </div>
             <div className="p-4 border rounded-lg">
-              <p className="text-sm text-gray-500">Retenciones de IVA efectuadas</p>
-              <p className="text-lg font-bold">${reporte.retenciones_iva_efectuadas}</p>
+              <p className="text-sm text-gray-500">Retenciones de IVA recibidas</p>
+              <p className="text-lg font-bold">${reporte.retenciones_iva_recibidas}</p>
             </div>
             <div className="p-4 border rounded-lg">
               <p className="text-sm text-gray-500">{Number(reporte.iva_a_pagar) >= 0 ? 'IVA a pagar' : 'Crédito tributario'}</p>
