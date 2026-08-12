@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface Props {
   sucursales: { id: number; nombre: string }[];
@@ -13,6 +13,15 @@ interface Props {
 export default function ImportClaveStep({ sucursales, cargandoCatalogos, buscando, error, onBuscar }: Props) {
   const [clave, setClave] = useState('');
   const [sucursalId, setSucursalId] = useState<number | null>(sucursales[0]?.id ?? null);
+
+  // `sucursales` siempre llega vacío en el primer render (se carga async vía
+  // useComprasCatalogos) -- sin este efecto, sucursalId se queda en null para
+  // siempre y el botón de abajo nunca se habilita, sin ningún error visible.
+  useEffect(() => {
+    if (sucursalId === null && sucursales.length > 0) {
+      setSucursalId(sucursales[0].id);
+    }
+  }, [sucursales, sucursalId]);
 
   const claveValida = /^\d{49}$/.test(clave);
 
