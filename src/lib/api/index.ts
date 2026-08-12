@@ -14,8 +14,10 @@ import { GuiasMixin } from './_guias';
 import { ReportesMixin } from './_reportes';
 import { ContabilidadMixin } from './_contabilidad';
 import { GastosMixin } from './_gastos';
+import { RetencionesMixin } from './_retenciones';
 // Compose all domain mixins into a single ApiClient class
-const ComposedApiClient = GastosMixin(
+const ComposedApiClient = RetencionesMixin(
+  GastosMixin(
   ContabilidadMixin(
     ReportesMixin(
     GuiasMixin(
@@ -43,6 +45,7 @@ const ComposedApiClient = GastosMixin(
       )
     )
   )
+)
 );
 
 export class ApiClient extends ComposedApiClient {}
