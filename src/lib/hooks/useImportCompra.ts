@@ -15,7 +15,7 @@ export interface LineaEnEdicion extends ImportLineaPreview {
   cantidadResuelta: number;
   factorEmpaqueEditado: number;
   guardarCodigo: boolean;
-  nuevoProducto: { nombre: string; categoria_id: number | null; impuesto_id: number | null; precio_venta: number } | null;
+  nuevoProducto: { nombre: string; categoria_id: number | null; impuesto_id: number | null; precio_venta: number; activo: boolean } | null;
 }
 
 function lineaAEdicion(l: ImportLineaPreview): LineaEnEdicion {

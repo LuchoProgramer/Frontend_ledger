@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import DashboardLayout from '@/components/DashboardLayout';
 import { getApiClient } from '@/lib/api';
 import { Proveedor } from '@/lib/types/compras';
@@ -260,7 +261,15 @@ export default function NuevaCompraPage() {
     return (
         <DashboardLayout>
             <div className="p-6 max-w-5xl mx-auto">
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">Registrar Nueva Compra</h1>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                    <h1 className="text-2xl font-bold text-gray-800">Registrar Nueva Compra</h1>
+                    <Link
+                        href="/compras/importar"
+                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-center whitespace-nowrap"
+                    >
+                        Importar por clave de acceso
+                    </Link>
+                </div>
 
                 <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">

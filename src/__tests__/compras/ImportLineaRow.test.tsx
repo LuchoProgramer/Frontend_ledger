@@ -27,7 +27,7 @@ describe('ImportLineaRow — feedback visual de la resolucion', () => {
     const linea: LineaEnEdicion = {
       ...base,
       accion: 'crear',
-      nuevoProducto: { nombre: 'Fosforos Caja', categoria_id: 1, impuesto_id: null, precio_venta: 15 },
+      nuevoProducto: { nombre: 'Fosforos Caja', categoria_id: 1, impuesto_id: null, precio_venta: 15, activo: true },
     };
     render(
       <table><tbody>

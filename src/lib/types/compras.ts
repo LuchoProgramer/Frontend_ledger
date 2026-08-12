@@ -93,6 +93,7 @@ export interface ImportLineaPayload {
         categoria_id: number | null;
         impuesto_id: number | null;
         precio_venta: number;
+        activo: boolean;
     };
     cantidad: number;
     factor_empaque: number;
