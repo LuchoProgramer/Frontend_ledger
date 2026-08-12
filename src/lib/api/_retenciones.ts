@@ -1,4 +1,6 @@
-import type { RetencionRecibida, RetencionesRecibidasResponse } from '../types/retenciones';
+import type {
+  RetencionRecibida, RetencionesRecibidasResponse, CrearRetencionManualPayload,
+} from '../types/retenciones';
 import type { ApiClientBase } from './_base';
 
 type Ctor<T = ApiClientBase> = new (...args: any[]) => T;
@@ -20,5 +22,13 @@ export function RetencionesMixin<TBase extends Ctor>(Base: TBase) {
         body: JSON.stringify({ clave_acceso: claveAcceso }),
       });
     }
+
+    async crearRetencionRecibidaManual(payload: CrearRetencionManualPayload) {
+      return this.request<RetencionRecibida>('/api/ventas/retenciones-recibidas/manual/', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    }
   };
 }
+

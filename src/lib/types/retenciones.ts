@@ -56,6 +56,7 @@ export interface DetalleRetencionRecibida {
 
 export interface RetencionRecibida {
   id: number;
+  origen: 'SRI' | 'MANUAL';
   numero_documento: string;
   fecha_emision: string;
   periodo_fiscal: string;
@@ -74,3 +75,23 @@ export interface RetencionesRecibidasResponse {
   previous: string | null;
   results: RetencionRecibida[];
 }
+
+export interface DetalleRetencionRecibidaInput {
+  codigo_impuesto: '1' | '2' | '6';
+  codigo_retencion: string;
+  base_imponible: string;
+  porcentaje_retener: string;
+  valor_retenido: string;
+}
+
+export interface CrearRetencionManualPayload {
+  clave_acceso: string;
+  numero_documento: string;
+  fecha_emision: string;
+  periodo_fiscal: string;
+  ruc_agente_retencion: string;
+  razon_social_agente_retencion: string;
+  numero_factura_sustento: string;
+  detalles: DetalleRetencionRecibidaInput[];
+}
+
