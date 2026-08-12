@@ -19,6 +19,7 @@ jest.mock('@/lib/api', () => ({
   getApiClient: () => ({
     getRetencionesRecibidas: (...args: any[]) => mockGetRetenciones(...args),
     importarRetencionRecibida: (...args: any[]) => mockImportar(...args),
+    crearRetencionRecibidaManual: jest.fn(),
   }),
 }));
 
@@ -78,4 +79,30 @@ describe('RetencionesRecibidasPage', () => {
     expect(await screen.findByText('La clave de acceso debe tener 49 dígitos.')).toBeTruthy();
     expect(mockImportar).not.toHaveBeenCalled();
   });
+
+  it('muestra la etiqueta de origen en cada fila', async () => {
+    mockGetRetenciones.mockResolvedValue({
+      count: 2, next: null, previous: null,
+      results: [
+        {
+          id: 1, origen: 'SRI', numero_documento: '001-001-000022947', fecha_emision: '2026-07-31',
+          periodo_fiscal: '07/2026', ruc_agente_retencion: '1791350529001',
+          razon_social_agente_retencion: 'ECUAEMPAQUES S.A', cliente_id: null,
+          numero_factura_sustento: '001-002-000000005', factura_id: 46,
+          total_retenido: '155.25', detalles: [],
+        },
+        {
+          id: 2, origen: 'MANUAL', numero_documento: '001-001-000022305', fecha_emision: '2026-04-23',
+          periodo_fiscal: '04/2026', ruc_agente_retencion: '1791350529001',
+          razon_social_agente_retencion: 'ECUAEMPAQUES S.A', cliente_id: null,
+          numero_factura_sustento: '001-001-000000001', factura_id: null,
+          total_retenido: '155.25', detalles: [],
+        },
+      ],
+    });
+    render(<RetencionesRecibidasPage />);
+    await waitFor(() => expect(screen.getByText('SRI')).toBeTruthy());
+    expect(screen.getByText('Manual')).toBeTruthy();
+  });
 });
+
